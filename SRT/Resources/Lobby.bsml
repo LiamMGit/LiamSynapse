@@ -1,0 +1,8 @@
+<bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
+    <vertical anchor-max-y='1.2' bg='round-rect-panel' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'>
+        <scroll-view id='scrollview' preferred-height='60' preferred-width='120'>
+            <vertical id='textbox' preferred-width='100' vertical-fit='PreferredSize'>
+            </vertical>
+        </scroll-view>
+    </vertical>
+</bg>

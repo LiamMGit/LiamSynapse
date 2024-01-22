@@ -1,0 +1,9 @@
+﻿{
+  "id": "SRT",
+  "name": "SRT",
+  "author": "Aeroluna",
+  "description": "Bring your map to life!",
+  "dependsOn": {
+    "BSIPA": "^4.2.2"
+  }
+}
