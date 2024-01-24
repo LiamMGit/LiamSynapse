@@ -59,10 +59,10 @@ namespace SRT.Views
             RectTransform rect = (RectTransform)_input.transform;
             rect.anchorMin = new Vector2(0, 0);
             rect.anchorMax = new Vector2(1, 1);
-            rect.offsetMin = new Vector2(20, 6.83f);
-            rect.offsetMax = new Vector2(-20, -65.17f);
+            rect.offsetMin = new Vector2(20, 0);
+            rect.offsetMax = new Vector2(-20, -70);
             _input._keyboardPositionOffset = new Vector3(0, 60, 0);
-            _input._textLengthLimit = 100;
+            _input._textLengthLimit = 200;
             _instantiator.InstantiateComponent<KeyboardOpener>(_input.gameObject);
             Transform placeholderText = rect.Find("PlaceholderText");
 
@@ -133,7 +133,9 @@ namespace SRT.Views
                 bool scrollToEnd = (end < 0) ||
                     (Mathf.Abs(end - _scrollView._destinationPos) < 0.01f);
 
-                foreach (ChatMessage message in _messageQueue)
+                ChatMessage[] queue = _messageQueue.ToArray();
+                _messageQueue.Clear();
+                foreach (ChatMessage message in queue)
                 {
                     string content;
                     bool rich;
@@ -167,6 +169,7 @@ namespace SRT.Views
                                 (RectTransform)_textObject.transform,
                                 content,
                                 Vector2.zero);
+                        text.enableWordWrapping = true;
                         text.richText = rich;
                         text.alignment = TextAlignmentOptions.Left;
                         text.fontSize = 4;
@@ -184,8 +187,6 @@ namespace SRT.Views
             {
                 _log.Error(e);
             }
-
-            _messageQueue.Clear();
         }
 
         private void OnMessageRecieved(ChatMessage message)

@@ -17,7 +17,7 @@ namespace SRT.Managers
             IDifficultyBeatmap difficultyBeatmap,
             IPreviewBeatmapLevel previewBeatmapLevel,
             OverrideEnvironmentSettings? overrideEnvironmentSettings,
-            ColorScheme overrideColorScheme,
+            ColorScheme? overrideColorScheme,
             GameplayModifiers gameplayModifiers,
             PlayerSpecificSettings playerSpecificSettings,
             PracticeSettings? practiceSettings,

@@ -59,7 +59,7 @@ namespace SRT.HarmonyPatches
 
         [AffinityPostfix]
         [AffinityPatch(typeof(PauseMenuManager), nameof(PauseMenuManager.ShowMenu))]
-        private void ResetWarning()
+        private void ResetWarning(TextMeshProUGUI ____backButtonText)
         {
             _warningShown = false;
             _warningText.SetActive(false);

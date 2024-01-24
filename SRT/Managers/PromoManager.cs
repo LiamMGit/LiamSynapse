@@ -30,6 +30,7 @@ namespace SRT.Managers
         private Listing? _listing;
 
         private ImageViewRainbowController _rainbow = null!;
+        private GameObject _originalBanner = null!;
         private GameObject _promoBanner = null!;
         private ImageView _imageView = null!;
         private TextMeshProUGUI _textMesh = null!;
@@ -60,6 +61,7 @@ namespace SRT.Managers
             GameObject newObject = newButton.gameObject;
             Object.Destroy(newObject.GetComponent<MusicPackPromoBanner>());
             _promoBanner = newObject;
+            _originalBanner = original;
 
             SelectableStateController stateController =
                 newObject.GetComponent<NoTransitionButtonSelectableStateController>();
@@ -90,7 +92,6 @@ namespace SRT.Managers
 
             newObject.name = "SRTPromoBanner";
 
-            original.SetActive(false);
             newObject.SetActive(false);
 
             _listingManager.ListingFound += OnListingFound;
@@ -103,6 +104,7 @@ namespace SRT.Managers
         public void OnListingFound(Listing listing)
         {
             _listing = listing;
+            _originalBanner.SetActive(false);
             _promoBanner.SetActive(true);
         }
 

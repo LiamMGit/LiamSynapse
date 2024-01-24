@@ -53,11 +53,7 @@ namespace SRT.Managers
                 return;
             }
 
-            using MemoryStream stream = new();
-            using BinaryWriter writer = new(stream);
-            writer.Write((byte)ServerOpcode.ChatMessage);
-            writer.Write(message);
-            await _networkManager.Send(stream.ToArray());
+            await _networkManager.SendString(message, ServerOpcode.ChatMessage);
         }
 
         public void RefreshMotd()

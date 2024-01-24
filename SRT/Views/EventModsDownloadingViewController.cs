@@ -77,6 +77,8 @@ namespace SRT.Views
         protected override GameObject Error => _error;
         #endregion
 
+        internal bool DownloadFinished { get; private set; }
+
         [UsedImplicitly]
         [Inject]
         private void Construct(SiraLog log)

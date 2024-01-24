@@ -41,7 +41,6 @@ namespace SRT.Managers
         // Dont need notification if we are already connecting
         private void OnConnecting(Stage stage, int _)
         {
-            gameObject.SetActive(false);
             _timer = 0;
         }
 

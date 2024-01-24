@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using HMUI;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using SRT.Managers;
 using SRT.Models;
 using UnityEngine;
@@ -14,15 +17,23 @@ namespace SRT.Views
 {
     public class EventFlowCoordinator : FlowCoordinator
     {
+        private static readonly JsonSerializerSettings _jsonSerializerSettings = new()
+        {
+            ContractResolver = new DefaultContractResolver()
+            {
+                NamingStrategy = new CamelCaseNamingStrategy()
+            }
+        };
+
         private GameplaySetupViewController _gameplaySetupViewController = null!;
+        private ResultsViewController _resultsViewController = null!;
         private EventLobbyViewController _lobbyViewController = null!;
         private EventLoadingViewController _loadingViewController = null!;
         private EventModsViewController _modsViewController = null!;
         private EventModsDownloadingViewController _modsDownloadingViewController = null!;
         private EventMapDownloadingViewController _mapDownloadingViewController = null!;
         private SimpleDialogPromptViewController _simpleDialogPromptViewController = null!;
-        private MenuTransitionsHelper _menuTransitionsHelper = null!;
-        private HeckIntegrationManager? _heckIntegrationManager;
+        private LevelStartManager _levelStartManager = null!;
         private NetworkManager _networkManager = null!;
         private Listing _listing = null!;
 
@@ -56,26 +67,26 @@ namespace SRT.Views
         [UsedImplicitly]
         private void Construct(
             GameplaySetupViewController gameplaySetupViewController,
+            ResultsViewController resultsViewController,
             EventLobbyViewController lobbyViewController,
             EventLoadingViewController loadingViewController,
             EventModsViewController modsViewController,
             EventModsDownloadingViewController modsDownloadingViewController,
             EventMapDownloadingViewController mapDownloadingViewController,
             SimpleDialogPromptViewController simpleDialogPromptViewController,
-            MenuTransitionsHelper menuTransitionsHelper,
+            LevelStartManager levelStartManager,
             ListingManager listingManager,
-            NetworkManager networkManager,
-            [InjectOptional] HeckIntegrationManager? heckIntegrationManager)
+            NetworkManager networkManager)
         {
             _gameplaySetupViewController = gameplaySetupViewController;
+            _resultsViewController = resultsViewController;
             _lobbyViewController = lobbyViewController;
             _loadingViewController = loadingViewController;
             _modsViewController = modsViewController;
             _modsDownloadingViewController = modsDownloadingViewController;
             _mapDownloadingViewController = mapDownloadingViewController;
             _simpleDialogPromptViewController = simpleDialogPromptViewController;
-            _menuTransitionsHelper = menuTransitionsHelper;
-            _heckIntegrationManager = heckIntegrationManager;
+            _levelStartManager = levelStartManager;
             listingManager.ListingFound += n => _listing = n;
             _networkManager = networkManager;
         }
@@ -107,11 +118,12 @@ namespace SRT.Views
                     else
                     {
                         ProvideInitialViewControllers(_loadingViewController);
-                        _mapDownloadingViewController.OnStartLevel += StartLevel;
+                        _mapDownloadingViewController.MapDownloaded += OnMapDownloaded;
+                        _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
                         _networkManager.PlayStatusUpdated += OnPlayStatusUpdated;
                         _networkManager.Connecting += OnConnecting;
                         _networkManager.Disconnected += OnDisconnected;
-                        _networkManager.Connect();
+                        _ = _networkManager.RunAsync();
                     }
                 }
             }
@@ -123,8 +135,9 @@ namespace SRT.Views
             {
                 IsActive = false;
                 _mapDownloadingViewController.Cancel();
+                _mapDownloadingViewController.MapDownloaded -= OnMapDownloaded;
+                _resultsViewController.continueButtonPressedEvent -= HandleResultsViewControllerContinueButtonPressed;
                 _modsViewController.didAcceptEvent -= OnAcceptModsDownload;
-                _mapDownloadingViewController.OnStartLevel -= StartLevel;
                 _networkManager.PlayStatusUpdated -= OnPlayStatusUpdated;
                 _networkManager.Connecting -= OnConnecting;
                 _networkManager.Disconnected -= OnDisconnected;
@@ -132,48 +145,57 @@ namespace SRT.Views
             }
         }
 
-        private void StartLevel(IDifficultyBeatmap difficultyBeatmap, IPreviewBeatmapLevel previewBeatmapLevel)
+        public override void TransitionDidFinish()
         {
-            GameplayModifiers modifiers = new()
+            base.TransitionDidFinish();
+            while (!_isInTransition && _transitionFinished.Count > 0)
             {
-                _noFailOn0Energy = true
-            };
-            if (_heckIntegrationManager != null)
-            {
-                _heckIntegrationManager.StartPlayViewInterruptedLevel(
-                    "screw yo analytics",
-                    difficultyBeatmap,
-                    previewBeatmapLevel,
-                    null, // no environment override
-                    _gameplaySetupViewController.colorSchemesSettings.GetOverrideColorScheme(), // TODO: make this toggleable by event coordinator
-                    modifiers, // TODO: allow event coordinator to define modifiers
-                    _gameplaySetupViewController.playerSettings,
-                    null,
-                    "Quit",
-                    false,
-                    false,
-                    null,
-                    null,
-                    null);
+                _transitionFinished.Dequeue().Invoke();
             }
-            else
+        }
+
+        public override void TopViewControllerWillChange(ViewController oldViewController, ViewController newViewController, ViewController.AnimationType animationType)
+        {
+            switch (newViewController)
             {
-                _menuTransitionsHelper.StartStandardLevel(
-                    "screw yo analytics",
-                    difficultyBeatmap,
-                    previewBeatmapLevel,
-                    null, // no environment override
-                    _gameplaySetupViewController.colorSchemesSettings
-                        .GetOverrideColorScheme(), // TODO: make this toggleable by event coordinator
-                    modifiers, // TODO: allow event coordinator to define modifiers
-                    _gameplaySetupViewController.playerSettings,
-                    null,
-                    "Quit",
-                    false,
-                    false,
-                    null,
-                    null,
-                    null);
+                case EventLobbyViewController:
+                    SetLeftScreenViewController(_gameplaySetupViewController, animationType);
+                    break;
+                default:
+                    SetLeftScreenViewController(null, animationType);
+                    SetRightScreenViewController(null, animationType);
+                    SetBottomScreenViewController(null, animationType);
+                    break;
+            }
+
+            switch (newViewController)
+            {
+                case EventLobbyViewController:
+                    SetLeftScreenViewController(_gameplaySetupViewController, animationType);
+                    SetTitle(_listing.Title, animationType);
+                    showBackButton = true;
+                    break;
+                case SimpleDialogPromptViewController:
+                    SetTitle(null, animationType);
+                    showBackButton = false;
+                    break;
+                case EventLoadingViewController:
+                case EventMapDownloadingViewController:
+                case EventModsDownloadingViewController:
+                    SetTitle(_listing.Title, animationType);
+                    showBackButton = true;
+                    break;
+                default:
+                    showBackButton = false;
+                    break;
+            }
+        }
+
+        public override void BackButtonWasPressed(ViewController topView)
+        {
+            if (!topView.isInTransition)
+            {
+                didFinishEvent?.Invoke(this);
             }
         }
 
@@ -194,18 +216,14 @@ namespace SRT.Views
                 if (topViewController == _loadingViewController)
                 {
                     ReplaceTopViewController(
-                        playStatus == 0 ? _lobbyViewController : _mapDownloadingViewController,
-                        null,
+                        _lobbyViewController,
+                        playStatus == 1 ? TryStartLevel : null,
                         ViewController.AnimationType.In,
                         ViewController.AnimationDirection.Vertical);
                 }
                 else if (topViewController == _lobbyViewController && playStatus == 1)
                 {
-                    ReplaceTopViewController(
-                        _mapDownloadingViewController,
-                        null,
-                        ViewController.AnimationType.In,
-                        ViewController.AnimationDirection.Vertical);
+                    TryStartLevel();
                 }
             };
         }
@@ -251,57 +269,102 @@ namespace SRT.Views
             };
         }
 
-        public override void TransitionDidFinish()
+        private void TryStartLevel()
         {
-            base.TransitionDidFinish();
-            if (_transitionFinished.Count > 0)
+            TransitionFinished += () =>
             {
-                _transitionFinished.Dequeue().Invoke();
-            }
+                if (_mapDownloadingViewController.BeatmapLevel != null)
+                {
+                    (IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview) beatmapLevel = _mapDownloadingViewController.BeatmapLevel.Value;
+                    _levelStartManager.StartLevel(beatmapLevel.Difficulty, beatmapLevel.Preview, HandleLevelDidFinish);
+                }
+                else
+                {
+                    ReplaceTopViewController(
+                        _mapDownloadingViewController,
+                        null,
+                        ViewController.AnimationType.In,
+                        ViewController.AnimationDirection.Vertical);
+                }
+            };
         }
 
-        public override void TopViewControllerWillChange(ViewController oldViewController, ViewController newViewController, ViewController.AnimationType animationType)
+        private void OnMapDownloaded((IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview) beatmapLevel)
         {
-            if (newViewController == _lobbyViewController)
+            TransitionFinished += () =>
             {
-                SetLeftScreenViewController(_gameplaySetupViewController, animationType);
-            }
-
-            if (newViewController == _simpleDialogPromptViewController)
-            {
-                SetTitle(null, animationType);
-                showBackButton = false;
-            }
+                if (topViewController == _mapDownloadingViewController)
+                {
+                    ReplaceTopViewController(
+                        _lobbyViewController,
+                        () => _levelStartManager.StartLevel(beatmapLevel.Difficulty, beatmapLevel.Preview, HandleLevelDidFinish),
+                        ViewController.AnimationType.In,
+                        ViewController.AnimationDirection.Vertical);
+                }
+            };
         }
 
-        public override void BackButtonWasPressed(ViewController topView)
+        private void HandleResultsViewControllerContinueButtonPressed(ResultsViewController viewController)
         {
-            if (!topView.isInTransition)
+            DismissViewController(viewController, ViewController.AnimationDirection.Horizontal, () => viewController._restartButton.gameObject.SetActive(true));
+        }
+
+        private void HandleLevelDidFinish(
+            StandardLevelScenesTransitionSetupDataSO standardLevelScenesTransitionSetupData,
+            LevelCompletionResults levelCompletionResults)
+        {
+            IDifficultyBeatmap difficultyBeatmap = standardLevelScenesTransitionSetupData.difficultyBeatmap;
+            IReadonlyBeatmapData transformedBeatmapData = standardLevelScenesTransitionSetupData.transformedBeatmapData;
+            if (levelCompletionResults.levelEndStateType is not LevelCompletionResults.LevelEndStateType.Failed
+                and not LevelCompletionResults.LevelEndStateType.Cleared)
             {
-                didFinishEvent?.Invoke(this);
+                SubmitScore(-1);
+                return;
             }
-        }
-    }
 
-    internal class EventFlowCoordinatorFactory : IFactory<EventFlowCoordinator>
-    {
-        private readonly IInstantiator _instantiator;
-        private readonly MainFlowCoordinator _mainFlowCoordinator;
+            ////this._menuLightsManager.SetColorPreset((levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared) ? this._resultsClearedLightsPreset : this._resultsFailedLightsPreset, true);
+            _resultsViewController.Init(levelCompletionResults, transformedBeatmapData, difficultyBeatmap, false, false);
+            _resultsViewController._restartButton.gameObject.SetActive(false);
+            TransitionFinished += () => PresentViewController(
+                _resultsViewController,
+                null,
+                ViewController.AnimationDirection.Horizontal,
+                true);
 
-        [UsedImplicitly]
-        private EventFlowCoordinatorFactory(IInstantiator instantiator, MainFlowCoordinator mainFlowCoordinator)
-        {
-            _instantiator = instantiator;
-            _mainFlowCoordinator = mainFlowCoordinator;
+            SubmitScore(levelCompletionResults.modifiedScore);
         }
 
-        public EventFlowCoordinator Create()
+        private void SubmitScore(int score)
         {
-            GameObject gameObject = new(nameof(EventFlowCoordinator));
-            gameObject.transform.SetParent(_mainFlowCoordinator.transform.parent);
-            gameObject.layer = _mainFlowCoordinator.gameObject.layer;
+            ScoreSubmission scoreSubmission = new()
+            {
+                Index = _networkManager.Status.Index,
+                Score = score
+            };
+            string scoreJson = JsonConvert.SerializeObject(scoreSubmission, _jsonSerializerSettings);
+            _ = _networkManager.SendString(scoreJson, ServerOpcode.ScoreSubmission);
+        }
 
-            return _instantiator.InstantiateComponent<EventFlowCoordinator>(gameObject);
+        internal class EventFlowCoordinatorFactory : IFactory<EventFlowCoordinator>
+        {
+            private readonly IInstantiator _instantiator;
+            private readonly MainFlowCoordinator _mainFlowCoordinator;
+
+            [UsedImplicitly]
+            private EventFlowCoordinatorFactory(IInstantiator instantiator, MainFlowCoordinator mainFlowCoordinator)
+            {
+                _instantiator = instantiator;
+                _mainFlowCoordinator = mainFlowCoordinator;
+            }
+
+            public EventFlowCoordinator Create()
+            {
+                GameObject gameObject = new(nameof(EventFlowCoordinator));
+                gameObject.transform.SetParent(_mainFlowCoordinator.transform.parent);
+                gameObject.layer = _mainFlowCoordinator.gameObject.layer;
+
+                return _instantiator.InstantiateComponent<EventFlowCoordinator>(gameObject);
+            }
         }
     }
 }

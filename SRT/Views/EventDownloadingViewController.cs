@@ -63,8 +63,6 @@ namespace SRT.Views
 
         protected abstract GameObject Error { get; }
 
-        internal bool DownloadFinished { get; private protected set; }
-
         protected enum View
         {
             None,

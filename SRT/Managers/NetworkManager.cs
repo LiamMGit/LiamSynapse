@@ -47,7 +47,8 @@ namespace SRT.Managers
     {
         Authentication = 0,
         Disconnect = 1,
-        ChatMessage = 10
+        ChatMessage = 10,
+        ScoreSubmission = 20,
     }
 
     internal class NetworkManager : IDisposable
@@ -109,24 +110,24 @@ namespace SRT.Managers
                 await _client.Send(new ArraySegment<byte>(new[] { (byte)ServerOpcode.Disconnect }, 0, 1));
             }
 
-            _client.Dispose();
-            _client = null;
+            _client.AutoReconnect = false;
+            _client.Disconnect();
 
             Disconnected?.Invoke(reason);
         }
 
-        public void Connect()
+        public async Task RunAsync()
         {
-            if (_client?.IsConnected ?? false)
+            if (_client != null)
             {
-                _log.Error("Client already connected!");
+                _log.Error("Client still running");
                 return;
             }
 
             string? stringAddress = _listingManager.Listing?.IpAddress;
             if (stringAddress == null)
             {
-                _log.Error("No IP found.");
+                _log.Error("No IP found");
                 return;
             }
 
@@ -142,20 +143,34 @@ namespace SRT.Managers
             client.Message += OnMessageRecieved;
             client.ConnectedCallback += OnConnected;
             client.ReceivedCallback += OnReceived;
-
-            _ = client.RunAsync().ConfigureAwait(false);
             _client = client;
+            await client.RunAsync();
+            client.Message -= OnMessageRecieved;
+            client.ConnectedCallback -= OnConnected;
+            client.ReceivedCallback -= OnReceived;
+            client.Dispose();
+            _client = null;
         }
 
         public async Task Send(byte[] bytes)
         {
             if (_client is not { IsConnected: true })
             {
+                // TODO: store packet and send when reconnected
                 _log.Error("Client not connected! Could not send packet");
                 return;
             }
 
             await _client.Send(new ArraySegment<byte>(bytes, 0, bytes.Length));
+        }
+
+        public async Task SendString(string message, ServerOpcode opcode)
+        {
+            using MemoryStream stream = new();
+            using BinaryWriter writer = new(stream);
+            writer.Write((byte)opcode);
+            writer.Write(message);
+            await Send(stream.ToArray());
         }
 
         private async Task<AuthenticationToken> GetToken()
@@ -263,78 +278,82 @@ namespace SRT.Managers
             {
                 using MemoryStream stream = new(await client.ByteBuffer.DequeueAsync(count));
                 using BinaryReader reader = new(stream);
-                ClientOpcode opcode = (ClientOpcode)reader.ReadByte();
-                switch (opcode)
+                int opcodeByte;
+                while ((opcodeByte = stream.ReadByte()) != -1)
                 {
-                    case ClientOpcode.Authenticated:
-                        {
-                            _log.Debug($"Authenticated {_address}");
-                            Connecting?.Invoke(Stage.ReceivingData, -1);
-                        }
-
-                        break;
-
-                    case ClientOpcode.Disconnected:
-                        {
-                            string message = reader.ReadString();
-                            await Disconnect(message, false);
-                        }
-
-                        break;
-
-                    case ClientOpcode.RefusedPacket:
-                        {
-                            string refusal = reader.ReadString();
-                            _log.Warn($"Packet refused by server ({refusal})");
-                        }
-
-                        break;
-
-                    case ClientOpcode.PlayStatus:
-                        {
-                            string fullStatus = reader.ReadString();
-                            Status status = JsonConvert.DeserializeObject<Status>(fullStatus);
-                            _log.Info(fullStatus);
-
-                            if (Status.Motd != status.Motd)
+                    ClientOpcode opcode = (ClientOpcode)opcodeByte;
+                    switch (opcode)
+                    {
+                        case ClientOpcode.Authenticated:
                             {
-                                MotdUpdated?.Invoke(status.Motd);
+                                _log.Debug($"Authenticated {_address}");
+                                Connecting?.Invoke(Stage.ReceivingData, -1);
                             }
 
-                            if (Status.PlayStatus != status.PlayStatus)
+                            break;
+
+                        case ClientOpcode.Disconnected:
                             {
-                                PlayStatusUpdated?.Invoke(status.PlayStatus);
+                                string message = reader.ReadString();
+                                await Disconnect(message, false);
                             }
 
-                            if (Status.Index != status.Index)
+                            break;
+
+                        case ClientOpcode.RefusedPacket:
                             {
-                                MapUpdated?.Invoke(status.Map);
+                                string refusal = reader.ReadString();
+                                _log.Warn($"Packet refused by server ({refusal})");
                             }
 
-                            Status = status;
-                        }
+                            break;
 
-                        break;
+                        case ClientOpcode.PlayStatus:
+                            {
+                                string fullStatus = reader.ReadString();
+                                Status status = JsonConvert.DeserializeObject<Status>(fullStatus);
+                                _log.Info(fullStatus);
 
-                    case ClientOpcode.ChatMessage:
-                        {
-                            string message = reader.ReadString();
-                            ChatRecieved?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message));
-                        }
+                                if (Status.Motd != status.Motd)
+                                {
+                                    MotdUpdated?.Invoke(status.Motd);
+                                }
 
-                        break;
+                                if (Status.PlayStatus != status.PlayStatus)
+                                {
+                                    PlayStatusUpdated?.Invoke(status.PlayStatus);
+                                }
 
-                    case ClientOpcode.UserBanned:
-                        {
-                            string message = reader.ReadString();
-                            UserBanned?.Invoke(message);
-                        }
+                                if (Status.Index != status.Index)
+                                {
+                                    MapUpdated?.Invoke(status.Map);
+                                }
 
-                        break;
+                                Status = status;
+                            }
 
-                    default:
-                        _log.Warn($"Unhandled opcode: ({opcode})");
-                        break;
+                            break;
+
+                        case ClientOpcode.ChatMessage:
+                            {
+                                string message = reader.ReadString();
+                                ChatRecieved?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message));
+                            }
+
+                            break;
+
+                        case ClientOpcode.UserBanned:
+                            {
+                                string message = reader.ReadString();
+                                UserBanned?.Invoke(message);
+                            }
+
+                            break;
+
+                        default:
+                            _log.Warn($"Unhandled opcode: ({opcode})");
+                            break;
+                    }
                 }
             }
             catch (Exception e)

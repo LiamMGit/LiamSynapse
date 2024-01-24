@@ -37,8 +37,6 @@ namespace SRT.Views
         private SiraLog _log = null!;
 
         private Map _map;
-        private IPreviewBeatmapLevel _beatmapLevel;
-        private IDifficultyBeatmap _difficultyBeatmap;
 
 #pragma warning disable SA1124
 #region i hate bsml
@@ -85,33 +83,25 @@ namespace SRT.Views
         protected override GameObject Error => _error;
 #endregion
 
-        internal event Action<IDifficultyBeatmap, IPreviewBeatmapLevel>? OnStartLevel;
+        public event Action<(IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview)>? MapDownloaded;
+
+        public (IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview)? BeatmapLevel;
 
         public void Init(Map map)
         {
             _map = map;
-            DownloadFinished = false;
+            BeatmapLevel = null;
             string mapName = Path.GetInvalidFileNameChars().Aggregate(_map.Name, (current, c) => current.Replace(c, '_'));
             string path = $"{_mapFolder}{Path.DirectorySeparatorChar}{mapName}";
             UnityMainThreadTaskScheduler.Factory.StartNew(() => DownloadAndSave(path));
         }
 
-        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
-        {
-            base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
-
-            if (addedToHierarchy)
-            {
-                if (DownloadFinished)
-                {
-                    OnStartLevel?.Invoke(_difficultyBeatmap, _beatmapLevel);
-                }
-            }
-        }
-
         [UsedImplicitly]
         [Inject]
-        private void Construct(SiraLog log, CustomLevelLoader customLevelLoader, NetworkManager networkManager)
+        private void Construct(
+            SiraLog log,
+            CustomLevelLoader customLevelLoader,
+            NetworkManager networkManager)
         {
             _log = log;
             _customLevelLoader = customLevelLoader;
@@ -156,25 +146,21 @@ namespace SRT.Views
 
                 CustomBeatmapLevel beatmapLevel =
                     await _customLevelLoader.LoadCustomBeatmapLevelAsync(customPreviewBeatmapLevel, token);
-                _beatmapLevel = beatmapLevel;
                 IDifficultyBeatmapSet set = beatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(_map.Characteristic);
-                _difficultyBeatmap = set.difficultyBeatmaps.First(n => (int)n.difficulty == _map.Difficulty);
+                IDifficultyBeatmap difficultyBeatmap = set.difficultyBeatmaps.First(n => (int)n.difficulty == _map.Difficulty);
                 DownloadProgress = 1f;
+
+                _log.Debug($"Successfully downloaded [{_map.Name}]");
+
+                (IDifficultyBeatmap, IPreviewBeatmapLevel) startParameters = (difficultyBeatmap, beatmapLevel);
+                BeatmapLevel = startParameters;
+                MapDownloaded?.Invoke(startParameters);
             }
             catch (Exception e)
             {
                 LastError =
                     $"Error deserializing beatmap data\n({e})";
                 _log.Error(LastError);
-                return;
-            }
-
-            _log.Debug($"Successfully downloaded [{_map.Name}]");
-
-            DownloadFinished = true;
-            if (_isActivated)
-            {
-                OnStartLevel?.Invoke(_difficultyBeatmap, _beatmapLevel);
             }
         }
 
