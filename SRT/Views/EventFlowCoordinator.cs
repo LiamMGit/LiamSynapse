@@ -31,8 +31,9 @@ namespace SRT.Views
         private EventLoadingViewController _loadingViewController = null!;
         private EventModsViewController _modsViewController = null!;
         private EventModsDownloadingViewController _modsDownloadingViewController = null!;
-        private EventMapDownloadingViewController _mapDownloadingViewController = null!;
+        private EventLeaderboardViewController _leaderboardViewController = null!;
         private SimpleDialogPromptViewController _simpleDialogPromptViewController = null!;
+        private MapDownloadingManager _mapDownloadingManager = null!;
         private LevelStartManager _levelStartManager = null!;
         private NetworkManager _networkManager = null!;
         private Listing _listing = null!;
@@ -48,7 +49,7 @@ namespace SRT.Views
                 if (!_isInTransition)
                 {
                     // not sure why this is the only thing to have problems with background threads
-                    UnityMainThreadTaskScheduler.Factory.StartNew(() => value?.Invoke());
+                    UnityMainThreadTaskScheduler.Factory.StartNew(value.Invoke);
                     return;
                 }
 
@@ -72,8 +73,9 @@ namespace SRT.Views
             EventLoadingViewController loadingViewController,
             EventModsViewController modsViewController,
             EventModsDownloadingViewController modsDownloadingViewController,
-            EventMapDownloadingViewController mapDownloadingViewController,
+            EventLeaderboardViewController eventLeaderboardViewController,
             SimpleDialogPromptViewController simpleDialogPromptViewController,
+            MapDownloadingManager mapDownloadingManager,
             LevelStartManager levelStartManager,
             ListingManager listingManager,
             NetworkManager networkManager)
@@ -84,8 +86,9 @@ namespace SRT.Views
             _loadingViewController = loadingViewController;
             _modsViewController = modsViewController;
             _modsDownloadingViewController = modsDownloadingViewController;
-            _mapDownloadingViewController = mapDownloadingViewController;
+            _leaderboardViewController = eventLeaderboardViewController;
             _simpleDialogPromptViewController = simpleDialogPromptViewController;
+            _mapDownloadingManager = mapDownloadingManager;
             _levelStartManager = levelStartManager;
             listingManager.ListingFound += n => _listing = n;
             _networkManager = networkManager;
@@ -118,7 +121,6 @@ namespace SRT.Views
                     else
                     {
                         ProvideInitialViewControllers(_loadingViewController);
-                        _mapDownloadingViewController.MapDownloaded += OnMapDownloaded;
                         _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
                         _networkManager.PlayStatusUpdated += OnPlayStatusUpdated;
                         _networkManager.Connecting += OnConnecting;
@@ -134,8 +136,6 @@ namespace SRT.Views
             if (removedFromHierarchy)
             {
                 IsActive = false;
-                _mapDownloadingViewController.Cancel();
-                _mapDownloadingViewController.MapDownloaded -= OnMapDownloaded;
                 _resultsViewController.continueButtonPressedEvent -= HandleResultsViewControllerContinueButtonPressed;
                 _modsViewController.didAcceptEvent -= OnAcceptModsDownload;
                 _networkManager.PlayStatusUpdated -= OnPlayStatusUpdated;
@@ -160,6 +160,7 @@ namespace SRT.Views
             {
                 case EventLobbyViewController:
                     SetLeftScreenViewController(_gameplaySetupViewController, animationType);
+                    SetRightScreenViewController(_leaderboardViewController, animationType);
                     break;
                 default:
                     SetLeftScreenViewController(null, animationType);
@@ -180,7 +181,6 @@ namespace SRT.Views
                     showBackButton = false;
                     break;
                 case EventLoadingViewController:
-                case EventMapDownloadingViewController:
                 case EventModsDownloadingViewController:
                     SetTitle(_listing.Title, animationType);
                     showBackButton = true;
@@ -224,6 +224,13 @@ namespace SRT.Views
                 else if (topViewController == _lobbyViewController && playStatus == 1)
                 {
                     TryStartLevel();
+                }
+                else if (topViewController == _resultsViewController && playStatus == 1)
+                {
+                    DismissViewController(
+                        _resultsViewController,
+                        ViewController.AnimationDirection.Horizontal,
+                        TryStartLevel);
                 }
             };
         }
@@ -273,34 +280,10 @@ namespace SRT.Views
         {
             TransitionFinished += () =>
             {
-                if (_mapDownloadingViewController.BeatmapLevel != null)
+                _mapDownloadingManager.MapDownloadedOnce += n =>
                 {
-                    (IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview) beatmapLevel = _mapDownloadingViewController.BeatmapLevel.Value;
-                    _levelStartManager.StartLevel(beatmapLevel.Difficulty, beatmapLevel.Preview, HandleLevelDidFinish);
-                }
-                else
-                {
-                    ReplaceTopViewController(
-                        _mapDownloadingViewController,
-                        null,
-                        ViewController.AnimationType.In,
-                        ViewController.AnimationDirection.Vertical);
-                }
-            };
-        }
-
-        private void OnMapDownloaded((IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview) beatmapLevel)
-        {
-            TransitionFinished += () =>
-            {
-                if (topViewController == _mapDownloadingViewController)
-                {
-                    ReplaceTopViewController(
-                        _lobbyViewController,
-                        () => _levelStartManager.StartLevel(beatmapLevel.Difficulty, beatmapLevel.Preview, HandleLevelDidFinish),
-                        ViewController.AnimationType.In,
-                        ViewController.AnimationDirection.Vertical);
-                }
+                    _levelStartManager.StartLevel(n.Difficulty, n.Preview, HandleLevelDidFinish);
+                };
             };
         }
 

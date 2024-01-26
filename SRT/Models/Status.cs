@@ -10,6 +10,8 @@ namespace SRT.Models
 
         public int Index { get; set; } = -1;
 
+        public DateTime StartTime { get; set; } = DateTime.MaxValue;
+
         public Map Map { get; set; } = new();
     }
 

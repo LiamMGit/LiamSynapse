@@ -40,7 +40,8 @@ namespace SRT.Managers
         RefusedPacket = 2,
         PlayStatus = 4,
         ChatMessage = 10,
-        UserBanned = 11
+        UserBanned = 11,
+        LeaderboardScores = 21,
     }
 
     public enum ServerOpcode
@@ -49,6 +50,7 @@ namespace SRT.Managers
         Disconnect = 1,
         ChatMessage = 10,
         ScoreSubmission = 20,
+        LeaderboardRequest = 21
     }
 
     internal class NetworkManager : IDisposable
@@ -84,9 +86,13 @@ namespace SRT.Managers
 
         public event Action<int>? PlayStatusUpdated;
 
-        public event Action<Map>? MapUpdated;
+        public event Action<DateTime>? StartTimeUpdated;
+
+        public event Action<int, Map>? MapUpdated;
 
         public event Action<string>? UserBanned;
+
+        public event Action<LeaderboardScores>? LeaderboardReceived;
 
         internal Status Status { get; private set; } = new();
 
@@ -162,6 +168,15 @@ namespace SRT.Managers
             }
 
             await _client.Send(new ArraySegment<byte>(bytes, 0, bytes.Length));
+        }
+
+        public async Task SendInt(int message, ServerOpcode opcode)
+        {
+            using MemoryStream stream = new();
+            using BinaryWriter writer = new(stream);
+            writer.Write((byte)opcode);
+            writer.Write(message);
+            await Send(stream.ToArray());
         }
 
         public async Task SendString(string message, ServerOpcode opcode)
@@ -312,24 +327,30 @@ namespace SRT.Managers
                             {
                                 string fullStatus = reader.ReadString();
                                 Status status = JsonConvert.DeserializeObject<Status>(fullStatus);
+                                Status lastStatus = Status;
+                                Status = status;
                                 _log.Info(fullStatus);
 
-                                if (Status.Motd != status.Motd)
+                                if (lastStatus.Motd != status.Motd)
                                 {
                                     MotdUpdated?.Invoke(status.Motd);
                                 }
 
-                                if (Status.PlayStatus != status.PlayStatus)
+                                // TODO: decide if PlayStatus is still necessary with StartTime existing
+                                if (lastStatus.PlayStatus != status.PlayStatus)
                                 {
                                     PlayStatusUpdated?.Invoke(status.PlayStatus);
                                 }
 
-                                if (Status.Index != status.Index)
+                                if (lastStatus.Index != status.Index)
                                 {
-                                    MapUpdated?.Invoke(status.Map);
+                                    MapUpdated?.Invoke(status.Index, status.Map);
                                 }
 
-                                Status = status;
+                                if (lastStatus.StartTime != status.StartTime)
+                                {
+                                    StartTimeUpdated?.Invoke(status.StartTime);
+                                }
                             }
 
                             break;
@@ -350,6 +371,14 @@ namespace SRT.Managers
 
                             break;
 
+                        case ClientOpcode.LeaderboardScores:
+                            {
+                                string message = reader.ReadString();
+                                LeaderboardReceived?.Invoke(JsonConvert.DeserializeObject<LeaderboardScores>(message));
+                            }
+
+                            break;
+
                         default:
                             _log.Warn($"Unhandled opcode: ({opcode})");
                             break;
@@ -358,7 +387,7 @@ namespace SRT.Managers
             }
             catch (Exception e)
             {
-                _log.Error("Recieved invalid packet");
+                _log.Error("Received invalid packet");
                 _log.Error(e);
                 client.ByteBuffer.Clear();
             }

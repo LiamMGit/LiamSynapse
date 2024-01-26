@@ -23,6 +23,8 @@ using Zenject;
 
 namespace SRT.Views
 {
+    // TODO: make this less ugly
+
     // ReSharper disable FieldCanBeMadeReadOnly.Local
     ////[HotReload(RelativePathToLayout = @"../Resources/ModsDownloading.bsml")]
     [ViewDefinition("SRT.Resources.ModsDownloading.bsml")]
@@ -36,28 +38,28 @@ namespace SRT.Views
         #region i hate bsml
 #pragma warning restore SA1124
         [UIComponent("percentage")]
-        private TMP_Text _percentageTMP = null!;
+        private readonly TMP_Text _percentageTMP = null!;
 
         [UIComponent("downloadingtext")]
-        private TMP_Text _downloadingTMP = null!;
+        private readonly TMP_Text _downloadingTMP = null!;
 
         [UIComponent("errortext")]
-        private TMP_Text _errorTMP = null!;
+        private readonly TMP_Text _errorTMP = null!;
 
         [UIComponent("quittext")]
-        private TMP_Text _quitTMP = null!;
+        private readonly TMP_Text _quitTMP = null!;
 
         [UIComponent("loadingbar")]
-        private VerticalLayoutGroup _barGroup = null!;
+        private readonly VerticalLayoutGroup _barGroup = null!;
 
         [UIObject("quit")]
-        private GameObject _quitGroup = null!;
+        private readonly GameObject _quitGroup = null!;
 
         [UIObject("downloading")]
-        private GameObject _downloadingGroup = null!;
+        private readonly GameObject _downloadingGroup = null!;
 
         [UIObject("error")]
-        private GameObject _error = null!;
+        private readonly GameObject _error = null!;
 
         // ReSharper disable ConvertToAutoProperty
         protected override TMP_Text PercentageTMP => _percentageTMP;
@@ -122,7 +124,7 @@ namespace SRT.Views
 
         private async Task DownloadAndSave()
         {
-            CancellationToken token = Reset();
+            CancellationToken token = ResetToken();
             int count = _requiredMods.Count;
             string unzipPath = Directory.CreateDirectory(
                 (Path.GetDirectoryName(Application.dataPath) ?? throw new InvalidOperationException())

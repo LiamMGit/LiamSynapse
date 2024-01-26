@@ -26,8 +26,12 @@ namespace SRT.Installers
             Container.Bind<EventModsDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
             Container.Bind<EventLoadingViewController>().FromNewComponentAsViewController().AsSingle();
             Container.Bind<EventLobbyViewController>().FromNewComponentAsViewController().AsSingle();
-            Container.Bind<EventMapDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
+            Container.Bind<EventLeaderboardViewController>().FromNewComponentAsViewController().AsSingle();
+            ////Container.Bind<EventMapDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
 
+            Container.BindInterfacesAndSelfTo<DownloadingManager>().AsTransient();
+            Container.BindInterfacesAndSelfTo<MapDownloadingManager>().AsSingle();
+            Container.BindInterfacesAndSelfTo<CountdownManager>().AsSingle();
             Container.Bind<LevelStartManager>().AsSingle();
 
             Container.BindInterfacesAndSelfTo<PromoManager>().AsSingle();

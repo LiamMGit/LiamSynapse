@@ -16,7 +16,7 @@ namespace SRT
     {
         private readonly Harmony _harmonyInstance = new("dev.aeroluna.SRT");
 
-        internal static Logger Log { get; private set; }
+        internal static Logger Log { get; private set; } = null!;
 
         [UsedImplicitly]
         [Init]

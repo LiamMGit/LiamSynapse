@@ -10,7 +10,7 @@ namespace SRT.Managers
         private readonly GameplaySetupViewController _gameplaySetupViewController;
         private readonly MenuTransitionsHelper _menuTransitionsHelper;
         private readonly NoEnergyModifier _noEnergyModifier;
-        private readonly HeckIntegrationManager? _heckIntegrationManager;
+        private readonly LazyInject<HeckIntegrationManager>? _heckIntegrationManager;
 
         private Ruleset? _ruleset;
 
@@ -19,7 +19,7 @@ namespace SRT.Managers
             MenuTransitionsHelper menuTransitionsHelper,
             NetworkManager networkManager,
             NoEnergyModifier noEnergyModifier,
-            [InjectOptional] HeckIntegrationManager? heckIntegrationManager)
+            [InjectOptional] LazyInject<HeckIntegrationManager>? heckIntegrationManager)
         {
             _gameplaySetupViewController = gameplaySetupViewController;
             _menuTransitionsHelper = menuTransitionsHelper;
@@ -156,7 +156,7 @@ namespace SRT.Managers
                 null);
         }
 
-        private void OnMapUpdated(Map map)
+        private void OnMapUpdated(int _, Map map)
         {
             _ruleset = map.Ruleset;
         }
@@ -180,7 +180,7 @@ namespace SRT.Managers
         {
             if (_heckIntegrationManager != null)
             {
-                _heckIntegrationManager.StartPlayViewInterruptedLevel(
+                _heckIntegrationManager.Value.StartPlayViewInterruptedLevel(
                     gameMode,
                     difficultyBeatmap,
                     previewBeatmapLevel,

@@ -1,8 +1,37 @@
 <bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
-    <vertical anchor-max-y='1.2' bg='round-rect-panel' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'>
-        <scroll-view id='scrollview' preferred-height='60' preferred-width='120'>
-            <vertical id='textbox' preferred-width='100' vertical-fit='PreferredSize'>
+    <horizontal>
+        <vertical id='chat' preferred-width='110' child-expand-width='true'>
+            <vertical bg='round-rect-panel' preferred-height='60' horizontal-fit='Unconstrained'>
+                <scroll-view id='scrollview' child-expand-height='true' child-control-height='true'>
+                    <vertical id='textbox' preferred-width='94' vertical-fit='PreferredSize'>
+                    </vertical>
+                </scroll-view>
             </vertical>
-        </scroll-view>
-    </vertical>
+        </vertical>
+        <vertical preferred-width='50' child-expand-height='false' child-control-height='false'>
+            <horizontal id='header' bg='panel-fade-gradient' preferred-width='40' horizontal-fit='PreferredSize' pad='1'>
+                <text id='headertext' all-uppercase='true' italics='true' align='Center'/>
+            </horizontal>
+            <vertical id='loading' size-delta-y='50' child-control-height='false' child-align='MiddleCenter'>
+                <vertical size-delta-y='20'>
+                    <text id='progress' text='Loading...' align='Center' font-size="6" />
+                    <image id='spinny' src='#LoadingIndicator' preserve-aspect='true' min-width='10' min-height='10' />
+                </vertical>
+            </vertical>
+            <vertical id='songinfo' size-delta-y='62' child-expand-height='false' child-control-height='false'>
+                <horizontal horizontal-fit='PreferredSize' pad='4'>
+                    <image id='image' src='#CustomLevelsPack' preferred-width='30' preferred-height='30'/>
+                </horizontal>
+                <horizontal vertical-fit='Unconstrained' size-delta-y='6'>
+                    <text id='songtext' align='Center' font-size='8'/>
+                </horizontal>
+                <horizontal vertical-fit='Unconstrained' size-delta-y='6'>
+                    <text id='artisttext' align='Center' font-size='4' color='#808080'/>
+                </horizontal>
+                <horizontal vertical-fit='Unconstrained' size-delta-y='16'>
+                    <text id='countdown' align='Center' font-size='8' all-uppercase='true'/>
+                </horizontal>
+            </vertical>
+        </vertical>
+    </horizontal>
 </bg>

@@ -80,7 +80,6 @@ namespace SRT.Managers
 
             Listing = listing;
             _listingFound?.Invoke(Listing);
-            _listingFound = null;
 
             _log.Debug($"Fetching banner image from [{listing.BannerImage}]");
             UnityWebRequest uwr = UnityWebRequest.Get(listing.BannerImage);
@@ -91,7 +90,6 @@ namespace SRT.Managers
         {
             _bannerImage = PromoManager.GetSprite(download.data);
             _bannerImageCreated?.Invoke(_bannerImage);
-            _bannerImageCreated = null;
         }
 
         private void Verify(AsyncOperation operation, Action<DownloadHandler> action)

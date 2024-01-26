@@ -7,7 +7,7 @@ namespace SRT.Managers
     {
         private readonly PlayViewManager _playViewManager;
 
-        public HeckIntegrationManager(PlayViewManager playViewManager)
+        private HeckIntegrationManager(PlayViewManager playViewManager)
         {
             _playViewManager = playViewManager;
         }

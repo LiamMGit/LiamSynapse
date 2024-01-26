@@ -1,8 +1,8 @@
 ﻿<bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
-  <vertical anchor-max-y='1.2' child-control-height='false'>
+  <vertical anchor-max-y='1.17' child-control-height='false'>
     <text id='header' text='' align='Center' font-size='4'/>
   </vertical>
-  <horizontal anchor-max-y='0.3' horizontal-fit='PreferredSize' vertical-fit='PreferredSize' spacing='2'>
+  <horizontal anchor-max-y='0.1' horizontal-fit='PreferredSize' vertical-fit='PreferredSize' spacing='2'>
     <primary-button text='download' on-click='accept-click' preferred-height='10' preferred-width='32'/>
   </horizontal>
 </bg>

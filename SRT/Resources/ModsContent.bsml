@@ -1,8 +1,8 @@
 ﻿<bg id='contentObject' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
-  <vertical anchor-max-y='1.05' bg='round-rect-panel' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'>
-    <scroll-view preferred-height='40' preferred-width='80'>
+  <vertical anchor-max-y='0.9' bg='round-rect-panel' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'>
+    <scroll-view preferred-height='52' preferred-width='64'>
       <macro.for-each hosts='contents'>
-        <horizontal preferred-width='60'>
+        <horizontal preferred-width='48'>
           <text text='~lefttext' align='Left' font-size='4'/>
           <text text='~righttext' align='Right' font-size='4'/>
         </horizontal>
