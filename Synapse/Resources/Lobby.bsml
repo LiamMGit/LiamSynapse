@@ -1,0 +1,40 @@
+<bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
+    <horizontal>
+        <vertical id='chat' preferred-width='110' child-expand-width='true'>
+            <vertical bg='round-rect-panel' preferred-height='60' horizontal-fit='Unconstrained'>
+                <scroll-view id='scrollview' child-expand-height='true' child-control-height='true'>
+                    <vertical id='textbox' preferred-width='94' vertical-fit='PreferredSize'>
+                    </vertical>
+                </scroll-view>
+            </vertical>
+        </vertical>
+        <vertical preferred-width='40' child-expand-height='false' child-control-height='false'>
+            <horizontal id='header' bg='panel-fade-gradient' preferred-width='40' horizontal-fit='PreferredSize' pad='1'>
+                <text id='headertext' all-uppercase='true' italics='true' align='Center'/>
+            </horizontal>
+            <vertical id='loading' size-delta-y='50' child-control-height='false' child-align='MiddleCenter'>
+                <vertical size-delta-y='20'>
+                    <text id='progress' text='Loading...' align='Center' font-size="6" />
+                    <image id='spinny' src='#LoadingIndicator' preserve-aspect='true' min-width='10' min-height='10' />
+                </vertical>
+            </vertical>
+            <vertical id='songinfo' horizontal-fit='Unconstrained' size-delta-y='62' child-expand-height='false' child-control-height='false'>
+                <horizontal horizontal-fit='PreferredSize' pad-top='4' pad='2'>
+                    <image id='image' src='#CustomLevelsPack' preferred-width='28' preferred-height='28'/>
+                </horizontal>
+                <horizontal vertical-fit='Unconstrained' size-delta-y='8' child-expand-height='false' child-control-height='false'>
+                    <text id='songtext' align='Center' font-size='8' size-delta-y='12' overflow-mode='Ellipsis'/>
+                </horizontal>
+                <horizontal vertical-fit='Unconstrained' size-delta-y='6' child-expand-height='false' child-control-height='false'>
+                    <text id='artisttext' align='Center' font-size='4' color='#808080' size-delta-y='6' overflow-mode='Ellipsis'/>
+                </horizontal>
+                <horizontal id='countdownobject' vertical-fit='Unconstrained' size-delta-y='16'>
+                    <text id='countdown' align='Center' font-size='8' all-uppercase='true'/>
+                </horizontal>
+                <horizontal id='startobject' horizontal-fit='PreferredSize' vertical-fit='PreferredSize' pad-top='4'>
+                    <primary-button text='start' on-click='start-click' preferred-height='10' preferred-width='24'/>
+                </horizontal>
+            </vertical>
+        </vertical>
+    </horizontal>
+</bg>
