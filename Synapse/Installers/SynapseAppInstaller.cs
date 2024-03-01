@@ -20,6 +20,7 @@ namespace Synapse.Installers
             Container.BindInstance(_config);
             Container.BindInterfacesAndSelfTo<NetworkManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<ListingManager>().AsSingle();
+            Container.BindInterfacesAndSelfTo<PrefabManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<MessageManager>().AsSingle();
 
             Container.BindInterfacesAndSelfTo<NoEnergyModifier>().AsSingle();

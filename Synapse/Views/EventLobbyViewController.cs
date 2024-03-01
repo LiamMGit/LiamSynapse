@@ -11,6 +11,8 @@ using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
 using Synapse.Controllers;
+using Synapse.Extras;
+using Synapse.HarmonyPatches;
 using Synapse.Managers;
 using Synapse.Models;
 using TMPro;
@@ -21,6 +23,7 @@ using Random = UnityEngine.Random;
 
 namespace Synapse.Views
 {
+    // TODO: show something else in song info panel when finished
     ////[HotReload(RelativePathToLayout = @"../Resources/Lobby.bsml")]
     [ViewDefinition("Synapse.Resources.Lobby.bsml")]
     internal class EventLobbyViewController : BSMLAutomaticViewController
@@ -90,24 +93,45 @@ namespace Synapse.Views
         [UIObject("startobject")]
         private readonly GameObject _startObject = null!;
 
+        [UIObject("toend")]
+        private readonly GameObject _toEndObject = null!;
+
+        [UIComponent("modal")]
+        private readonly ModalView _modal = null!;
+
         private readonly List<ChatMessage> _messageQueue = new();
         private readonly LinkedList<Tuple<ChatMessage, TextMeshProUGUI>> _messages = new();
 
         private SiraLog _log = null!;
+        private Config _config = null!;
         private MessageManager _messageManager = null!;
         private NetworkManager _networkManager = null!;
         private CountdownManager _countdownManager = null!;
         private MapDownloadingManager _mapDownloadingManager = null!;
         private IInstantiator _instantiator = null!;
 
-        private ScrollViewScroller _scroller = null!;
         private InputFieldView _input = null!;
         private OkRelay _okRelay = null!;
         private Sprite _placeholderSprite = null!;
 
+        private string? _altCoverUrl;
         private float _angle;
+        private IPreviewBeatmapLevel? _preview;
+        private bool _hasScore;
 
         public event Action? StartLevel;
+
+        [UsedImplicitly]
+        [UIValue("joinChat")]
+        private bool JoinChat
+        {
+            get => _config.JoinChat ?? false;
+            set
+            {
+                _config.JoinChat = value;
+                _ = _networkManager.SendBool(value, ServerOpcode.SetChatter);
+            }
+        }
 
         protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
         {
@@ -139,11 +163,11 @@ namespace Synapse.Views
                 ((RectTransform)rect.Find("Text")).offsetMin = new Vector2(4, -4);
                 Destroy(rect.Find("Icon").gameObject);
 
+                _scrollView.gameObject.AddComponent<ScrollViewScrollToEnd>().Construct(_toEndObject);
+                _toEndObject.SetActive(false);
+
                 _okRelay = _input.gameObject.AddComponent<OkRelay>();
                 _okRelay.OkPressed += OnOkPressed;
-
-                _scroller = _scrollView.gameObject.AddComponent<ScrollViewScroller>();
-                _scroller.Init(_scrollView);
 
                 _input.gameObject.AddComponent<LayoutElement>().minHeight = 10;
                 _imageView.material = Resources.FindObjectsOfTypeAll<Material>().First(n => n.name == "UINoGlowRoundEdge");
@@ -159,12 +183,13 @@ namespace Synapse.Views
                 _authorText.fontSizeMin = _authorText.fontSize / 2;
                 _authorText.fontSizeMax = _authorText.fontSize;
 
+                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_songInfo.transform);
+
                 _startObject.SetActive(false);
             }
 
             if (addedToHierarchy)
             {
-                _imageView.sprite = _placeholderSprite;
                 _messageManager.MessageRecieved += OnMessageRecieved;
                 _messageManager.RefreshMotd();
                 _networkManager.UserBanned += OnUserBanned;
@@ -176,8 +201,6 @@ namespace Synapse.Views
                 _mapDownloadingManager.ProgressUpdated += OnProgressUpdated;
                 _countdownManager.CountdownUpdated += OnCountdownUpdated;
                 _countdownManager.Refresh();
-
-                _progress.text = "Loading...";
             }
 
             _headerText.text = _randomHeaders[Random.Range(0, _randomHeaders.Length - 1)] + "...";
@@ -212,6 +235,7 @@ namespace Synapse.Views
         [Inject]
         private void Construct(
             SiraLog log,
+            Config config,
             MessageManager messageManager,
             NetworkManager networkManager,
             MapDownloadingManager mapDownloadingManager,
@@ -219,6 +243,7 @@ namespace Synapse.Views
             IInstantiator instantiator)
         {
             _log = log;
+            _config = config;
             _messageManager = messageManager;
             _networkManager = networkManager;
             _mapDownloadingManager = mapDownloadingManager;
@@ -251,6 +276,7 @@ namespace Synapse.Views
                 float end = _scrollView.contentSize - _scrollView.scrollPageSize;
                 bool scrollToEnd = (end < 0) ||
                     (Mathf.Abs(end - _scrollView._destinationPos) < 0.01f);
+                float heightLost = 0;
 
                 ChatMessage[] queue = _messageQueue.ToArray();
                 _messageQueue.Clear();
@@ -269,17 +295,18 @@ namespace Synapse.Views
                         rich = false;
                     }
 
-                    // TODO: figure out how not to mess with scroll position when shifting chat
                     if (_messages.Count > 100)
                     {
                         LinkedListNode<Tuple<ChatMessage, TextMeshProUGUI>> first = _messages.First;
                         _messages.RemoveFirst();
-                        TextMeshProUGUI textMesh = first.Value.Item2;
-                        textMesh.richText = rich;
-                        textMesh.text = content;
-                        textMesh.transform.SetAsLastSibling();
-                        first.Value = new Tuple<ChatMessage, TextMeshProUGUI>(message, textMesh);
+                        TextMeshProUGUI text = first.Value.Item2;
+                        float height = text.rectTransform.rect.height;
+                        text.richText = rich;
+                        text.text = content;
+                        text.transform.SetAsLastSibling();
+                        first.Value = new Tuple<ChatMessage, TextMeshProUGUI>(message, text);
                         _messages.AddLast(first);
+                        heightLost += height;
                     }
                     else
                     {
@@ -296,12 +323,28 @@ namespace Synapse.Views
                     }
                 }
 
-                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_textObject.transform);
-                _scrollView.enabled = true;
+                Canvas.ForceUpdateCanvases();
+                RectTransform contentTransform = _scrollView._contentRectTransform;
+                _scrollView.SetContentSize(contentTransform.rect.height);
+                float heightDiff = heightLost;
                 if (scrollToEnd)
                 {
-                    _scroller.enabled = true;
+                    heightDiff = _scrollView.contentSize - _scrollView.scrollPageSize - _scrollView._destinationPos;
                 }
+                else if (heightLost > 0)
+                {
+                    heightDiff = -heightLost;
+                }
+                else
+                {
+                    return;
+                }
+
+                _scrollView._destinationPos = Mathf.Max(_scrollView._destinationPos + heightDiff, 0);
+                _scrollView.RefreshButtons();
+                float newY = Mathf.Max(contentTransform.anchoredPosition.y + heightDiff, 0);
+                contentTransform.anchoredPosition = new Vector2(0, newY);
+                _scrollView.UpdateVerticalScrollIndicator(Mathf.Abs(newY));
             }
             catch (Exception e)
             {
@@ -309,14 +352,36 @@ namespace Synapse.Views
             }
         }
 
-        private void OnMapDownloaded((IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview) map)
+        private void OnMapDownloaded(DownloadedMap map)
         {
-            IPreviewBeatmapLevel preview = map.Preview;
-            _ = SetCoverImage(preview);
+            _altCoverUrl = string.IsNullOrWhiteSpace(map.Map.AltCoverUrl) ? null : map.Map.AltCoverUrl;
+
+            _preview = map.PreviewBeatmapLevel;
             _songInfo.SetActive(true);
             _loadingGroup.SetActive(false);
-            _songText.text = preview.songName;
-            _authorText.text = $"{preview.songAuthorName} [{preview.levelAuthorName}]";
+            RefreshSongInfo();
+        }
+
+        private void RefreshSongInfo()
+        {
+            if (_altCoverUrl != null && !_hasScore)
+            {
+                WebRequestExtensions.RequestSprite(_altCoverUrl, n => _imageView.sprite = n);
+                _songText.text = "???";
+                _authorText.text = "??? [???]";
+            }
+            else if (_preview != null)
+            {
+                _ = SetCoverImage(_preview);
+                _songText.text = _preview.songName;
+                _authorText.text = $"{_preview.songAuthorName} [{_preview.levelAuthorName}]";
+            }
+            else
+            {
+                _imageView.sprite = _placeholderSprite;
+                _songText.text = "???";
+                _authorText.text = "??? [???]";
+            }
         }
 
         private async Task SetCoverImage(IPreviewBeatmapLevel preview)
@@ -337,8 +402,10 @@ namespace Synapse.Views
 
         private void OnHasScoreUpdate(bool hasScore)
         {
+            _hasScore = hasScore;
             UnityMainThreadTaskScheduler.Factory.StartNew(() =>
             {
+                RefreshSongInfo();
                 if (hasScore && (_networkManager.Status.Map.Ruleset?.AllowResubmission ?? false))
                 {
                     _startObject.SetActive(true);
@@ -352,15 +419,17 @@ namespace Synapse.Views
             });
         }
 
-        private void OnMapUpdated(int index, Map _)
+        private void OnMapUpdated(int index, Map map)
         {
             UnityMainThreadTaskScheduler.Factory.StartNew(ResetLoading);
         }
 
         private void ResetLoading()
         {
+            _progress.text = "Loading...";
             _songInfo.SetActive(false);
             _loadingGroup.SetActive(true);
+            RefreshSongInfo();
         }
 
         private void OnCountdownUpdated(string text)
@@ -371,6 +440,20 @@ namespace Synapse.Views
         private void OnProgressUpdated(string message)
         {
             _progress.text = message;
+        }
+
+        [UsedImplicitly]
+        [UIAction("show-modal")]
+        private void ShowModal()
+        {
+            _modal.Show(true);
+        }
+
+        [UsedImplicitly]
+        [UIAction("toend-click")]
+        private void OnToEndClick()
+        {
+            _scrollView.ScrollToEnd(true);
         }
 
         [UsedImplicitly]

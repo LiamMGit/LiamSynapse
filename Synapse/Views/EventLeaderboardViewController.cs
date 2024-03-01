@@ -14,6 +14,7 @@ using Zenject;
 
 namespace Synapse.Views
 {
+    // TODO: figure out why the leaderboard is sinking
     [ViewDefinition("Synapse.Resources.Leaderboard.bsml")]
     internal class EventLeaderboardViewController : BSMLAutomaticViewController
     {

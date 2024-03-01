@@ -37,4 +37,11 @@
             </vertical>
         </vertical>
     </horizontal>
+    <icon-button id='toend' on-click='toend-click' icon='#ArrowIcon' anchor-pos-x='60' anchor-pos-y='-60' vertical-fit='Unconstrained' size-delta-y='7'/>
+    <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='76' anchor-pos-y='22' size-delta-x='4' size-delta-y='4' />
+    <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='12'>
+        <vertical horizontal-fit='PreferredSize' pref-width='78'>
+            <checkbox-setting text='Join chat' value='joinChat' apply-on-change='true' bind-value='true' />
+        </vertical>
+    </modal>
 </bg>

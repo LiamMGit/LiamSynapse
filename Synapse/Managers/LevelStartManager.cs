@@ -149,7 +149,7 @@ namespace Synapse.Managers
                 overrideColorScheme,
                 modifiers,
                 playerSpecificSettings,
-                new PracticeSettings(), // TODO: no practice
+                null,
                 string.Empty, // doesnt matter, gets reset by animation anyways
                 false,
                 false,

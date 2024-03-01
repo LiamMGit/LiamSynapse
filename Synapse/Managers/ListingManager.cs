@@ -14,12 +14,14 @@ namespace Synapse.Managers
     internal class ListingManager : IInitializable
     {
         private readonly SiraLog _log;
+        private readonly Config _config;
         private Sprite? _bannerImage;
 
         [UsedImplicitly]
-        private ListingManager(SiraLog log)
+        private ListingManager(SiraLog log, Config config)
         {
             _log = log;
+            _config = config;
         }
 
         public event Action<Listing>? ListingFound
@@ -60,15 +62,14 @@ namespace Synapse.Managers
 
         public void Initialize()
         {
-            const string url = "http://localhost:5033/api/v1/directory";
+            string url = _config.Url;
             _log.Debug($"Checking [{url}] for active listing");
-            UnityWebRequest uwr = UnityWebRequest.Get(url);
-            uwr.SendWebRequest().completed += n => Verify(n, OnListingRequestCompleted);
+            UnityWebRequest.Get(url).SendAndVerify(OnListingRequestCompleted);
         }
 
-        private void OnListingRequestCompleted(DownloadHandler download)
+        private void OnListingRequestCompleted(UnityWebRequest download)
         {
-            string json = download.text;
+            string json = download.downloadHandler.text;
             Listing? listing = JsonConvert.DeserializeObject<Listing>(json, JsonSettings.Settings);
             if (listing == null)
             {
@@ -82,33 +83,13 @@ namespace Synapse.Managers
             _listingFound?.Invoke(Listing);
 
             _log.Debug($"Fetching banner image from [{listing.BannerImage}]");
-            UnityWebRequest uwr = UnityWebRequest.Get(listing.BannerImage);
-            uwr.SendWebRequest().completed += n => Verify(n, OnBannerImageRequstCompleted);
+            WebRequestExtensions.RequestSprite(listing.BannerImage, OnBannerImageRequstCompleted);
         }
 
-        private void OnBannerImageRequstCompleted(DownloadHandler download)
+        private void OnBannerImageRequstCompleted(Sprite sprite)
         {
-            _bannerImage = PromoManager.GetSprite(download.data);
+            _bannerImage = sprite;
             _bannerImageCreated?.Invoke(_bannerImage);
-        }
-
-        private void Verify(AsyncOperation operation, Action<DownloadHandler> action)
-        {
-            UnityWebRequest www = ((UnityWebRequestAsyncOperation)operation).webRequest;
-
-            if (www.isHttpError)
-            {
-                _log.Debug($"The server returned an error response ({www.responseCode})");
-                return;
-            }
-
-            if (www.isNetworkError)
-            {
-                _log.Debug($"Network error ({www.error})");
-                return;
-            }
-
-            action(www.downloadHandler);
         }
     }
 }

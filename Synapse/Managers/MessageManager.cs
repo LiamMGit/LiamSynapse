@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -85,12 +86,12 @@ namespace Synapse.Managers
 
         private void OnMotdUpdated(string message)
         {
-            OnChatMessageRecieved(new ChatMessage(string.Empty, "Server", message));
+            MessageRecieved?.Invoke(new ChatMessage(string.Empty, "Server", message));
         }
 
-        private void OnChatMessageRecieved(ChatMessage message)
+        private void OnChatMessageRecieved(ChatMessage messages)
         {
-            MessageRecieved?.Invoke(message);
+            MessageRecieved?.Invoke(messages);
         }
 
         private void RelaySystemMessage(string message)

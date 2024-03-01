@@ -1,27 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using JetBrains.Annotations;
 
 namespace Synapse.Models
 {
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
     public record Listing
     {
-        [JsonProperty("title")]
         public string Title { get; init; } = string.Empty;
 
-        [JsonProperty("ipAddress")]
         public string IpAddress { get; init; } = string.Empty;
 
-        [JsonProperty("bannerImage")]
         public string BannerImage { get; init; } = string.Empty;
 
-        [JsonProperty("bannerColor")]
         public string BannerColor { get; init; } = string.Empty;
 
-        [JsonProperty("time")]
         public DateTime Time { get; init;  }
 
-        [JsonProperty("requiredMods")]
+        public string LobbyBundle { get; init; } = string.Empty;
+
+        public uint BundleCrc { get; init; }
+
         public List<RequiredMod> RequiredMods { get; init; } = new(0);
 
         internal TimeSpan TimeSpan => Time - DateTime.UtcNow;

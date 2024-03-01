@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -13,7 +14,7 @@ using Unclassified.Net;
 
 namespace Synapse.Managers
 {
-    public enum Stage
+    internal enum Stage
     {
         Connecting,
         Authenticating,
@@ -23,7 +24,7 @@ namespace Synapse.Managers
         Failed
     }
 
-    public enum ClosedReason
+    internal enum ClosedReason
     {
         ClosedLocally,
         Aborted,
@@ -31,31 +32,10 @@ namespace Synapse.Managers
         ClosedRemotely
     }
 
-    public enum ClientOpcode
-    {
-        Authenticated = 0,
-        Disconnected = 1,
-        RefusedPacket = 2,
-        PlayStatus = 4,
-        ChatMessage = 10,
-        UserBanned = 11,
-        LeaderboardScores = 21
-    }
-
-    public enum ServerOpcode
-    {
-        Authentication = 0,
-        Disconnect = 1,
-        ChatMessage = 10,
-        ScoreSubmission = 20,
-        LeaderboardRequest = 21
-    }
-
     internal class NetworkManager : IDisposable
     {
-        private static readonly IPAddress _address = IPAddress.IPv6Loopback;
-
         private readonly SiraLog _log;
+        private readonly Config _config;
         private readonly IPlatformUserModel _platformUserModel;
         private readonly ListingManager _listingManager;
         private readonly Task<AuthenticationToken> _tokenTask;
@@ -63,11 +43,17 @@ namespace Synapse.Managers
         private readonly List<ArraySegment<byte>> _queuedPackets = new();
 
         private AsyncTcpClient? _client;
+        private string _address = string.Empty;
 
         [UsedImplicitly]
-        private NetworkManager(SiraLog log, IPlatformUserModel platformUserModel, ListingManager listingManager)
+        private NetworkManager(
+            SiraLog log,
+            Config config,
+            IPlatformUserModel platformUserModel,
+            ListingManager listingManager)
         {
             _log = log;
+            _config = config;
             _platformUserModel = platformUserModel;
             _listingManager = listingManager;
             _tokenTask = GetToken();
@@ -102,25 +88,6 @@ namespace Synapse.Managers
             _ = Disconnect("Disposed");
         }
 
-        internal async Task Disconnect(string reason, bool local = true)
-        {
-            if (_client == null)
-            {
-                return;
-            }
-
-            _log.Warn($"Disconnected from {_address} ({reason})");
-            if (local && _client.IsConnected)
-            {
-                await _client.Send(new ArraySegment<byte>(new[] { (byte)ServerOpcode.Disconnect }, 0, 1));
-            }
-
-            _client.AutoReconnect = false;
-            _client.Disconnect();
-
-            Disconnected?.Invoke(reason);
-        }
-
         internal async Task RunAsync()
         {
             if (_client != null)
@@ -141,7 +108,8 @@ namespace Synapse.Managers
             int portidx = stringAddress.LastIndexOf(':');
             IPAddress address = IPAddress.Parse(stringAddress.Substring(0, portidx));
             int port = int.Parse(stringAddress.Substring(portidx + 1));
-            _log.Info($"Connecting to {address}:{port}");
+            _address = $"{address}:{port}";
+            _log.Info($"Connecting to {_address}");
             client.IPAddress = address;
             client.Port = port;
             client.AutoReconnect = true;
@@ -158,17 +126,46 @@ namespace Synapse.Managers
             _client = null;
         }
 
+        internal async Task Disconnect(string reason, bool local = true)
+        {
+            if (_client == null)
+            {
+                return;
+            }
+
+            _log.Warn($"Disconnected from {_address} ({reason})");
+            if (local && _client.IsConnected)
+            {
+                await _client.Send(new ArraySegment<byte>(new[] { (byte)ServerOpcode.Disconnect }, 0, 1));
+            }
+
+            _client.AutoReconnect = false;
+            _client.Disconnect();
+
+            Disconnected?.Invoke(reason);
+        }
+
         internal async Task Send(byte[] bytes)
         {
             ArraySegment<byte> packet = new(bytes, 0, bytes.Length);
             if (_client is not { IsConnected: true })
             {
                 _log.Error("Client not connected! Delaying sending packet");
+                _log.Error(new StackTrace());
                 _queuedPackets.Add(packet);
                 return;
             }
 
             await _client.Send(packet);
+        }
+
+        internal async Task SendBool(bool message, ServerOpcode opcode)
+        {
+            using MemoryStream stream = new();
+            using BinaryWriter writer = new(stream);
+            writer.Write((byte)opcode);
+            writer.Write(message);
+            await Send(stream.ToArray());
         }
 
         internal async Task SendInt(int message, ServerOpcode opcode)
@@ -312,6 +309,10 @@ namespace Synapse.Managers
                             {
                                 _log.Debug($"Authenticated {_address}");
                                 Connecting?.Invoke(Stage.ReceivingData, -1);
+                                if (_config.JoinChat ?? false)
+                                {
+                                    _ = SendBool(true, ServerOpcode.SetChatter);
+                                }
                             }
 
                             break;
@@ -390,7 +391,8 @@ namespace Synapse.Managers
 
                         default:
                             _log.Warn($"Unhandled opcode: ({opcode})");
-                            break;
+                            client.ByteBuffer.Clear();
+                            return;
                     }
                 }
             }

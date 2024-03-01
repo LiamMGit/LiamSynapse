@@ -28,6 +28,8 @@ namespace Synapse.Models
 
         public string DownloadUrl { get; init; } = string.Empty;
 
+        public string? AltCoverUrl { get; init; } = string.Empty;
+
         public Ruleset? Ruleset { get; init; }
     }
 

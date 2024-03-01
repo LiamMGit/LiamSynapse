@@ -17,6 +17,7 @@ namespace Synapse.Views
 {
     internal class EventFlowCoordinator : FlowCoordinator
     {
+        private Config _config = null!;
         private GameplaySetupViewController _gameplaySetupViewController = null!;
         private ResultsViewController _resultsViewController = null!;
         private EventLobbyViewController _lobbyViewController = null!;
@@ -28,6 +29,7 @@ namespace Synapse.Views
         private MapDownloadingManager _mapDownloadingManager = null!;
         private LevelStartManager _levelStartManager = null!;
         private NetworkManager _networkManager = null!;
+        private PrefabManager _prefabManager = null!;
         private Listing _listing = null!;
 
         private bool _dirtyListing;
@@ -58,6 +60,11 @@ namespace Synapse.Views
 
         public override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
         {
+            if (firstActivation)
+            {
+                _prefabManager.Download();
+            }
+
             // TODO: light color presets
             // ReSharper disable once InvertIf
             if (addedToHierarchy)
@@ -82,14 +89,51 @@ namespace Synapse.Views
                     }
                     else
                     {
-                        ProvideInitialViewControllers(_loadingViewController);
                         _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
                         _lobbyViewController.StartLevel += TryStartLevel;
                         _networkManager.MapUpdated += OnMapUpdated;
                         _networkManager.StartTimeUpdated += OnStartTimeUpdated;
                         _networkManager.Connecting += OnConnecting;
                         _networkManager.Disconnected += OnDisconnected;
-                        _ = _networkManager.RunAsync();
+                        _prefabManager.Show();
+                        if (_config.JoinChat == null)
+                        {
+                            _simpleDialogPromptViewController.Init(
+                                "Chat",
+                                "Automatically join chatrooms for events?",
+                                "Yes",
+                                "No",
+                                n =>
+                                {
+                                    switch (n)
+                                    {
+                                        case 0:
+                                            _config.JoinChat = true;
+                                            _ = _networkManager.SendBool(true, ServerOpcode.SetChatter);
+                                            break;
+
+                                        case 1:
+                                            _config.JoinChat = false;
+                                            break;
+                                    }
+
+                                    TransitionFinished += () =>
+                                    {
+                                        ReplaceTopViewController(
+                                            _loadingViewController,
+                                            null,
+                                            ViewController.AnimationType.In,
+                                            ViewController.AnimationDirection.Vertical);
+                                    };
+                                    _ = _networkManager.RunAsync();
+                                });
+                            ProvideInitialViewControllers(_simpleDialogPromptViewController);
+                        }
+                        else
+                        {
+                            ProvideInitialViewControllers(_loadingViewController);
+                            _ = _networkManager.RunAsync();
+                        }
                     }
                 }
             }
@@ -109,6 +153,7 @@ namespace Synapse.Views
                 _networkManager.Connecting -= OnConnecting;
                 _networkManager.Disconnected -= OnDisconnected;
                 _ = _networkManager.Disconnect("Leaving");
+                _prefabManager.Hide();
             }
         }
 
@@ -169,6 +214,7 @@ namespace Synapse.Views
         [UsedImplicitly]
         [Inject]
         private void Construct(
+            Config config,
             GameplaySetupViewController gameplaySetupViewController,
             ResultsViewController resultsViewController,
             EventLobbyViewController lobbyViewController,
@@ -180,8 +226,10 @@ namespace Synapse.Views
             MapDownloadingManager mapDownloadingManager,
             LevelStartManager levelStartManager,
             ListingManager listingManager,
-            NetworkManager networkManager)
+            NetworkManager networkManager,
+            PrefabManager prefabManager)
         {
+            _config = config;
             _gameplaySetupViewController = gameplaySetupViewController;
             _resultsViewController = resultsViewController;
             _lobbyViewController = lobbyViewController;
@@ -194,6 +242,7 @@ namespace Synapse.Views
             _levelStartManager = levelStartManager;
             listingManager.ListingFound += n => _listing = n;
             _networkManager = networkManager;
+            _prefabManager = prefabManager;
         }
 
         private void OnAcceptModsDownload(List<RequiredMod> requiredMods)
@@ -306,7 +355,7 @@ namespace Synapse.Views
                 _mapDownloadingManager.MapDownloadedOnce += n =>
                 {
                     _transitionFinished.Clear();
-                    _levelStartManager.StartLevel(n.Difficulty, n.Preview, HandleLevelDidFinish);
+                    _levelStartManager.StartLevel(n.DifficultyBeatmap, n.PreviewBeatmapLevel, HandleLevelDidFinish);
                 };
             };
         }

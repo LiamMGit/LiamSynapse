@@ -65,6 +65,7 @@
     <Reference Include="UnityEngine.UI" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.UI.dll" />
     <Reference Include="UnityEngine.UIModule" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.UIModule.dll" />
     <Reference Include="UnityEngine.UnityWebRequestModule" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestModule.dll" />
+    <Reference Include="UnityEngine.UnityWebRequestTextureModule" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.UnityWebRequestTextureModule.dll" />
     <Reference Include="UnityEngine.VideoModule" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.VideoModule.dll" />
     <Reference Include="UnityEngine.VRModule" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.VRModule.dll" />
     <Reference Include="Zenject" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\Zenject.dll" />

@@ -12,7 +12,7 @@ using Zenject;
 
 namespace Synapse.Managers
 {
-    public sealed class MapDownloadingManager : IDisposable, ITickable
+    internal sealed class MapDownloadingManager : IDisposable, ITickable
     {
         private static readonly string _mapFolder =
             (Path.GetDirectoryName(Application.streamingAssetsPath) ?? throw new InvalidOperationException()) +
@@ -28,7 +28,7 @@ namespace Synapse.Managers
         private float _downloadProgress;
         private float _lastProgress;
 
-        private (IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview)? _beatmapLevel;
+        private DownloadedMap? _beatmapLevel;
 
         [UsedImplicitly]
         [Inject]
@@ -49,7 +49,7 @@ namespace Synapse.Managers
 
         public event Action<string>? ProgressUpdated;
 
-        public event Action<(IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview)>? MapDownloaded
+        public event Action<DownloadedMap>? MapDownloaded
         {
             add
             {
@@ -64,7 +64,7 @@ namespace Synapse.Managers
             remove => _mapDownloaded -= value;
         }
 
-        public event Action<(IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview)>? MapDownloadedOnce
+        public event Action<DownloadedMap>? MapDownloadedOnce
         {
             add
             {
@@ -80,18 +80,13 @@ namespace Synapse.Managers
             remove => _mapDownloadedOnce -= value;
         }
 
-        private event Action<(IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview)>? _mapDownloadedOnce;
+        private event Action<DownloadedMap>? _mapDownloadedOnce;
 
-        private event Action<(IDifficultyBeatmap Difficulty, IPreviewBeatmapLevel Preview)>? _mapDownloaded;
+        private event Action<DownloadedMap>? _mapDownloaded;
 
         public void Dispose()
         {
             PurgeDirectory();
-        }
-
-        public void Cancel()
-        {
-            _downloadingManager.Cancel();
         }
 
         public void Tick()
@@ -107,6 +102,11 @@ namespace Synapse.Managers
             ProgressUpdated?.Invoke(text);
         }
 
+        internal void Cancel()
+        {
+            _downloadingManager.Cancel();
+        }
+
         // needed for BeatLeader
         private static CustomPreviewBeatmapLevel SongCoreLoad(
             StandardLevelInfoSaveData standardLevelInfoSaveData,
@@ -116,6 +116,7 @@ namespace Synapse.Managers
                    throw new InvalidOperationException();
         }
 
+        // TODO: decide if i should keep this
         private static void PurgeDirectory()
         {
             // cleanup
@@ -191,10 +192,10 @@ namespace Synapse.Managers
 
                 _log.Debug($"Successfully downloaded [{map.Name}] as [{customPreviewBeatmapLevel.levelID}]");
 
-                (IDifficultyBeatmap, IPreviewBeatmapLevel) startParameters = (difficultyBeatmap, beatmapLevel);
-                _beatmapLevel = startParameters;
-                _mapDownloaded?.Invoke(startParameters);
-                _mapDownloadedOnce?.Invoke(startParameters);
+                DownloadedMap downloadedMap = new(map, difficultyBeatmap, customPreviewBeatmapLevel);
+                _beatmapLevel = downloadedMap;
+                _mapDownloaded?.Invoke(downloadedMap);
+                _mapDownloadedOnce?.Invoke(downloadedMap);
                 _mapDownloadedOnce = null;
             }
             catch (Exception e)

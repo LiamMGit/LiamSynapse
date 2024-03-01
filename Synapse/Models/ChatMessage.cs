@@ -1,6 +1,6 @@
 ﻿namespace Synapse.Models
 {
-    public struct ChatMessage
+    public readonly struct ChatMessage
     {
         public ChatMessage(string id, string username, string message)
         {
