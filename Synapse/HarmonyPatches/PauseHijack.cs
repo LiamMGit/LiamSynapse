@@ -52,8 +52,9 @@ namespace Synapse.HarmonyPatches
 
         [AffinityPrefix]
         [AffinityPatch(typeof(GamePause), nameof(GamePause.Pause))]
-        private bool DisablePause()
+        private bool DisablePause(ref bool ____pause)
         {
+            ____pause = true;
             _saberManager.disableSabers = true;
             return false;
         }

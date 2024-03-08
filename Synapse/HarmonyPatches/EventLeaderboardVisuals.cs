@@ -9,6 +9,12 @@ namespace Synapse.HarmonyPatches
     [HarmonyPatch]
     internal static class EventLeaderboardVisuals
     {
+        internal static string FormatAccuracy(float accuracy)
+        {
+            float percent = accuracy * 100;
+            return $"<color=#FEA959>{percent:F2}<size=60%>%</size></color>";
+        }
+
         [HarmonyPrefix]
         [HarmonyPatch(typeof(LeaderboardTableCell), nameof(LeaderboardTableCell.rank), MethodType.Setter)]
         private static bool NullifyRank(int value, TextMeshProUGUI ____rankText)
@@ -25,9 +31,21 @@ namespace Synapse.HarmonyPatches
             List<LeaderboardTableView.ScoreData> ____scores)
         {
             LeaderboardTableView.ScoreData scoreData = ____scores[row];
-            if (scoreData is EventLeaderboardViewController.EventScoreData { Color: not null } eventScore)
+            if (scoreData is not EventLeaderboardViewController.EventScoreData eventScore)
             {
-                ((LeaderboardTableCell)__result)._playerNameText.color *= eventScore.Color.Value;
+                return;
+            }
+
+            LeaderboardTableCell cell = (LeaderboardTableCell)__result;
+            if (eventScore.Color != null)
+            {
+                cell._playerNameText.color *= eventScore.Color.Value;
+            }
+
+            if (eventScore.Accuracy >= 0)
+            {
+                cell._scoreText.text = $"{FormatAccuracy(eventScore.Accuracy)}    {cell._scoreText.text}";
+                cell._scoreText.color = cell._normalColor;
             }
         }
     }

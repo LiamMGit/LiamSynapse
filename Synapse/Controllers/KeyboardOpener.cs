@@ -1,4 +1,6 @@
-﻿using HMUI;
+﻿using System;
+using HMUI;
+using IPA.Utilities;
 using JetBrains.Annotations;
 using UnityEngine;
 using Zenject;
@@ -42,6 +44,7 @@ namespace Synapse.Controllers
 
                     break;
 
+                case KeyCode.Slash when !_inputFieldView._hasKeyboardAssigned:
                 case KeyCode.Return when !_inputFieldView._hasKeyboardAssigned:
                     _uiKeyboardManager.ProcessMousePress(gameObject);
                     break;

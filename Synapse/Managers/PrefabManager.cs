@@ -1,6 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using JetBrains.Annotations;
 using SiraUtil.Logging;
 using Synapse.Controllers;
 using Synapse.Extras;
@@ -20,6 +23,7 @@ namespace Synapse.Managers
         private static readonly int _death = Animator.StringToHash("death");
 
         private readonly SiraLog _log;
+        private readonly CancellationTokenManager _cancellationTokenManager;
 
         private Listing? _listing;
         private string _filePath = string.Empty;
@@ -30,9 +34,11 @@ namespace Synapse.Managers
 
         private bool _active;
 
-        private PrefabManager(SiraLog log, ListingManager listingManager)
+        [UsedImplicitly]
+        private PrefabManager(SiraLog log, ListingManager listingManager, CancellationTokenManager cancellationTokenManager)
         {
             _log = log;
+            _cancellationTokenManager = cancellationTokenManager;
             listingManager.ListingFound += n =>
             {
                 _listing = n;
@@ -97,32 +103,41 @@ namespace Synapse.Managers
             }
         }
 
-        internal void Download()
+        internal async Task Download()
         {
-            if (File.Exists(_filePath))
-            {
-                LoadBundle();
-                return;
-            }
+            CancellationToken token = _cancellationTokenManager.Reset();
 
-            string? url = _listing?.LobbyBundle;
-            if (string.IsNullOrWhiteSpace(url))
+            try
             {
-                _log.Error("No bundle listed");
-                return;
-            }
+                if (File.Exists(_filePath))
+                {
+                    await LoadBundle();
+                    return;
+                }
 
-            UnityWebRequest.Get(url).SendAndVerify(OnDownloadComplete);
+                string? url = _listing?.LobbyBundle;
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    _log.Error("No bundle listed");
+                    return;
+                }
+
+                UnityWebRequest www = UnityWebRequest.Get(url);
+                await www.SendAndVerify(token);
+                Directory.CreateDirectory(_folder);
+                File.WriteAllBytes(_filePath, www.downloadHandler.data);
+                await LoadBundle();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e)
+            {
+                _log.Error($"Exception while loading lobby bundle: {e}");
+            }
         }
 
-        private void OnDownloadComplete(UnityWebRequest webRequest)
-        {
-            Directory.CreateDirectory(_folder);
-            File.WriteAllBytes(_filePath, webRequest.downloadHandler.data);
-            LoadBundle();
-        }
-
-        private void LoadBundle()
+        private async Task LoadBundle()
         {
             if (_listing == null)
             {
@@ -130,7 +145,7 @@ namespace Synapse.Managers
             }
 
             uint crc = _listing.BundleCrc;
-            AssetBundle bundle = AssetBundle.LoadFromFile(_filePath, crc);
+            AssetBundle bundle = await AsyncExtensions.LoadFromFileAsync(_filePath, crc);
             _prefab = Object.Instantiate(bundle.LoadAllAssets<GameObject>().First());
             if (!_active)
             {

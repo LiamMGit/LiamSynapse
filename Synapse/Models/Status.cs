@@ -12,9 +12,17 @@ namespace Synapse.Models
 
         public DateTime? StartTime { get; private set; }
 
-        public bool HasScore { get; private set; }
+        public PlayerScore? PlayerScore { get; init; }
 
-        public Map Map { get; private set; } = new();
+        public Map Map { get; init; } = new();
+    }
+
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
+    public record PlayerScore
+    {
+        public int Score { get; init; }
+
+        public float Accuracy { get; init; }
     }
 
     [UsedImplicitly(ImplicitUseTargetFlags.Members)]

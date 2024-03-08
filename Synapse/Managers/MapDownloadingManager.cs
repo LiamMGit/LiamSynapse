@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
+using Synapse.Extras;
 using Synapse.Models;
 using UnityEngine;
 using Zenject;
@@ -18,13 +19,14 @@ namespace Synapse.Managers
             (Path.GetDirectoryName(Application.streamingAssetsPath) ?? throw new InvalidOperationException()) +
             $"{Path.DirectorySeparatorChar}Synapse{Path.DirectorySeparatorChar}Levels";
 
-        private readonly CustomLevelLoader _customLevelLoader;
-        private readonly DownloadingManager _downloadingManager;
         private readonly SiraLog _log;
+        private readonly CustomLevelLoader _customLevelLoader;
+        private readonly CancellationTokenManager _cancellationTokenManager;
 
         private readonly bool _songCoreActive;
 
         private string _lastSent = string.Empty;
+        private string? _error;
         private float _downloadProgress;
         private float _lastProgress;
 
@@ -36,11 +38,11 @@ namespace Synapse.Managers
             SiraLog log,
             CustomLevelLoader customLevelLoader,
             NetworkManager networkManager,
-            DownloadingManager downloadingManager)
+            CancellationTokenManager cancellationTokenManager)
         {
             _log = log;
             _customLevelLoader = customLevelLoader;
-            _downloadingManager = downloadingManager;
+            _cancellationTokenManager = cancellationTokenManager;
             PurgeDirectory();
             networkManager.MapUpdated += Init;
 
@@ -91,8 +93,17 @@ namespace Synapse.Managers
 
         public void Tick()
         {
-            _lastProgress = Mathf.Lerp(_lastProgress, _downloadProgress, 20 * Time.deltaTime);
-            string text = $"{_lastProgress:0%}";
+            string text;
+            if (_error != null)
+            {
+                text = _error;
+            }
+            else
+            {
+                _lastProgress = Mathf.Lerp(_lastProgress, _downloadProgress, 20 * Time.deltaTime);
+                text = $"{_lastProgress:0%}";
+            }
+
             if (text == _lastSent)
             {
                 return;
@@ -104,7 +115,7 @@ namespace Synapse.Managers
 
         internal void Cancel()
         {
-            _downloadingManager.Cancel();
+            _cancellationTokenManager.Cancel();
         }
 
         // needed for BeatLeader
@@ -116,7 +127,6 @@ namespace Synapse.Managers
                    throw new InvalidOperationException();
         }
 
-        // TODO: decide if i should keep this
         private static void PurgeDirectory()
         {
             // cleanup
@@ -138,32 +148,43 @@ namespace Synapse.Managers
             }
         }
 
-        private void Init(int _, Map map)
+        private void Init(int index, Map map)
         {
             _beatmapLevel = null;
             string mapName = Path.GetInvalidFileNameChars().Aggregate(map.Name, (current, c) => current.Replace(c, '_'));
             string path = $"{_mapFolder}{Path.DirectorySeparatorChar}{mapName}";
-            UnityMainThreadTaskScheduler.Factory.StartNew(() => DownloadAndSave(map, path));
+            UnityMainThreadTaskScheduler.Factory.StartNew(() => Download(index, map, path));
         }
 
-        private async Task DownloadAndSave(Map map, string path)
+        private async Task Download(int index, Map map, string path)
         {
-            CancellationToken token = _downloadingManager.Reset();
+            _error = null;
+            CancellationToken token = _cancellationTokenManager.Reset();
             _lastProgress = 0;
             _downloadProgress = 0;
             string url = map.DownloadUrl;
             if (!Directory.Exists(path))
             {
                 _log.Debug($"Attempting to download [{map.Name}] from [{url}]");
-                if (!await _downloadingManager.Download(
+                try
+                {
+                    await AsyncExtensions.DownloadAndSave(
                         url,
                         path,
                         n => _downloadProgress = n * 0.8f,
                         null,
                         n => _downloadProgress = 0.8f + (n * 0.15f),
-                        null,
-                        token))
+                        token);
+                }
+                catch (OperationCanceledException)
                 {
+                    return;
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"Error downloading: {e}");
+                    _error = "ERROR!";
+                    PurgeDirectory();
                     return;
                 }
             }
@@ -192,7 +213,7 @@ namespace Synapse.Managers
 
                 _log.Debug($"Successfully downloaded [{map.Name}] as [{customPreviewBeatmapLevel.levelID}]");
 
-                DownloadedMap downloadedMap = new(map, difficultyBeatmap, customPreviewBeatmapLevel);
+                DownloadedMap downloadedMap = new(index, map, difficultyBeatmap, customPreviewBeatmapLevel);
                 _beatmapLevel = downloadedMap;
                 _mapDownloaded?.Invoke(downloadedMap);
                 _mapDownloadedOnce?.Invoke(downloadedMap);
@@ -201,6 +222,8 @@ namespace Synapse.Managers
             catch (Exception e)
             {
                 _log.Error($"Error deserializing beatmap data\n({e})");
+                _error = "ERROR!";
+                PurgeDirectory();
             }
         }
     }

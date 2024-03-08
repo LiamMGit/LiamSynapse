@@ -8,5 +8,7 @@ namespace Synapse.Models
         public int Index { get; init; }
 
         public int Score { get; init; }
+
+        public float Accuracy { get; init; }
     }
 }

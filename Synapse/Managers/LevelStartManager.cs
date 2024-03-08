@@ -49,9 +49,8 @@ namespace Synapse.Managers
 
         // WARNING: ruleset has lower priority than heck map settings
         public void StartLevel(
-            IDifficultyBeatmap difficultyBeatmap,
-            IPreviewBeatmapLevel previewBeatmapLevel,
-            Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback)
+            DownloadedMap downloadedMap,
+            Action<DownloadedMap, StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback)
         {
             ColorScheme? overrideColorScheme;
             if (_ruleset?.AllowOverrideColors != null && !_ruleset.AllowOverrideColors.Value)
@@ -141,10 +140,16 @@ namespace Synapse.Managers
                 }
             }
 
+            Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? callback = null;
+            if (levelFinishedCallback != null)
+            {
+                callback = (a, b) => levelFinishedCallback(downloadedMap, a, b);
+            }
+
             StartStandardOrHeck(
                 "screw yo analytics",
-                difficultyBeatmap,
-                previewBeatmapLevel,
+                downloadedMap.DifficultyBeatmap,
+                downloadedMap.PreviewBeatmapLevel,
                 null, // no environment override
                 overrideColorScheme,
                 modifiers,
@@ -154,7 +159,7 @@ namespace Synapse.Managers
                 false,
                 false,
                 null,
-                levelFinishedCallback,
+                callback,
                 null);
         }
 

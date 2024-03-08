@@ -73,7 +73,7 @@ namespace Synapse.Managers
 
         internal event Action<DateTime?>? StartTimeUpdated;
 
-        internal event Action<bool>? HasScoreUpdated;
+        internal event Action<PlayerScore?>? PlayerScoreUpdated;
 
         internal event Action<int, Map>? MapUpdated;
 
@@ -275,6 +275,7 @@ namespace Synapse.Managers
                 writer.Write(token.userName);
                 writer.Write((byte)token.platform);
                 writer.Write(token.sessionToken);
+                writer.Write(_listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded"));
                 byte[] bytes = stream.ToArray();
                 await client.Send(new ArraySegment<byte>(bytes, 0, bytes.Length));
 
@@ -340,7 +341,6 @@ namespace Synapse.Managers
                                 Status lastStatus = Status;
                                 Status = status;
                                 _log.Info(fullStatus);
-                                _log.Info(status);
 
                                 if (lastStatus.Motd != status.Motd)
                                 {
@@ -357,9 +357,9 @@ namespace Synapse.Managers
                                     StartTimeUpdated?.Invoke(status.StartTime);
                                 }
 
-                                if (lastStatus.HasScore != status.HasScore)
+                                if (lastStatus.PlayerScore != status.PlayerScore)
                                 {
-                                    HasScoreUpdated?.Invoke(status.HasScore);
+                                    PlayerScoreUpdated?.Invoke(status.PlayerScore);
                                 }
                             }
 
@@ -368,6 +368,7 @@ namespace Synapse.Managers
                         case ClientOpcode.ChatMessage:
                             {
                                 string message = reader.ReadString();
+                                _log.Debug(message);
                                 ChatRecieved?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message, JsonSettings.Settings));
                             }
 

@@ -27,7 +27,6 @@ namespace Synapse.Installers
             Container.Bind<EventLeaderboardViewController>().FromNewComponentAsViewController().AsSingle();
             ////Container.Bind<EventMapDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
 
-            Container.BindInterfacesAndSelfTo<DownloadingManager>().AsTransient();
             Container.BindInterfacesAndSelfTo<MapDownloadingManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<CountdownManager>().AsSingle();
             Container.Bind<LevelStartManager>().AsSingle();

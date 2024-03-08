@@ -8,6 +8,7 @@ using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using Synapse.Extras;
+using Synapse.HarmonyPatches;
 using Synapse.Managers;
 using Synapse.Models;
 using UnityEngine;
@@ -62,7 +63,7 @@ namespace Synapse.Views
         {
             if (firstActivation)
             {
-                _prefabManager.Download();
+                _ = _prefabManager.Download();
             }
 
             // TODO: light color presets
@@ -272,7 +273,7 @@ namespace Synapse.Views
 
         private void OnStartTimeUpdated(DateTime? startTime)
         {
-            if (startTime == null || (_networkManager.Status.HasScore && !(_networkManager.Status.Map.Ruleset?.AllowResubmission ?? false)))
+            if (startTime == null || (_networkManager.Status.PlayerScore != null && !(_networkManager.Status.Map.Ruleset?.AllowResubmission ?? false)))
             {
                 return;
             }
@@ -355,7 +356,7 @@ namespace Synapse.Views
                 _mapDownloadingManager.MapDownloadedOnce += n =>
                 {
                     _transitionFinished.Clear();
-                    _levelStartManager.StartLevel(n.DifficultyBeatmap, n.PreviewBeatmapLevel, HandleLevelDidFinish);
+                    _levelStartManager.StartLevel(n, HandleLevelDidFinish);
                 };
             };
         }
@@ -366,6 +367,7 @@ namespace Synapse.Views
         }
 
         private void HandleLevelDidFinish(
+            DownloadedMap map,
             StandardLevelScenesTransitionSetupDataSO standardLevelScenesTransitionSetupData,
             LevelCompletionResults levelCompletionResults)
         {
@@ -375,7 +377,7 @@ namespace Synapse.Views
             if (levelCompletionResults.levelEndStateType is not LevelCompletionResults.LevelEndStateType.Failed
                 and not LevelCompletionResults.LevelEndStateType.Cleared)
             {
-                SubmitScore(0);
+                SubmitScore(map.Index, 0);
                 return;
             }
 
@@ -389,16 +391,16 @@ namespace Synapse.Views
                 ViewController.AnimationDirection.Horizontal,
                 true);
 
-            SubmitScore(levelCompletionResults.modifiedScore);
+            SubmitScore(map.Index, levelCompletionResults.modifiedScore);
         }
 
-        private void SubmitScore(int score)
+        private void SubmitScore(int index, int score)
         {
-            int index = _networkManager.Status.Index;
             ScoreSubmission scoreSubmission = new()
             {
                 Index = index,
-                Score = score
+                Score = score,
+                Accuracy = AccuracyHelper.Accuracy
             };
             string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
             _ = _networkManager.SendString(scoreJson, ServerOpcode.ScoreSubmission);

@@ -14,7 +14,6 @@ using Zenject;
 
 namespace Synapse.Views
 {
-    // TODO: figure out why the leaderboard is sinking
     [ViewDefinition("Synapse.Resources.Leaderboard.bsml")]
     internal class EventLeaderboardViewController : BSMLAutomaticViewController
     {
@@ -152,6 +151,10 @@ namespace Synapse.Views
             _dirtyTextSegments = false;
             _textSegments.SetTexts(_textSegmentTexts);
             _textSegments.SelectCellWithNumber(_index);
+
+            // marking for rebuild didnt work but this did so w/e
+            _leaderboardObject.SetActive(false);
+            _leaderboardObject.SetActive(true);
         }
 
         private void OnLeaderboardReceived(LeaderboardScores leaderboardScores)
@@ -200,7 +203,7 @@ namespace Synapse.Views
                         n.Score,
                         n.PlayerName,
                         n.Rank + 1,
-                        n.FullCombo,
+                        n.Accuracy,
                         color);
                 }).ToList();
                 int playerScoreIndex = ShowEliminated ? scores.ElimPlayerScoreIndex : scores.PlayerScoreIndex;
@@ -228,11 +231,14 @@ namespace Synapse.Views
 
         internal class EventScoreData : LeaderboardTableView.ScoreData
         {
-            public EventScoreData(int score, string playerName, int rank, bool fullCombo, Color? color)
-                : base(score, playerName, rank, fullCombo)
+            public EventScoreData(int score, string playerName, int rank, float accuracy, Color? color)
+                : base(score, playerName, rank, false)
             {
+                Accuracy = accuracy;
                 Color = color;
             }
+
+            public float Accuracy { get; }
 
             public Color? Color { get; }
         }

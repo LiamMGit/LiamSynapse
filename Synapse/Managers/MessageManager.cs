@@ -44,7 +44,14 @@ namespace Synapse.Managers
                 return;
             }
 
-            await _networkManager.SendString(message, ServerOpcode.ChatMessage);
+            if (message.StartsWith("/"))
+            {
+                await _networkManager.SendString(message, ServerOpcode.Command);
+            }
+            else
+            {
+                await _networkManager.SendString(message, ServerOpcode.ChatMessage);
+            }
         }
 
         internal void RefreshMotd()
@@ -86,7 +93,7 @@ namespace Synapse.Managers
 
         private void OnMotdUpdated(string message)
         {
-            MessageRecieved?.Invoke(new ChatMessage(string.Empty, "Server", message));
+            MessageRecieved?.Invoke(new ChatMessage(string.Empty, "Server", MessageType.System, message));
         }
 
         private void OnChatMessageRecieved(ChatMessage messages)
@@ -96,8 +103,8 @@ namespace Synapse.Managers
 
         private void RelaySystemMessage(string message)
         {
-            message = $"<color=\"yellow\">{message}</color>";
-            MessageRecieved?.Invoke(new ChatMessage(string.Empty, "System", message));
+            ////message = $"<color=\"yellow\">{message}</color>";
+            MessageRecieved?.Invoke(new ChatMessage(string.Empty, "System", MessageType.System, message));
         }
     }
 }

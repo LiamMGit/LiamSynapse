@@ -6,10 +6,12 @@ namespace Synapse.HarmonyPatches
     internal class AddMainMenuEventButton : IAffinity
     {
         private readonly PromoManager _promoManager;
+        private readonly ListingManager _listingManager;
 
-        private AddMainMenuEventButton(PromoManager promoManager)
+        private AddMainMenuEventButton(PromoManager promoManager, ListingManager listingManager)
         {
             _promoManager = promoManager;
+            _listingManager = listingManager;
         }
 
         [AffinityPrefix]
@@ -20,6 +22,8 @@ namespace Synapse.HarmonyPatches
             {
                 __instance.buttonBinder.AddBinding(_promoManager.Button, () => __instance.HandleMenuButton((MainMenuViewController.MenuButton)13));
             }
+
+            _listingManager.Initialize();
         }
     }
 }

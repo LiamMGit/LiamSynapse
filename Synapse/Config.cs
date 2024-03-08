@@ -11,7 +11,7 @@ namespace Synapse
     {
         public string Url { get; set; } = "http://event.aeroluna.dev/api/v1/directory";
 
-        public bool ShowEliminated { get; set; }
+        public bool ShowEliminated { get; set; } = true;
 
         public bool? JoinChat { get; set; }
     }

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using SiraUtil.Logging;
@@ -10,21 +12,22 @@ using Zenject;
 
 namespace Synapse.Managers
 {
-    // TODO: update listing when entering menu scene
     internal class ListingManager : IInitializable
     {
         private readonly SiraLog _log;
         private readonly Config _config;
+        private readonly CancellationTokenManager _cancellationTokenManager;
         private Sprite? _bannerImage;
 
         [UsedImplicitly]
-        private ListingManager(SiraLog log, Config config)
+        private ListingManager(SiraLog log, Config config, CancellationTokenManager cancellationTokenManager)
         {
             _log = log;
             _config = config;
+            _cancellationTokenManager = cancellationTokenManager;
         }
 
-        public event Action<Listing>? ListingFound
+        public event Action<Listing?>? ListingFound
         {
             add
             {
@@ -39,7 +42,7 @@ namespace Synapse.Managers
             remove => _listingFound -= value;
         }
 
-        public event Action<Sprite>? BannerImageCreated
+        public event Action<Sprite?>? BannerImageCreated
         {
             add
             {
@@ -54,42 +57,64 @@ namespace Synapse.Managers
             remove => _bannerImageCreated -= value;
         }
 
-        private event Action<Listing>? _listingFound;
+        private event Action<Listing?>? _listingFound;
 
-        private event Action<Sprite>? _bannerImageCreated;
+        private event Action<Sprite?>? _bannerImageCreated;
 
         public Listing? Listing { get; private set; }
 
         public void Initialize()
         {
-            string url = _config.Url;
-            _log.Debug($"Checking [{url}] for active listing");
-            UnityWebRequest.Get(url).SendAndVerify(OnListingRequestCompleted);
+            _ = InitializeAsync();
         }
 
-        private void OnListingRequestCompleted(UnityWebRequest download)
+        private async Task InitializeAsync()
         {
-            string json = download.downloadHandler.text;
-            Listing? listing = JsonConvert.DeserializeObject<Listing>(json, JsonSettings.Settings);
-            if (listing == null)
+            try
             {
-                _log.Error("Error deserializing listing");
-                return;
+                CancellationToken token = _cancellationTokenManager.Reset();
+                string url = _config.Url;
+                _log.Debug($"Checking [{url}] for active listing");
+                UnityWebRequest www = UnityWebRequest.Get(url);
+                await www.SendAndVerify(token);
+
+                string json = www.downloadHandler.text;
+                Listing? listing = JsonConvert.DeserializeObject<Listing>(json, JsonSettings.Settings);
+                if (listing == null)
+                {
+                    _log.Error("Error deserializing listing");
+                    return;
+                }
+
+                _log.Debug($"Found active listing for [{listing.Title}]");
+
+                Listing = listing;
+                _listingFound?.Invoke(Listing);
+
+                try
+                {
+                    _log.Debug($"Fetching banner image from [{listing.BannerImage}]");
+                    Sprite bannerImage = await AsyncExtensions.RequestSprite(listing.BannerImage, token);
+                    _bannerImage = bannerImage;
+                    _bannerImageCreated?.Invoke(_bannerImage);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e);
+                    _bannerImageCreated?.Invoke(null);
+                }
             }
-
-            _log.Debug($"Found active listing for [{listing.Title}]");
-
-            Listing = listing;
-            _listingFound?.Invoke(Listing);
-
-            _log.Debug($"Fetching banner image from [{listing.BannerImage}]");
-            WebRequestExtensions.RequestSprite(listing.BannerImage, OnBannerImageRequstCompleted);
-        }
-
-        private void OnBannerImageRequstCompleted(Sprite sprite)
-        {
-            _bannerImage = sprite;
-            _bannerImageCreated?.Invoke(_bannerImage);
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e)
+            {
+                _log.Error(e);
+                _listingFound?.Invoke(null);
+            }
         }
     }
 }

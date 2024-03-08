@@ -90,6 +90,15 @@ namespace Synapse.Views
         [UIComponent("countdown")]
         private readonly TextMeshProUGUI _countdown = null!;
 
+        [UIObject("scoreobject")]
+        private readonly GameObject _scoreObject = null!;
+
+        [UIComponent("scoretext")]
+        private readonly TextMeshProUGUI _score = null!;
+
+        [UIComponent("accuracytext")]
+        private readonly TextMeshProUGUI _accuracy = null!;
+
         [UIObject("startobject")]
         private readonly GameObject _startObject = null!;
 
@@ -108,6 +117,7 @@ namespace Synapse.Views
         private NetworkManager _networkManager = null!;
         private CountdownManager _countdownManager = null!;
         private MapDownloadingManager _mapDownloadingManager = null!;
+        private CancellationTokenManager _cancellationTokenManager = null!;
         private IInstantiator _instantiator = null!;
 
         private InputFieldView _input = null!;
@@ -178,9 +188,11 @@ namespace Synapse.Views
 
                 _songText.enableAutoSizing = true;
                 _authorText.enableAutoSizing = true;
-                _songText.fontSizeMin = _songText.fontSize / 2;
+                _songText.enableWordWrapping = false;
+                _authorText.enableWordWrapping = false;
+                _songText.fontSizeMin = _songText.fontSize / 4;
                 _songText.fontSizeMax = _songText.fontSize;
-                _authorText.fontSizeMin = _authorText.fontSize / 2;
+                _authorText.fontSizeMin = _authorText.fontSize / 4;
                 _authorText.fontSizeMax = _authorText.fontSize;
 
                 LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_songInfo.transform);
@@ -195,8 +207,8 @@ namespace Synapse.Views
                 _networkManager.UserBanned += OnUserBanned;
                 ResetLoading();
                 _networkManager.MapUpdated += OnMapUpdated;
-                _networkManager.HasScoreUpdated += OnHasScoreUpdate;
-                OnHasScoreUpdate(_networkManager.Status.HasScore);
+                _networkManager.PlayerScoreUpdated += OnPlayerScoreUpdate;
+                OnPlayerScoreUpdate(_networkManager.Status.PlayerScore);
                 _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
                 _mapDownloadingManager.ProgressUpdated += OnProgressUpdated;
                 _countdownManager.CountdownUpdated += OnCountdownUpdated;
@@ -223,7 +235,7 @@ namespace Synapse.Views
                 _messageManager.MessageRecieved -= OnMessageRecieved;
                 _networkManager.UserBanned -= OnUserBanned;
                 _networkManager.MapUpdated -= OnMapUpdated;
-                _networkManager.HasScoreUpdated -= OnHasScoreUpdate;
+                _networkManager.PlayerScoreUpdated -= OnPlayerScoreUpdate;
                 _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
                 _mapDownloadingManager.ProgressUpdated -= OnProgressUpdated;
                 _mapDownloadingManager.Cancel();
@@ -239,6 +251,7 @@ namespace Synapse.Views
             MessageManager messageManager,
             NetworkManager networkManager,
             MapDownloadingManager mapDownloadingManager,
+            CancellationTokenManager cancellationTokenManager,
             CountdownManager countdownManager,
             IInstantiator instantiator)
         {
@@ -247,6 +260,7 @@ namespace Synapse.Views
             _messageManager = messageManager;
             _networkManager = networkManager;
             _mapDownloadingManager = mapDownloadingManager;
+            _cancellationTokenManager = cancellationTokenManager;
             _countdownManager = countdownManager;
             _instantiator = instantiator;
         }
@@ -284,15 +298,29 @@ namespace Synapse.Views
                 {
                     string content;
                     bool rich;
-                    if (string.IsNullOrEmpty(message.Id))
+                    Color color;
+                    switch (message.Type)
                     {
-                        content = message.Message;
-                        rich = true;
-                    }
-                    else
-                    {
-                        content = $"[{message.Username}] {message.Message}";
-                        rich = false;
+                        case MessageType.System:
+                            content = message.Message;
+                            rich = true;
+                            color = Color.yellow;
+                            break;
+                        case MessageType.WhisperFrom:
+                            content = $"[From {message.Username}] {message.Message}";
+                            rich = false;
+                            color = Color.magenta;
+                            break;
+                        case MessageType.WhisperTo:
+                            content = $"[To {message.Username}] {message.Message}";
+                            rich = false;
+                            color = Color.magenta;
+                            break;
+                        default:
+                            content = $"[{message.Username}] {message.Message}";
+                            rich = false;
+                            color = Color.white;
+                            break;
                     }
 
                     if (_messages.Count > 100)
@@ -302,6 +330,7 @@ namespace Synapse.Views
                         TextMeshProUGUI text = first.Value.Item2;
                         float height = text.rectTransform.rect.height;
                         text.richText = rich;
+                        text.color = color;
                         text.text = content;
                         text.transform.SetAsLastSibling();
                         first.Value = new Tuple<ChatMessage, TextMeshProUGUI>(message, text);
@@ -317,6 +346,7 @@ namespace Synapse.Views
                                 Vector2.zero);
                         text.enableWordWrapping = true;
                         text.richText = rich;
+                        text.color = color;
                         text.alignment = TextAlignmentOptions.Left;
                         text.fontSize = 4;
                         _messages.AddLast(new Tuple<ChatMessage, TextMeshProUGUI>(message, text));
@@ -355,7 +385,6 @@ namespace Synapse.Views
         private void OnMapDownloaded(DownloadedMap map)
         {
             _altCoverUrl = string.IsNullOrWhiteSpace(map.Map.AltCoverUrl) ? null : map.Map.AltCoverUrl;
-
             _preview = map.PreviewBeatmapLevel;
             _songInfo.SetActive(true);
             _loadingGroup.SetActive(false);
@@ -364,29 +393,30 @@ namespace Synapse.Views
 
         private void RefreshSongInfo()
         {
+            CancellationToken token = _cancellationTokenManager.Reset();
+            _imageView.sprite = _placeholderSprite;
             if (_altCoverUrl != null && !_hasScore)
             {
-                WebRequestExtensions.RequestSprite(_altCoverUrl, n => _imageView.sprite = n);
+                _ = SetCoverImage(AsyncExtensions.RequestSprite(_altCoverUrl, token));
                 _songText.text = "???";
                 _authorText.text = "??? [???]";
             }
             else if (_preview != null)
             {
-                _ = SetCoverImage(_preview);
+                _ = SetCoverImage(_preview.GetCoverImageAsync(token));
                 _songText.text = _preview.songName;
                 _authorText.text = $"{_preview.songAuthorName} [{_preview.levelAuthorName}]";
             }
             else
             {
-                _imageView.sprite = _placeholderSprite;
                 _songText.text = "???";
                 _authorText.text = "??? [???]";
             }
         }
 
-        private async Task SetCoverImage(IPreviewBeatmapLevel preview)
+        private async Task SetCoverImage(Task<Sprite> spriteTask)
         {
-            _imageView.sprite = await preview.GetCoverImageAsync(CancellationToken.None);
+            _imageView.sprite = await spriteTask;
         }
 
         private void OnMessageRecieved(ChatMessage message)
@@ -400,20 +430,33 @@ namespace Synapse.Views
             _messages.Where(n => n.Item1.Id == id).Do(n => n.Item2.text = "<deleted>");
         }
 
-        private void OnHasScoreUpdate(bool hasScore)
+        private void OnPlayerScoreUpdate(PlayerScore? playerScore)
         {
-            _hasScore = hasScore;
+            _hasScore = playerScore != null;
             UnityMainThreadTaskScheduler.Factory.StartNew(() =>
             {
                 RefreshSongInfo();
-                if (hasScore && (_networkManager.Status.Map.Ruleset?.AllowResubmission ?? false))
+                if (playerScore != null)
                 {
-                    _startObject.SetActive(true);
-                    _countdownObject.SetActive(false);
+                    if (_networkManager.Status.Map.Ruleset?.AllowResubmission ?? false)
+                    {
+                        _startObject.SetActive(true);
+                        _scoreObject.SetActive(false);
+                        _countdownObject.SetActive(false);
+                    }
+                    else
+                    {
+                        _score.text = $"{ScoreFormatter.Format(playerScore.Score)}";
+                        _accuracy.text = $"{EventLeaderboardVisuals.FormatAccuracy(playerScore.Accuracy)}";
+                        _startObject.SetActive(false);
+                        _scoreObject.SetActive(true);
+                        _countdownObject.SetActive(false);
+                    }
                 }
                 else
                 {
                     _startObject.SetActive(false);
+                    _scoreObject.SetActive(false);
                     _countdownObject.SetActive(true);
                 }
             });
@@ -427,6 +470,8 @@ namespace Synapse.Views
         private void ResetLoading()
         {
             _progress.text = "Loading...";
+            _altCoverUrl = null;
+            _preview = null;
             _songInfo.SetActive(false);
             _loadingGroup.SetActive(true);
             RefreshSongInfo();

@@ -18,6 +18,7 @@ namespace Synapse.Installers
         public override void InstallBindings()
         {
             Container.BindInstance(_config);
+            Container.BindInterfacesAndSelfTo<CancellationTokenManager>().AsTransient();
             Container.BindInterfacesAndSelfTo<NetworkManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<ListingManager>().AsSingle();
             Container.BindInterfacesAndSelfTo<PrefabManager>().AsSingle();

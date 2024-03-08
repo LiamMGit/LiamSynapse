@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using BeatSaberMarkupLanguage.Attributes;
+using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
 using Synapse.Models;
@@ -82,7 +83,7 @@ namespace Synapse.Views
 
             if (!DownloadFinished)
             {
-                _ = DownloadAndSave();
+                UnityMainThreadTaskScheduler.Factory.StartNew(DownloadAndSave);
             }
             else
             {
@@ -120,13 +121,17 @@ namespace Synapse.Views
                 DownloadText = $"Downloading {requiredMod.Id}... ({i + 1}/{count})";
                 _log.Debug($"Attempting to download [{requiredMod.Id}] from [{url}]");
                 int iteration = i;
-                if (!await Download(
+                try
+                {
+                    await Download(
                         url,
                         unzipPath,
                         n => DownloadProgress = (iteration + (n * 0.5f)) / count,
                         () => DownloadText = $"Unzipping {requiredMod.Id}... ({iteration + 1}/{count})",
                         n => DownloadProgress = (iteration + 0.5f + (n * 0.5f)) / count,
-                        token))
+                        token);
+                }
+                catch
                 {
                     return;
                 }
@@ -134,7 +139,7 @@ namespace Synapse.Views
                 _log.Debug($"Successfully downloaded [{requiredMod.Id}]");
             }
 
-            QuitText = $"{count} mod(s) successfully downloaded.\nQuit and restart to complete installation.";
+            QuitText = $"{count} mod(s) successfully downloaded.\nQuit and manually restart to complete installation.";
             NewView = View.Quit;
             DownloadFinished = true;
         }

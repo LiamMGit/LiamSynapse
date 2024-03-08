@@ -24,6 +24,7 @@ namespace Synapse.Managers
 
         private readonly MainMenuViewController _mainMenuViewController;
         private readonly ListingManager _listingManager;
+        private readonly TimeTweeningManager _tweeningManager;
 
         private Listing? _listing;
 
@@ -37,10 +38,16 @@ namespace Synapse.Managers
 
         private Button? _button;
 
-        private PromoManager(MainMenuViewController mainMenuViewController, ListingManager listingManager)
+        private PromoManager(
+            MainMenuViewController mainMenuViewController,
+            ListingManager listingManager,
+            TimeTweeningManager tweeningManager)
         {
             _mainMenuViewController = mainMenuViewController;
             _listingManager = listingManager;
+            _tweeningManager = tweeningManager;
+            _listingManager.ListingFound += OnListingFound;
+            _listingManager.BannerImageCreated += OnBannerImageCreated;
         }
 
         internal bool Active { get; private set; }
@@ -49,7 +56,7 @@ namespace Synapse.Managers
 
         public void Initialize()
         {
-            _button ??= CreateButton();
+            RefreshListing(_listing);
         }
 
         public void Tick()
@@ -67,6 +74,7 @@ namespace Synapse.Managers
                 _rainbow.enabled = true;
                 _transition._normalAlpha = 0.8f;
                 _transition._highlightedAlpha = 1;
+                Button.enabled = true;
                 NoTransitionButtonSelectableStateController controller =
                     _promoBanner.GetComponent<NoTransitionButtonSelectableStateController>();
                 controller.ResolveSelectionState(controller._component.selectionState, false);
@@ -113,8 +121,7 @@ namespace Synapse.Managers
 
             SelectableStateController stateController =
                 newObject.GetComponent<NoTransitionButtonSelectableStateController>();
-            _tweeningAccessor(ref stateController) =
-                original.GetComponent<NoTransitionButtonSelectableStateController>()._tweeningManager;
+            _tweeningAccessor(ref stateController) = _tweeningManager;
 
             newObject.transform.SetSiblingIndex(original.transform.GetSiblingIndex());
 
@@ -129,42 +136,52 @@ namespace Synapse.Managers
             newImage.transform.SetSiblingIndex(0);
             newImage.GetComponent<ImageView>().sprite = _promoBack;
             _rainbow = newImage.AddComponent<ImageViewRainbowController>();
-            _rainbow.enabled = false;
             ////newButton.transform.localScale = new Vector3(1.00f, 1.0f, 1);
 
             _bannerTextBg = newObject.transform.Find("PromoText").GetComponent<ImageView>();
 
             CanvasGroupStateTransition stateTransition = newObject.GetComponent<CanvasGroupStateTransition>();
             _transition = Object.Instantiate(stateTransition._transition);
-            _transition._normalAlpha = 0.4f;
-            _transition._highlightedAlpha = 0.6f;
             stateTransition._transition = _transition;
 
             newObject.name = "SynapsePromoBanner";
-
-            newObject.SetActive(false);
-
-            _listingManager.ListingFound += OnListingFound;
-            _listingManager.BannerImageCreated += OnBannerImageCreated;
 
             _promoBanner = newObject;
             return newButton;
         }
 
-        private void OnListingFound(Listing listing)
+        private void RefreshListing(Listing? listing)
         {
+            _button ??= CreateButton();
             _listing = listing;
-            _originalBanner.SetActive(false);
-            _promoBanner.SetActive(true);
-            if (ColorUtility.TryParseHtmlString(listing.BannerColor, out Color color))
+            if (listing == null)
             {
-                _bannerTextBg.color = color;
+                _promoBanner.SetActive(false);
+            }
+            else
+            {
+                Active = false;
+                _rainbow.enabled = false;
+                _transition._normalAlpha = 0.6f;
+                _transition._highlightedAlpha = 0.6f;
+                Button.enabled = false;
+                _originalBanner.SetActive(false);
+                _promoBanner.SetActive(true);
+                if (ColorUtility.TryParseHtmlString(listing.BannerColor, out Color color))
+                {
+                    _bannerTextBg.color = color;
+                }
             }
         }
 
-        private void OnBannerImageCreated(Sprite sprite)
+        private void OnListingFound(Listing? listing)
         {
-            _imageView.sprite = sprite;
+            RefreshListing(listing);
+        }
+
+        private void OnBannerImageCreated(Sprite? sprite)
+        {
+            _imageView.sprite = sprite != null ? sprite : _promoPlaceHolder;
         }
     }
 }

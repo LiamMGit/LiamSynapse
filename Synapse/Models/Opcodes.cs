@@ -17,6 +17,7 @@
         Disconnect = 1,
         SetChatter = 9,
         ChatMessage = 10,
+        Command = 12,
         ScoreSubmission = 20,
         LeaderboardRequest = 21
     }

@@ -41,6 +41,7 @@ namespace Synapse.Managers
             _log = log;
             _songPreviewPlayer = songPreviewPlayer;
             networkManager.StartTimeUpdated += n => _startTime = n;
+            networkManager.Closed += _ => _startTime = null;
 
             _ = LoadAudio(audioClipAsyncLoader);
         }
@@ -77,15 +78,15 @@ namespace Synapse.Managers
 
             TimeSpan diff = _startTime.Value - DateTime.UtcNow;
             TimeSpan alteredDiff = diff + TimeSpan.FromSeconds(1);
-            if ((int)diff.TotalHours > 0)
+            if ((int)alteredDiff.TotalHours > 0)
             {
                 Send("Soon™");
             }
-            else if ((int)diff.TotalMinutes > 0)
+            else if ((int)alteredDiff.TotalMinutes > 0)
             {
                 Send($"{alteredDiff.Minutes}:{alteredDiff.Seconds:D2}");
             }
-            else if ((int)diff.TotalSeconds >= 10)
+            else if ((int)alteredDiff.TotalSeconds > 10)
             {
                 Send($"{alteredDiff.Seconds}");
             }
@@ -108,7 +109,7 @@ namespace Synapse.Managers
                 _hue = Mathf.Repeat(_hue + (0.6f * Time.deltaTime), 1);
                 Color col = Color.HSVToRGB(Mathf.Repeat(_hue, 1), 0.8f, 1);
 
-                Send($"<size=200%><color=#{ColorUtility.ToHtmlStringRGB(col)}>{alteredDiff.Seconds}");
+                Send($"<size=160%><color=#{ColorUtility.ToHtmlStringRGB(col)}>{alteredDiff.Seconds}");
             }
             else
             {
@@ -117,7 +118,7 @@ namespace Synapse.Managers
                 _hue = Mathf.Repeat(_hue + (0.6f * Time.deltaTime), 1);
                 Color col = Color.HSVToRGB(Mathf.Repeat(_hue, 1), 0.8f, 1);
 
-                Send($"<size=200%><color=#{ColorUtility.ToHtmlStringRGB(col)}>Now");
+                Send($"<size=160%><color=#{ColorUtility.ToHtmlStringRGB(col)}>Now");
             }
         }
 

@@ -2,12 +2,15 @@
 {
     public readonly struct DownloadedMap
     {
-        public DownloadedMap(Map map, IDifficultyBeatmap difficultyBeatmap, IPreviewBeatmapLevel previewBeatmapLevel)
+        public DownloadedMap(int index, Map map, IDifficultyBeatmap difficultyBeatmap, IPreviewBeatmapLevel previewBeatmapLevel)
         {
+            Index = index;
             Map = map;
             DifficultyBeatmap = difficultyBeatmap;
             PreviewBeatmapLevel = previewBeatmapLevel;
         }
+
+        public int Index { get; }
 
         public Map Map { get; }
 

@@ -11,7 +11,7 @@
                     <text-segments id='segments' select-cell='selectcell'/>
                 </horizontal>
             </horizontal>
-            <vertical preferred-width='80'>
+            <vertical preferred-width='90'>
                 <leaderboard id='leaderboard'/>
                 <horizontal id='noscore' preferred-height='60'>
                     <vertical vertical-fit='PreferredSize'>

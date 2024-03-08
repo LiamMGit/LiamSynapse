@@ -103,7 +103,7 @@ namespace Synapse.Views
             if (addedToHierarchy)
             {
                 _header.text =
-                    $"{_listing.Title} requires the following mods, download them now?\n(Your game will need to be restarted.)";
+                    $"{_listing.Title} requires the following mods, download them now?\n(You will need to manually restart your game.)";
             }
         }
 

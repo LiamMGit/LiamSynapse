@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BeatSaberMarkupLanguage.ViewControllers;
 using JetBrains.Annotations;
+using Synapse.Extras;
 using Synapse.Managers;
 using TMPro;
 using UnityEngine;
@@ -13,7 +14,7 @@ namespace Synapse.Views
 {
     internal abstract class EventDownloadingViewController : BSMLAutomaticViewController
     {
-        private DownloadingManager _downloadingManager = null!;
+        private CancellationTokenManager _cancellationTokenManager = null!;
         private Image _loadingBar = null!;
 
         private float _lastProgress;
@@ -87,35 +88,39 @@ namespace Synapse.Views
             _lastProgress = 0;
             DownloadProgress = 0;
             NewView = View.Downloading;
-            return _downloadingManager.Reset();
+            return _cancellationTokenManager.Reset();
         }
 
         protected void Cancel()
         {
-            _downloadingManager.Cancel();
+            _cancellationTokenManager.Cancel();
         }
 
-        protected async Task<bool> Download(string url, string unzipPath, Action<float> progress, Action unzipping, Action<float> unzipProgress, CancellationToken token)
+        protected async Task Download(string url, string unzipPath, Action<float> progress, Action unzipping, Action<float> unzipProgress, CancellationToken token)
         {
-            return await _downloadingManager.Download(
-                url,
-                unzipPath,
-                progress,
-                unzipping,
-                unzipProgress,
-                n =>
-                {
-                    LastError = n;
-                    NewView = View.Error;
-                },
-                token);
+            try
+            {
+                await AsyncExtensions.DownloadAndSave(
+                    url,
+                    unzipPath,
+                    progress,
+                    unzipping,
+                    unzipProgress,
+                    token);
+            }
+            catch (Exception e)
+            {
+                LastError = e.Message;
+                NewView = View.Error;
+                throw;
+            }
         }
 
         [UsedImplicitly]
         [Inject]
-        private void Construct(DownloadingManager downloadingManager)
+        private void Construct(CancellationTokenManager cancellationTokenManager)
         {
-            _downloadingManager = downloadingManager;
+            _cancellationTokenManager = cancellationTokenManager;
         }
 
         private void Update()
