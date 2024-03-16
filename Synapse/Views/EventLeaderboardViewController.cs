@@ -2,6 +2,7 @@
 using System.Linq;
 using BeatSaberMarkupLanguage.Attributes;
 using BeatSaberMarkupLanguage.ViewControllers;
+using HarmonyLib;
 using HMUI;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
@@ -154,12 +155,17 @@ namespace Synapse.Views
             }
 
             _dirtyTextSegments = false;
+
+            // Have to be destroyed with DestroyImmediate otherwise the leaderboard sinks
+            List<SegmentedControlCell> cells = _textSegments._cells;
+            List<GameObject> seperators = _textSegments._separators;
+            cells.Where(n => n != null && n.gameObject != null).Do(n => DestroyImmediate(n.gameObject));
+            cells.Clear();
+            seperators.ForEach(DestroyImmediate);
+            seperators.Clear();
+
             _textSegments.SetTexts(_textSegmentTexts);
             _textSegments.SelectCellWithNumber(_index);
-
-            // marking for rebuild didnt work but this did so w/e
-            _leaderboardObject.SetActive(false);
-            _leaderboardObject.SetActive(true);
         }
 
         private void OnLeaderboardReceived(LeaderboardScores leaderboardScores)

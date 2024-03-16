@@ -310,7 +310,6 @@ namespace Synapse.Managers
                 while ((opcodeByte = stream.ReadByte()) != -1)
                 {
                     ClientOpcode opcode = (ClientOpcode)opcodeByte;
-                    _log.Debug(opcode);
                     switch (opcode)
                     {
                         case ClientOpcode.Authenticated:
