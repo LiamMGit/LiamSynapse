@@ -8,7 +8,6 @@ using Logger = IPA.Logging.Logger;
 
 namespace Synapse
 {
-    // TODO: multiversion yayy
     [Plugin(RuntimeOptions.DynamicInit)]
     internal class Plugin
     {

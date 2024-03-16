@@ -148,9 +148,16 @@ namespace Synapse.Managers
             }
         }
 
-        private void Init(int index, Map map)
+        private void Init(int index, Map? map)
         {
+            _mapDownloadedOnce = null;
             _beatmapLevel = null;
+
+            if (map == null)
+            {
+                return;
+            }
+
             string mapName = Path.GetInvalidFileNameChars().Aggregate(map.Name, (current, c) => current.Replace(c, '_'));
             string path = $"{_mapFolder}{Path.DirectorySeparatorChar}{mapName}";
             UnityMainThreadTaskScheduler.Factory.StartNew(() => Download(index, map, path));
@@ -168,7 +175,7 @@ namespace Synapse.Managers
                 _log.Debug($"Attempting to download [{map.Name}] from [{url}]");
                 try
                 {
-                    await AsyncExtensions.DownloadAndSave(
+                    await MediaExtensions.DownloadAndSave(
                         url,
                         path,
                         n => _downloadProgress = n * 0.8f,
@@ -212,6 +219,7 @@ namespace Synapse.Managers
                 IDifficultyBeatmap difficultyBeatmap = set.difficultyBeatmaps.First(n => (int)n.difficulty == map.Difficulty);
 
                 _log.Debug($"Successfully downloaded [{map.Name}] as [{customPreviewBeatmapLevel.levelID}]");
+                _downloadProgress = 1;
 
                 DownloadedMap downloadedMap = new(index, map, difficultyBeatmap, customPreviewBeatmapLevel);
                 _beatmapLevel = downloadedMap;

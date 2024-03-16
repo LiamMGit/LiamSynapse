@@ -8,7 +8,8 @@
         PlayStatus = 4,
         ChatMessage = 10,
         UserBanned = 11,
-        LeaderboardScores = 21
+        LeaderboardScores = 21,
+        StopLevel = 22
     }
 
     public enum ServerOpcode

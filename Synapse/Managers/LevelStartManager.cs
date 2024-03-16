@@ -146,12 +146,23 @@ namespace Synapse.Managers
                 callback = (a, b) => levelFinishedCallback(downloadedMap, a, b);
             }
 
+#if LATEST
+            ColorScheme? beatmapOverrideColorScheme = null;
+            if (downloadedMap is { PreviewBeatmapLevel: CustomBeatmapLevel customBeatmapLevel, DifficultyBeatmap: CustomDifficultyBeatmap customDifficultyBeatmap })
+            {
+                beatmapOverrideColorScheme = customBeatmapLevel.GetBeatmapLevelColorScheme(customDifficultyBeatmap.beatmapColorSchemeIdx);
+            }
+#endif
+
             StartStandardOrHeck(
                 "screw yo analytics",
                 downloadedMap.DifficultyBeatmap,
                 downloadedMap.PreviewBeatmapLevel,
                 null, // no environment override
                 overrideColorScheme,
+#if LATEST
+                beatmapOverrideColorScheme,
+#endif
                 modifiers,
                 playerSpecificSettings,
                 null,
@@ -160,12 +171,15 @@ namespace Synapse.Managers
                 false,
                 null,
                 callback,
+#if LATEST
+                null,
+#endif
                 null);
         }
 
-        private void OnMapUpdated(int _, Map map)
+        private void OnMapUpdated(int _, Map? map)
         {
-            _ruleset = map.Ruleset;
+            _ruleset = map?.Ruleset;
         }
 
         // i wish i could use my StartStandardLevelParameters here
@@ -175,6 +189,9 @@ namespace Synapse.Managers
             IPreviewBeatmapLevel previewBeatmapLevel,
             OverrideEnvironmentSettings? overrideEnvironmentSettings,
             ColorScheme? overrideColorScheme,
+#if LATEST
+            ColorScheme? beatmapOverrideColorScheme,
+#endif
             GameplayModifiers gameplayModifiers,
             PlayerSpecificSettings playerSpecificSettings,
             PracticeSettings? practiceSettings,
@@ -183,7 +200,12 @@ namespace Synapse.Managers
             bool startPaused,
             Action? beforeSceneSwitchCallback,
             Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
+#if LATEST
+            Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback,
+            RecordingToolManager.SetupData? recordingToolData)
+#else
             Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback)
+#endif
         {
             if (_heckIntegrationManager != null)
             {
@@ -193,6 +215,9 @@ namespace Synapse.Managers
                     previewBeatmapLevel,
                     overrideEnvironmentSettings,
                     overrideColorScheme,
+#if LATEST
+                    beatmapOverrideColorScheme,
+#endif
                     gameplayModifiers,
                     playerSpecificSettings,
                     practiceSettings,
@@ -201,7 +226,12 @@ namespace Synapse.Managers
                     startPaused,
                     beforeSceneSwitchCallback,
                     levelFinishedCallback,
+#if LATEST
+                    levelRestartedCallback,
+                    recordingToolData);
+#else
                     levelRestartedCallback);
+#endif
             }
             else
             {
@@ -211,6 +241,9 @@ namespace Synapse.Managers
                     previewBeatmapLevel,
                     overrideEnvironmentSettings,
                     overrideColorScheme,
+#if LATEST
+                    beatmapOverrideColorScheme,
+#endif
                     gameplayModifiers,
                     playerSpecificSettings,
                     practiceSettings,
@@ -219,7 +252,12 @@ namespace Synapse.Managers
                     startPaused,
                     beforeSceneSwitchCallback,
                     levelFinishedCallback,
+#if LATEST
+                    levelRestartedCallback,
+                    recordingToolData);
+#else
                     levelRestartedCallback);
+#endif
             }
         }
     }

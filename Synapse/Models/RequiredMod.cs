@@ -1,7 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using JetBrains.Annotations;
 
 namespace Synapse.Models
 {
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
     public record RequiredMod
     {
         public string Id { get; init; } = string.Empty;

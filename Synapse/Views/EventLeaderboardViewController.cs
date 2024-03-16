@@ -134,8 +134,13 @@ namespace Synapse.Views
             _ = _networkManager.SendInt(_index, ServerOpcode.LeaderboardRequest);
         }
 
-        private void OnMapUpdated(int index, Map map)
+        private void OnMapUpdated(int index, Map? map)
         {
+            if (map == null)
+            {
+                return;
+            }
+
             _maxIndex = index;
             _textSegmentTexts = Enumerable.Range(1, index + 1).Select(n => n.ToString()).ToArray();
             _dirtyTextSegments = true;

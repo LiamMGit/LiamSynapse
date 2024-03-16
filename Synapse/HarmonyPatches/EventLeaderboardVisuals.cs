@@ -39,9 +39,10 @@ namespace Synapse.HarmonyPatches
             LeaderboardTableCell cell = (LeaderboardTableCell)__result;
             if (eventScore.Color != null)
             {
-                cell._playerNameText.color *= eventScore.Color.Value;
+                cell._playerNameText.color = eventScore.Color.Value;
             }
 
+            // ReSharper disable once InvertIf
             if (eventScore.Accuracy >= 0)
             {
                 cell._scoreText.text = $"{FormatAccuracy(eventScore.Accuracy)}    {cell._scoreText.text}";

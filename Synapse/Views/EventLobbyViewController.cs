@@ -23,7 +23,7 @@ using Random = UnityEngine.Random;
 
 namespace Synapse.Views
 {
-    // TODO: show something else in song info panel when finished
+    // oh how i wish i could have sub-viewcontrollers
     ////[HotReload(RelativePathToLayout = @"../Resources/Lobby.bsml")]
     [ViewDefinition("Synapse.Resources.Lobby.bsml")]
     internal class EventLobbyViewController : BSMLAutomaticViewController
@@ -57,8 +57,8 @@ namespace Synapse.Views
         [UIComponent("textbox")]
         private readonly VerticalLayoutGroup _textObject = null!;
 
-        [UIComponent("image")]
-        private readonly ImageView _imageView = null!;
+        [UIComponent("cover")]
+        private readonly ImageView _coverImage = null!;
 
         [UIComponent("header")]
         private readonly ImageView _header = null!;
@@ -108,6 +108,15 @@ namespace Synapse.Views
         [UIComponent("modal")]
         private readonly ModalView _modal = null!;
 
+        [UIObject("map")]
+        private readonly GameObject _map = null!;
+
+        [UIObject("finish")]
+        private readonly GameObject _finish = null!;
+
+        [UIComponent("finishimage")]
+        private readonly ImageView _finishImage = null!;
+
         private readonly List<ChatMessage> _messageQueue = new();
         private readonly LinkedList<Tuple<ChatMessage, TextMeshProUGUI>> _messages = new();
 
@@ -115,6 +124,7 @@ namespace Synapse.Views
         private Config _config = null!;
         private MessageManager _messageManager = null!;
         private NetworkManager _networkManager = null!;
+        private ListingManager _listingManager = null!;
         private CountdownManager _countdownManager = null!;
         private MapDownloadingManager _mapDownloadingManager = null!;
         private CancellationTokenManager _cancellationTokenManager = null!;
@@ -122,7 +132,9 @@ namespace Synapse.Views
 
         private InputFieldView _input = null!;
         private OkRelay _okRelay = null!;
-        private Sprite _placeholderSprite = null!;
+        private Sprite _coverPlaceholder = null!;
+
+        private Sprite _finishPlaceholder = null!;
 
         private string? _altCoverUrl;
         private float _angle;
@@ -180,8 +192,8 @@ namespace Synapse.Views
                 _okRelay.OkPressed += OnOkPressed;
 
                 _input.gameObject.AddComponent<LayoutElement>().minHeight = 10;
-                _imageView.material = Resources.FindObjectsOfTypeAll<Material>().First(n => n.name == "UINoGlowRoundEdge");
-                _placeholderSprite = _imageView.sprite;
+                _coverImage.material = Resources.FindObjectsOfTypeAll<Material>().First(n => n.name == "UINoGlowRoundEdge");
+                _coverPlaceholder = _coverImage.sprite;
 
                 _header.color0 = new Color(1, 1, 1, 1);
                 _header.color1 = new Color(1, 1, 1, 0);
@@ -198,6 +210,9 @@ namespace Synapse.Views
                 LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_songInfo.transform);
 
                 _startObject.SetActive(false);
+
+                _finishPlaceholder = _finishImage.sprite;
+                _listingManager.FinishImageCreated += OnFinishImageCreated;
             }
 
             if (addedToHierarchy)
@@ -205,7 +220,7 @@ namespace Synapse.Views
                 _messageManager.MessageRecieved += OnMessageRecieved;
                 _messageManager.RefreshMotd();
                 _networkManager.UserBanned += OnUserBanned;
-                ResetLoading();
+                RefreshMap(_networkManager.Status.Map);
                 _networkManager.MapUpdated += OnMapUpdated;
                 _networkManager.PlayerScoreUpdated += OnPlayerScoreUpdate;
                 OnPlayerScoreUpdate(_networkManager.Status.PlayerScore);
@@ -250,6 +265,7 @@ namespace Synapse.Views
             Config config,
             MessageManager messageManager,
             NetworkManager networkManager,
+            ListingManager listingManager,
             MapDownloadingManager mapDownloadingManager,
             CancellationTokenManager cancellationTokenManager,
             CountdownManager countdownManager,
@@ -259,17 +275,17 @@ namespace Synapse.Views
             _config = config;
             _messageManager = messageManager;
             _networkManager = networkManager;
+            _listingManager = listingManager;
             _mapDownloadingManager = mapDownloadingManager;
             _cancellationTokenManager = cancellationTokenManager;
             _countdownManager = countdownManager;
             _instantiator = instantiator;
         }
 
-        private void OnOkPressed()
+        private new void OnDestroy()
         {
-            string text = _input.text;
-            _input.ClearInput();
-            _messageManager.SendMessage(text);
+            base.OnDestroy();
+            _listingManager.FinishImageCreated -= OnFinishImageCreated;
         }
 
         private void Update()
@@ -306,16 +322,20 @@ namespace Synapse.Views
                             rich = true;
                             color = Color.yellow;
                             break;
+
                         case MessageType.WhisperFrom:
                             content = $"[From {message.Username}] {message.Message}";
                             rich = false;
                             color = Color.magenta;
                             break;
+
                         case MessageType.WhisperTo:
                             content = $"[To {message.Username}] {message.Message}";
                             rich = false;
                             color = Color.magenta;
                             break;
+
+                        case MessageType.Say:
                         default:
                             content = $"[{message.Username}] {message.Message}";
                             rich = false;
@@ -394,10 +414,10 @@ namespace Synapse.Views
         private void RefreshSongInfo()
         {
             CancellationToken token = _cancellationTokenManager.Reset();
-            _imageView.sprite = _placeholderSprite;
+            _coverImage.sprite = _coverPlaceholder;
             if (_altCoverUrl != null && !_hasScore)
             {
-                _ = SetCoverImage(AsyncExtensions.RequestSprite(_altCoverUrl, token));
+                _ = SetCoverImage(MediaExtensions.RequestSprite(_altCoverUrl, token));
                 _songText.text = "???";
                 _authorText.text = "??? [???]";
             }
@@ -416,7 +436,7 @@ namespace Synapse.Views
 
         private async Task SetCoverImage(Task<Sprite> spriteTask)
         {
-            _imageView.sprite = await spriteTask;
+            _coverImage.sprite = await spriteTask;
         }
 
         private void OnMessageRecieved(ChatMessage message)
@@ -438,7 +458,7 @@ namespace Synapse.Views
                 RefreshSongInfo();
                 if (playerScore != null)
                 {
-                    if (_networkManager.Status.Map.Ruleset?.AllowResubmission ?? false)
+                    if (_networkManager.Status.Map?.Ruleset?.AllowResubmission ?? false)
                     {
                         _startObject.SetActive(true);
                         _scoreObject.SetActive(false);
@@ -462,19 +482,29 @@ namespace Synapse.Views
             });
         }
 
-        private void OnMapUpdated(int index, Map map)
+        private void OnMapUpdated(int _, Map? map)
         {
-            UnityMainThreadTaskScheduler.Factory.StartNew(ResetLoading);
+            UnityMainThreadTaskScheduler.Factory.StartNew(() => RefreshMap(map));
         }
 
-        private void ResetLoading()
+        private void RefreshMap(Map? map)
         {
-            _progress.text = "Loading...";
-            _altCoverUrl = null;
-            _preview = null;
-            _songInfo.SetActive(false);
-            _loadingGroup.SetActive(true);
-            RefreshSongInfo();
+            if (map != null)
+            {
+                _map.SetActive(true);
+                _finish.SetActive(false);
+                _progress.text = "Loading...";
+                _altCoverUrl = null;
+                _preview = null;
+                _songInfo.SetActive(false);
+                _loadingGroup.SetActive(true);
+                RefreshSongInfo();
+            }
+            else
+            {
+                _map.SetActive(false);
+                _finish.SetActive(true);
+            }
         }
 
         private void OnCountdownUpdated(string text)
@@ -485,6 +515,18 @@ namespace Synapse.Views
         private void OnProgressUpdated(string message)
         {
             _progress.text = message;
+        }
+
+        private void OnFinishImageCreated(Sprite? image)
+        {
+            _finishImage.sprite = image != null ? image : _finishPlaceholder;
+        }
+
+        private void OnOkPressed()
+        {
+            string text = _input.text;
+            _input.ClearInput();
+            _messageManager.SendMessage(text);
         }
 
         [UsedImplicitly]

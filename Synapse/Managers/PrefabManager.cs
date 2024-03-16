@@ -42,7 +42,7 @@ namespace Synapse.Managers
             listingManager.ListingFound += n =>
             {
                 _listing = n;
-                string listingTitle = new(n.Title.Select(j =>
+                string listingTitle = n == null ? "undefined" : new string(n.Title.Select(j =>
                 {
                     if (char.IsLetter(j) || char.IsNumber(j))
                     {
@@ -145,7 +145,7 @@ namespace Synapse.Managers
             }
 
             uint crc = _listing.BundleCrc;
-            AssetBundle bundle = await AsyncExtensions.LoadFromFileAsync(_filePath, crc);
+            AssetBundle bundle = await MediaExtensions.LoadFromFileAsync(_filePath, crc);
             _prefab = Object.Instantiate(bundle.LoadAllAssets<GameObject>().First());
             if (!_active)
             {

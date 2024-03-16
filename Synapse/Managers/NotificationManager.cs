@@ -44,9 +44,15 @@ namespace Synapse.Managers
             _timer = 0;
         }
 
-        private void OnListingFound(Listing listing)
+        private void OnListingFound(Listing? listing)
         {
             _listing = listing;
+            if (_listing == null)
+            {
+                _timer = 0;
+                return;
+            }
+
             if (_listing.TimeSpan.Ticks < 0)
             {
                 OnStarted();

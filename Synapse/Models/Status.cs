@@ -14,7 +14,7 @@ namespace Synapse.Models
 
         public PlayerScore? PlayerScore { get; init; }
 
-        public Map Map { get; init; } = new();
+        public Map? Map { get; init; }
     }
 
     [UsedImplicitly(ImplicitUseTargetFlags.Members)]

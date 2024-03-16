@@ -55,7 +55,7 @@ namespace Synapse.Views
             _textObject.text = _text;
         }
 
-        private void OnMapUpdated(int index, Map _)
+        private void OnMapUpdated(int index, Map? _)
         {
             _text = "Joining...";
         }

@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using Synapse.HarmonyPatches;
+using Synapse.Managers;
 using Synapse.Views;
 using Zenject;
 
@@ -16,6 +17,7 @@ namespace Synapse.Installers
             }
 
             Container.BindInterfacesTo<PauseHijack>().AsSingle();
+            Container.Bind<QuitLevelManager>().AsSingle().NonLazy();
         }
     }
 }

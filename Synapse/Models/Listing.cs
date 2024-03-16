@@ -23,6 +23,8 @@ namespace Synapse.Models
 
         public uint BundleCrc { get; init; }
 
+        public string FinishImage { get; init; } = string.Empty;
+
         public List<RequiredMod> RequiredMods { get; init; } = new(0);
 
         internal TimeSpan TimeSpan => Time - DateTime.UtcNow;

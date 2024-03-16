@@ -1,8 +1,9 @@
 ﻿using System;
-using System.IO;
 using HMUI;
 using IPA.Utilities;
+using JetBrains.Annotations;
 using Synapse.Controllers;
+using Synapse.Extras;
 using Synapse.Models;
 using TMPro;
 using Tweening;
@@ -19,8 +20,8 @@ namespace Synapse.Managers
             _tweeningAccessor =
                 FieldAccessor<SelectableStateController, TimeTweeningManager>.GetAccessor("_tweeningManager");
 
-        private static readonly Sprite _promoBack = GetEmbeddedResourceSprite("Synapse.Resources.promo_back.png");
-        private static readonly Sprite _promoPlaceHolder = GetEmbeddedResourceSprite("Synapse.Resources.promo_placeholder.png");
+        private static readonly Sprite _promoBack = MediaExtensions.GetEmbeddedResourceSprite("Synapse.Resources.promo_back.png");
+        private static readonly Sprite _promoPlaceholder = MediaExtensions.GetEmbeddedResourceSprite("Synapse.Resources.promo_placeholder.png");
 
         private readonly MainMenuViewController _mainMenuViewController;
         private readonly ListingManager _listingManager;
@@ -38,6 +39,7 @@ namespace Synapse.Managers
 
         private Button? _button;
 
+        [UsedImplicitly]
         private PromoManager(
             MainMenuViewController mainMenuViewController,
             ListingManager listingManager,
@@ -93,22 +95,6 @@ namespace Synapse.Managers
             }
         }
 
-        internal static Sprite GetSprite(byte[] bytes)
-        {
-            Texture2D tex = new(2, 2);
-            tex.LoadImage(bytes);
-            return Sprite.Create(tex, new Rect(0, 0, 200, 500), new Vector2(0.5f, 0.5f));
-        }
-
-        private static Sprite GetEmbeddedResourceSprite(string path)
-        {
-            using Stream stream =
-                typeof(PromoManager).Assembly.GetManifestResourceStream(path) ?? throw new InvalidOperationException();
-            using MemoryStream memStream = new();
-            stream.CopyTo(memStream);
-            return GetSprite(memStream.ToArray());
-        }
-
         private Button CreateButton()
         {
             Button orignalButton = _mainMenuViewController._musicPackPromoButton;
@@ -129,7 +115,7 @@ namespace Synapse.Managers
             _textMesh.text = string.Empty;
 
             _imageView = newObject.transform.Find("Banner").GetComponent<ImageView>();
-            _imageView.sprite = _promoPlaceHolder;
+            _imageView.sprite = _promoPlaceholder;
             GameObject originalImage = _imageView.gameObject;
             GameObject newImage = Object.Instantiate(originalImage, newObject.transform).gameObject;
             originalImage.transform.localScale = new Vector3(0.96f, 0.99f, 1);
@@ -138,7 +124,8 @@ namespace Synapse.Managers
             _rainbow = newImage.AddComponent<ImageViewRainbowController>();
             ////newButton.transform.localScale = new Vector3(1.00f, 1.0f, 1);
 
-            _bannerTextBg = newObject.transform.Find("PromoText").GetComponent<ImageView>();
+            // its on PromoText in 1.29 and on a child object in 1.34
+            _bannerTextBg = newObject.transform.Find("PromoText").GetComponentInChildren<ImageView>(true);
 
             CanvasGroupStateTransition stateTransition = newObject.GetComponent<CanvasGroupStateTransition>();
             _transition = Object.Instantiate(stateTransition._transition);
@@ -181,7 +168,7 @@ namespace Synapse.Managers
 
         private void OnBannerImageCreated(Sprite? sprite)
         {
-            _imageView.sprite = sprite != null ? sprite : _promoPlaceHolder;
+            _imageView.sprite = sprite != null ? sprite : _promoPlaceholder;
         }
     }
 }

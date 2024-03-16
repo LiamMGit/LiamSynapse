@@ -4,13 +4,12 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using IPA.Utilities.Async;
 using UnityEngine;
 using UnityEngine.Networking;
 
 namespace Synapse.Extras
 {
-    internal static class AsyncExtensions
+    internal static class MediaExtensions
     {
         internal static async Task<AssetBundle> LoadFromFileAsync(string path, uint crc)
         {
@@ -34,8 +33,31 @@ namespace Synapse.Extras
             UnityWebRequest www = UnityWebRequestTexture.GetTexture(url);
             await www.SendAndVerify(token);
             Texture2D tex = DownloadHandlerTexture.GetContent(www);
-            Sprite sprite = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f), 256f, 0U, SpriteMeshType.FullRect, new Vector4(0f, 0f, 0f, 0f), false);
-            return sprite;
+            return tex.GetSprite();
+        }
+
+        internal static Sprite GetEmbeddedResourceSprite(string path)
+        {
+            using Stream stream =
+                typeof(MediaExtensions).Assembly.GetManifestResourceStream(path) ?? throw new InvalidOperationException();
+            using MemoryStream memStream = new();
+            stream.CopyTo(memStream);
+            Texture2D tex = new(2, 2);
+            tex.LoadImage(memStream.ToArray());
+            return tex.GetSprite();
+        }
+
+        internal static Sprite GetSprite(this Texture2D tex)
+        {
+            return Sprite.Create(
+                tex,
+                new Rect(0f, 0f, tex.width, tex.height),
+                new Vector2(0.5f, 0.5f),
+                256f,
+                0U,
+                SpriteMeshType.FullRect,
+                new Vector4(0f, 0f, 0f, 0f),
+                false);
         }
 
         internal static Task SendAndVerify(

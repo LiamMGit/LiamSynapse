@@ -241,7 +241,7 @@ namespace Synapse.Views
             _simpleDialogPromptViewController = simpleDialogPromptViewController;
             _mapDownloadingManager = mapDownloadingManager;
             _levelStartManager = levelStartManager;
-            listingManager.ListingFound += n => _listing = n;
+            listingManager.ListingFound += n => _listing = n ?? _listing;
             _networkManager = networkManager;
             _prefabManager = prefabManager;
         }
@@ -256,7 +256,7 @@ namespace Synapse.Views
                 ViewController.AnimationDirection.Vertical);
         }
 
-        private void OnMapUpdated(int index, Map map)
+        private void OnMapUpdated(int index, Map? _)
         {
             TransitionFinished += () =>
             {
@@ -273,7 +273,7 @@ namespace Synapse.Views
 
         private void OnStartTimeUpdated(DateTime? startTime)
         {
-            if (startTime == null || (_networkManager.Status.PlayerScore != null && !(_networkManager.Status.Map.Ruleset?.AllowResubmission ?? false)))
+            if (startTime == null || (_networkManager.Status.PlayerScore != null && !(_networkManager.Status.Map?.Ruleset?.AllowResubmission ?? false)))
             {
                 return;
             }
@@ -374,24 +374,36 @@ namespace Synapse.Views
             TransitionDidFinish();
             IDifficultyBeatmap difficultyBeatmap = standardLevelScenesTransitionSetupData.difficultyBeatmap;
             IReadonlyBeatmapData transformedBeatmapData = standardLevelScenesTransitionSetupData.transformedBeatmapData;
-            if (levelCompletionResults.levelEndStateType is not LevelCompletionResults.LevelEndStateType.Failed
-                and not LevelCompletionResults.LevelEndStateType.Cleared)
+            switch (levelCompletionResults.levelEndStateType)
             {
-                SubmitScore(map.Index, 0);
-                return;
+                case LevelCompletionResults.LevelEndStateType.Incomplete:
+                    if (levelCompletionResults.levelEndAction is LevelCompletionResults.LevelEndAction.Quit)
+                    {
+                        SubmitScore(map.Index, 0);
+                    }
+
+                    return;
+
+                case LevelCompletionResults.LevelEndStateType.Cleared
+                    or LevelCompletionResults.LevelEndStateType.Failed:
+                    ////this._menuLightsManager.SetColorPreset((levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared) ? this._resultsClearedLightsPreset : this._resultsFailedLightsPreset, true);
+                    ////levelCompletionResults.SetField(nameof(levelCompletionResults.levelEndStateType), LevelCompletionResults.LevelEndStateType.Failed);
+                    _resultsViewController.Init(
+                        levelCompletionResults,
+                        transformedBeatmapData,
+                        difficultyBeatmap,
+                        false,
+                        false);
+                    _resultsViewController._restartButton.gameObject.SetActive(false);
+                    TransitionFinished += () => PresentViewController(
+                        _resultsViewController,
+                        null,
+                        ViewController.AnimationDirection.Horizontal,
+                        true);
+
+                    SubmitScore(map.Index, levelCompletionResults.modifiedScore);
+                    break;
             }
-
-            ////this._menuLightsManager.SetColorPreset((levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared) ? this._resultsClearedLightsPreset : this._resultsFailedLightsPreset, true);
-            ////levelCompletionResults.SetField(nameof(levelCompletionResults.levelEndStateType), LevelCompletionResults.LevelEndStateType.Failed);
-            _resultsViewController.Init(levelCompletionResults, transformedBeatmapData, difficultyBeatmap, false, false);
-            _resultsViewController._restartButton.gameObject.SetActive(false);
-            TransitionFinished += () => PresentViewController(
-                _resultsViewController,
-                null,
-                ViewController.AnimationDirection.Horizontal,
-                true);
-
-            SubmitScore(map.Index, levelCompletionResults.modifiedScore);
         }
 
         private void SubmitScore(int index, int score)

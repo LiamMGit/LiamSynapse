@@ -75,11 +75,13 @@ namespace Synapse.Managers
 
         internal event Action<PlayerScore?>? PlayerScoreUpdated;
 
-        internal event Action<int, Map>? MapUpdated;
+        internal event Action<int, Map?>? MapUpdated;
 
         internal event Action<string>? UserBanned;
 
         internal event Action<LeaderboardScores>? LeaderboardReceived;
+
+        internal event Action? StopLevelReceived;
 
         internal Status Status { get; private set; } = new();
 
@@ -188,7 +190,11 @@ namespace Synapse.Managers
 
         private async Task<AuthenticationToken> GetToken()
         {
+#if LATEST
+            UserInfo userInfo = await _platformUserModel.GetUserInfo(CancellationToken.None);
+#else
             UserInfo userInfo = await _platformUserModel.GetUserInfo();
+#endif
             if (userInfo == null)
             {
                 throw new InvalidOperationException("No authentication token provider could be created");
@@ -304,6 +310,7 @@ namespace Synapse.Managers
                 while ((opcodeByte = stream.ReadByte()) != -1)
                 {
                     ClientOpcode opcode = (ClientOpcode)opcodeByte;
+                    _log.Debug(opcode);
                     switch (opcode)
                     {
                         case ClientOpcode.Authenticated:
@@ -368,7 +375,6 @@ namespace Synapse.Managers
                         case ClientOpcode.ChatMessage:
                             {
                                 string message = reader.ReadString();
-                                _log.Debug(message);
                                 ChatRecieved?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message, JsonSettings.Settings));
                             }
 
@@ -388,6 +394,10 @@ namespace Synapse.Managers
                                 LeaderboardReceived?.Invoke(JsonConvert.DeserializeObject<LeaderboardScores>(message, JsonSettings.Settings)!);
                             }
 
+                            break;
+
+                        case ClientOpcode.StopLevel:
+                            StopLevelReceived?.Invoke();
                             break;
 
                         default:

@@ -18,6 +18,9 @@ namespace Synapse.Managers
         private readonly Config _config;
         private readonly CancellationTokenManager _cancellationTokenManager;
         private Sprite? _bannerImage;
+        private string? _bannerUrl;
+        private Sprite? _finishImage;
+        private string? _finishUrl;
 
         [UsedImplicitly]
         private ListingManager(SiraLog log, Config config, CancellationTokenManager cancellationTokenManager)
@@ -57,9 +60,26 @@ namespace Synapse.Managers
             remove => _bannerImageCreated -= value;
         }
 
+        public event Action<Sprite?>? FinishImageCreated
+        {
+            add
+            {
+                if (_finishImage != null)
+                {
+                    value?.Invoke(_finishImage);
+                }
+
+                _finishImageCreated += value;
+            }
+
+            remove => _finishImageCreated -= value;
+        }
+
         private event Action<Listing?>? _listingFound;
 
         private event Action<Sprite?>? _bannerImageCreated;
+
+        private event Action<Sprite?>? _finishImageCreated;
 
         public Listing? Listing { get; private set; }
 
@@ -91,12 +111,33 @@ namespace Synapse.Managers
                 Listing = listing;
                 _listingFound?.Invoke(Listing);
 
+                _ = GetBannerImage(listing, token);
+                _ = GetFinishImage(listing, token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e)
+            {
+                _log.Error(e);
+                _listingFound?.Invoke(null);
+                _bannerImageCreated?.Invoke(null);
+                _finishImageCreated?.Invoke(null);
+            }
+        }
+
+        private async Task GetBannerImage(Listing listing, CancellationToken token)
+        {
+            if (_bannerUrl != listing.BannerImage)
+            {
+                _bannerUrl = listing.BannerImage;
+
                 try
                 {
                     _log.Debug($"Fetching banner image from [{listing.BannerImage}]");
-                    Sprite bannerImage = await AsyncExtensions.RequestSprite(listing.BannerImage, token);
+                    Sprite bannerImage = await MediaExtensions.RequestSprite(listing.BannerImage, token);
                     _bannerImage = bannerImage;
-                    _bannerImageCreated?.Invoke(_bannerImage);
+                    _bannerImageCreated?.Invoke(bannerImage);
                 }
                 catch (OperationCanceledException)
                 {
@@ -107,13 +148,29 @@ namespace Synapse.Managers
                     _bannerImageCreated?.Invoke(null);
                 }
             }
-            catch (OperationCanceledException)
+        }
+
+        private async Task GetFinishImage(Listing listing, CancellationToken token)
+        {
+            if (_finishUrl != listing.FinishImage)
             {
-            }
-            catch (Exception e)
-            {
-                _log.Error(e);
-                _listingFound?.Invoke(null);
+                _finishUrl = listing.FinishImage;
+
+                try
+                {
+                    _log.Debug($"Fetching finish image from [{listing.FinishImage}]");
+                    Sprite finishImage = await MediaExtensions.RequestSprite(listing.FinishImage, token);
+                    _finishImage = finishImage;
+                    _finishImageCreated?.Invoke(finishImage);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception e)
+                {
+                    _log.Error(e);
+                    _finishImageCreated?.Invoke(null);
+                }
             }
         }
     }

@@ -100,7 +100,7 @@ namespace Synapse.Views
         {
             try
             {
-                await AsyncExtensions.DownloadAndSave(
+                await MediaExtensions.DownloadAndSave(
                     url,
                     unzipPath,
                     progress,

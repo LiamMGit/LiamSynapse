@@ -38,7 +38,7 @@ namespace Synapse.Views
         private readonly List<RequiredMod> _requiredMods = new(0);
 
         private SiraLog _log = null!;
-        private Listing _listing = null!;
+        private Listing? _listing;
 
         internal event Action<List<RequiredMod>>? didAcceptEvent;
 
@@ -61,6 +61,11 @@ namespace Synapse.Views
 
         internal bool Init()
         {
+            if (_listing == null)
+            {
+                return false;
+            }
+
             _requiredMods.Clear();
             _contents.Clear();
             bool result = false;
@@ -103,7 +108,7 @@ namespace Synapse.Views
             if (addedToHierarchy)
             {
                 _header.text =
-                    $"{_listing.Title} requires the following mods, download them now?\n(You will need to manually restart your game.)";
+                    $"{_listing?.Title ?? "N/A"} requires the following mods, download them now?\n(You will need to manually restart your game.)";
             }
         }
 

@@ -20,6 +20,9 @@ namespace Synapse.Managers
             IPreviewBeatmapLevel previewBeatmapLevel,
             OverrideEnvironmentSettings? overrideEnvironmentSettings,
             ColorScheme? overrideColorScheme,
+#if LATEST
+            ColorScheme? beatmapOverrideColorScheme,
+#endif
             GameplayModifiers gameplayModifiers,
             PlayerSpecificSettings playerSpecificSettings,
             PracticeSettings? practiceSettings,
@@ -28,7 +31,12 @@ namespace Synapse.Managers
             bool startPaused,
             Action? beforeSceneSwitchCallback,
             Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
+#if LATEST
+            Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback,
+            RecordingToolManager.SetupData? recordingToolData)
+#else
             Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback)
+#endif
         {
             StartStandardLevelParameters parameters = new(
                 gameMode,
@@ -36,6 +44,9 @@ namespace Synapse.Managers
                 previewBeatmapLevel,
                 overrideEnvironmentSettings,
                 overrideColorScheme,
+#if LATEST
+                beatmapOverrideColorScheme,
+#endif
                 gameplayModifiers,
                 playerSpecificSettings,
                 practiceSettings,
@@ -44,7 +55,12 @@ namespace Synapse.Managers
                 startPaused,
                 beforeSceneSwitchCallback,
                 levelFinishedCallback,
+#if LATEST
+                levelRestartedCallback,
+                recordingToolData);
+#else
                 levelRestartedCallback);
+#endif
             _playViewManager.ForceStart(parameters);
         }
     }
