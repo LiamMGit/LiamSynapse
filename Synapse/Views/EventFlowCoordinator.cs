@@ -7,6 +7,7 @@ using HMUI;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
+using SiraUtil.Logging;
 using Synapse.Extras;
 using Synapse.HarmonyPatches;
 using Synapse.Managers;
@@ -18,6 +19,7 @@ namespace Synapse.Views
 {
     internal class EventFlowCoordinator : FlowCoordinator
     {
+        private SiraLog _log = null!;
         private Config _config = null!;
         private GameplaySetupViewController _gameplaySetupViewController = null!;
         private ResultsViewController _resultsViewController = null!;
@@ -31,8 +33,8 @@ namespace Synapse.Views
         private LevelStartManager _levelStartManager = null!;
         private NetworkManager _networkManager = null!;
         private PrefabManager _prefabManager = null!;
-        private Listing _listing = null!;
 
+        private Listing? _listing;
         private bool _dirtyListing;
         private CancellationTokenSource? _startCancel;
         private Queue<Action> _transitionFinished = new();
@@ -61,80 +63,106 @@ namespace Synapse.Views
 
         public override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
         {
-            if (firstActivation)
-            {
-                _ = _prefabManager.Download();
-            }
-
             // TODO: light color presets
             // ReSharper disable once InvertIf
             if (addedToHierarchy)
             {
                 IsActive = true;
-                SetTitle(_listing.Title);
+                SetTitle(_listing?.Title ?? "N/A");
                 showBackButton = true;
 
                 _gameplaySetupViewController.Setup(false, false, true, false, PlayerSettingsPanelController.PlayerSettingsPanelLayout.Singleplayer);
 
-                if (!_dirtyListing && _modsDownloadingViewController.DownloadFinished)
+                if (_listing == null)
+                {
+                    SetTitle(null);
+                    showBackButton = false;
+                    _simpleDialogPromptViewController.Init(
+                        "Error",
+                        "Listing failed to load",
+                        "Ok",
+                        _ => { didFinishEvent?.Invoke(this); });
+                    ProvideInitialViewControllers(_simpleDialogPromptViewController);
+                }
+                else if (!_dirtyListing && _modsDownloadingViewController.DownloadFinished)
                 {
                     ProvideInitialViewControllers(_modsDownloadingViewController);
                 }
                 else
                 {
-                    _dirtyListing = false;
-                    if (_modsViewController.Init())
+                    if (_dirtyListing)
                     {
-                        _modsViewController.didAcceptEvent += OnAcceptModsDownload;
-                        ProvideInitialViewControllers(_modsViewController);
+                        _ = _prefabManager.Download();
+
+                        RequiredMods? versionMods = _listing.RequiredMods.FirstOrDefault(n => n.GameVersion == Plugin.GAME_VERSION);
+                        if (versionMods == null)
+                        {
+                            SetTitle(null);
+                            showBackButton = false;
+                            _simpleDialogPromptViewController.Init(
+                                "Error",
+                                $"{_listing.Title} only allows versions {string.Join(", ", _listing.RequiredMods.Select(n => n.GameVersion))}",
+                                "Ok",
+                                _ => { didFinishEvent?.Invoke(this); });
+                            ProvideInitialViewControllers(_simpleDialogPromptViewController);
+                            return;
+                        }
+
+                        List<ModInfo>? modsToDownload = _modsViewController.Init(versionMods.Mods);
+                        if (modsToDownload != null)
+                        {
+                            _modsDownloadingViewController.Init(modsToDownload);
+                            _modsViewController.didAcceptEvent += OnAcceptModsDownload;
+                            ProvideInitialViewControllers(_modsViewController);
+                            return;
+                        }
+                    }
+
+                    _dirtyListing = false;
+                    _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
+                    _lobbyViewController.StartLevel += TryStartLevel;
+                    _loadingViewController.Finished += OnLoadingFinished;
+                    _networkManager.StartTimeUpdated += OnStartTimeUpdated;
+                    _networkManager.Connecting += OnConnecting;
+                    _networkManager.Disconnected += OnDisconnected;
+                    _prefabManager.Show();
+                    if (_config.JoinChat == null)
+                    {
+                        _simpleDialogPromptViewController.Init(
+                            "Chat",
+                            "Automatically join chatrooms for events?",
+                            "Yes",
+                            "No",
+                            n =>
+                            {
+                                switch (n)
+                                {
+                                    case 0:
+                                        _config.JoinChat = true;
+                                        _ = _networkManager.SendBool(true, ServerOpcode.SetChatter);
+                                        break;
+
+                                    case 1:
+                                        _config.JoinChat = false;
+                                        break;
+                                }
+
+                                TransitionFinished += () =>
+                                {
+                                    ReplaceTopViewController(
+                                        _loadingViewController,
+                                        null,
+                                        ViewController.AnimationType.In,
+                                        ViewController.AnimationDirection.Vertical);
+                                };
+                                _ = _networkManager.RunAsync();
+                            });
+                        ProvideInitialViewControllers(_simpleDialogPromptViewController);
                     }
                     else
                     {
-                        _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
-                        _lobbyViewController.StartLevel += TryStartLevel;
-                        _networkManager.MapUpdated += OnMapUpdated;
-                        _networkManager.StartTimeUpdated += OnStartTimeUpdated;
-                        _networkManager.Connecting += OnConnecting;
-                        _networkManager.Disconnected += OnDisconnected;
-                        _prefabManager.Show();
-                        if (_config.JoinChat == null)
-                        {
-                            _simpleDialogPromptViewController.Init(
-                                "Chat",
-                                "Automatically join chatrooms for events?",
-                                "Yes",
-                                "No",
-                                n =>
-                                {
-                                    switch (n)
-                                    {
-                                        case 0:
-                                            _config.JoinChat = true;
-                                            _ = _networkManager.SendBool(true, ServerOpcode.SetChatter);
-                                            break;
-
-                                        case 1:
-                                            _config.JoinChat = false;
-                                            break;
-                                    }
-
-                                    TransitionFinished += () =>
-                                    {
-                                        ReplaceTopViewController(
-                                            _loadingViewController,
-                                            null,
-                                            ViewController.AnimationType.In,
-                                            ViewController.AnimationDirection.Vertical);
-                                    };
-                                    _ = _networkManager.RunAsync();
-                                });
-                            ProvideInitialViewControllers(_simpleDialogPromptViewController);
-                        }
-                        else
-                        {
-                            ProvideInitialViewControllers(_loadingViewController);
-                            _ = _networkManager.RunAsync();
-                        }
+                        ProvideInitialViewControllers(_loadingViewController);
+                        _ = _networkManager.RunAsync();
                     }
                 }
             }
@@ -149,7 +177,7 @@ namespace Synapse.Views
                 _resultsViewController.continueButtonPressedEvent -= HandleResultsViewControllerContinueButtonPressed;
                 _modsViewController.didAcceptEvent -= OnAcceptModsDownload;
                 _lobbyViewController.StartLevel -= TryStartLevel;
-                _networkManager.MapUpdated -= OnMapUpdated;
+                _loadingViewController.Finished -= OnLoadingFinished;
                 _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
                 _networkManager.Connecting -= OnConnecting;
                 _networkManager.Disconnected -= OnDisconnected;
@@ -186,7 +214,7 @@ namespace Synapse.Views
             {
                 case EventLobbyViewController:
                     SetLeftScreenViewController(_gameplaySetupViewController, animationType);
-                    SetTitle(_listing.Title, animationType);
+                    SetTitle(_listing?.Title ?? "N/A", animationType);
                     showBackButton = true;
                     break;
                 case SimpleDialogPromptViewController:
@@ -195,7 +223,7 @@ namespace Synapse.Views
                     break;
                 case EventLoadingViewController:
                 case EventModsDownloadingViewController:
-                    SetTitle(_listing.Title, animationType);
+                    SetTitle(_listing?.Title ?? "N/A", animationType);
                     showBackButton = true;
                     break;
                 default:
@@ -215,6 +243,7 @@ namespace Synapse.Views
         [UsedImplicitly]
         [Inject]
         private void Construct(
+            SiraLog log,
             Config config,
             GameplaySetupViewController gameplaySetupViewController,
             ResultsViewController resultsViewController,
@@ -230,6 +259,7 @@ namespace Synapse.Views
             NetworkManager networkManager,
             PrefabManager prefabManager)
         {
+            _log = log;
             _config = config;
             _gameplaySetupViewController = gameplaySetupViewController;
             _resultsViewController = resultsViewController;
@@ -241,14 +271,20 @@ namespace Synapse.Views
             _simpleDialogPromptViewController = simpleDialogPromptViewController;
             _mapDownloadingManager = mapDownloadingManager;
             _levelStartManager = levelStartManager;
-            listingManager.ListingFound += n => _listing = n ?? _listing;
+            listingManager.ListingFound += OnListingFound;
             _networkManager = networkManager;
             _prefabManager = prefabManager;
         }
 
-        private void OnAcceptModsDownload(List<RequiredMod> requiredMods)
+        private void OnListingFound(Listing? listing)
         {
-            _modsDownloadingViewController.Init(requiredMods);
+            _dirtyListing = true;
+            _listing = listing;
+        }
+
+        private void OnAcceptModsDownload()
+        {
+            _dirtyListing = false;
             ReplaceTopViewController(
                 _modsDownloadingViewController,
                 null,
@@ -256,7 +292,7 @@ namespace Synapse.Views
                 ViewController.AnimationDirection.Vertical);
         }
 
-        private void OnMapUpdated(int index, Map? _)
+        private void OnLoadingFinished()
         {
             TransitionFinished += () =>
             {
@@ -319,7 +355,7 @@ namespace Synapse.Views
                 _simpleDialogPromptViewController.Init(
                     "Connection Error",
                     "Connection failed after 3 tries",
-                    "OK",
+                    "Ok",
                     _ => { didFinishEvent?.Invoke(this); });
 
                 ReplaceTopViewController(
@@ -337,7 +373,7 @@ namespace Synapse.Views
                 _simpleDialogPromptViewController.Init(
                     "Disconnected",
                     reason,
-                    "OK",
+                    "Ok",
                     _ => { didFinishEvent?.Invoke(this); });
 
                 ReplaceTopViewController(
@@ -356,7 +392,15 @@ namespace Synapse.Views
                 _mapDownloadingManager.MapDownloadedOnce += n =>
                 {
                     _transitionFinished.Clear();
-                    _levelStartManager.StartLevel(n, HandleLevelDidFinish);
+                    try
+                    {
+                        _levelStartManager.StartLevel(n, HandleLevelDidFinish);
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error($"Failed to start level: {e}");
+                        TransitionDidFinish();
+                    }
                 };
             };
         }
@@ -379,7 +423,7 @@ namespace Synapse.Views
                 case LevelCompletionResults.LevelEndStateType.Incomplete:
                     if (levelCompletionResults.levelEndAction is LevelCompletionResults.LevelEndAction.Quit)
                     {
-                        SubmitScore(map.Index, 0);
+                        SubmitScore(map.Index, 0, 0);
                     }
 
                     return;
@@ -401,20 +445,21 @@ namespace Synapse.Views
                         ViewController.AnimationDirection.Horizontal,
                         true);
 
-                    SubmitScore(map.Index, levelCompletionResults.modifiedScore);
+                    SubmitScore(map.Index, levelCompletionResults.modifiedScore, AccuracyHelper.Accuracy);
                     break;
             }
         }
 
-        private void SubmitScore(int index, int score)
+        private void SubmitScore(int index, int score, float accuracy)
         {
             ScoreSubmission scoreSubmission = new()
             {
                 Index = index,
                 Score = score,
-                Accuracy = AccuracyHelper.Accuracy
+                Accuracy = accuracy
             };
             string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
+            _log.Warn(scoreJson);
             _ = _networkManager.SendString(scoreJson, ServerOpcode.ScoreSubmission);
             _leaderboardViewController.ChangeSelection(index);
         }

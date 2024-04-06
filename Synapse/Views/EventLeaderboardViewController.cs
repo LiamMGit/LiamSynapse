@@ -50,12 +50,19 @@ namespace Synapse.Views
         [UIComponent("segments")]
         private readonly TextSegmentedControl _textSegments = null!;
 
+        [UIComponent("titlelayout")]
+        private readonly LayoutElement _titleLayout = null!;
+
+        [UIComponent("titlemap")]
+        private readonly TextMeshProUGUI _titleMapText = null!;
+
         [UIComponent("modal")]
         private readonly ModalView _modal = null!;
 
         private readonly Dictionary<int, LeaderboardScores> _leaderboardScores = new();
 
         private NetworkManager _networkManager = null!;
+        private MapDownloadingManager _mapDownloadingManager = null!;
         private Config _config = null!;
 
         private LeaderboardTableView _leaderboardTable = null!;
@@ -66,6 +73,7 @@ namespace Synapse.Views
 
         private int _maxIndex;
         private int _index;
+        private bool _altCover;
 
         [UsedImplicitly]
         [UIValue("showEliminated")]
@@ -97,34 +105,51 @@ namespace Synapse.Views
                 _header.color0 = new Color(1, 1, 1, 1);
                 _header.color1 = new Color(1, 1, 1, 0);
 
-                // for some reason rebuilding it twice fixes it???
-                RectTransform rootRect = (RectTransform)_root.transform;
-                LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
-                LayoutRebuilder.MarkLayoutForRebuild(rootRect);
-
                 DestroyImmediate(_textSegments.gameObject.GetComponent<HorizontalLayoutGroup>());
                 VerticalLayoutGroup vertical = _textSegments.gameObject.AddComponent<VerticalLayoutGroup>();
                 vertical.childControlHeight = false;
                 vertical.childForceExpandHeight = false;
                 _textSegments._fontSize = 4;
+
+                _titleLayout.flexibleHeight = 0;
+
+                // for some reason rebuilding it twice fixes it???
+                RectTransform rootRect = (RectTransform)_root.transform;
+                LayoutRebuilder.MarkLayoutForRebuild(rootRect);
             }
 
             if (addedToHierarchy)
             {
                 _leaderboardScores.Clear();
                 ChangeView(_maxIndex);
+                _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
             }
 
             _motivational.text = _randomMotivationals[Random.Range(0, _randomMotivationals.Length - 1)];
         }
 
+        protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
+        {
+            base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
+
+            // ReSharper disable once InvertIf
+            if (removedFromHierarchy)
+            {
+                _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
+            }
+        }
+
         [UsedImplicitly]
         [Inject]
-        private void Construct(NetworkManager networkManager, Config config)
+        private void Construct(
+            NetworkManager networkManager,
+            MapDownloadingManager mapDownloadingManager,
+            Config config)
         {
             _networkManager = networkManager;
             networkManager.LeaderboardReceived += OnLeaderboardReceived;
             networkManager.MapUpdated += OnMapUpdated;
+            _mapDownloadingManager = mapDownloadingManager;
             _config = config;
         }
 
@@ -198,6 +223,10 @@ namespace Synapse.Views
 
         private void AssignScores(LeaderboardScores scores)
         {
+            bool useAlt = _altCover &&
+                          scores.Index >= _networkManager.Status.Index &&
+                          _networkManager.Status.PlayerScore == null;
+            _titleMapText.text = useAlt ? "???" : scores.Title;
             List<LeaderboardCell> cells = ShowEliminated ? scores.ElimScores : scores.Scores;
             if (cells.Count > 0)
             {
@@ -227,6 +256,11 @@ namespace Synapse.Views
                 _noScoreObject.SetActive(true);
                 _leaderboardObject.SetActive(false);
             }
+        }
+
+        private void OnMapDownloaded(DownloadedMap map)
+        {
+            _altCover = !string.IsNullOrWhiteSpace(map.Map.AltCoverUrl);
         }
 
         [UsedImplicitly]

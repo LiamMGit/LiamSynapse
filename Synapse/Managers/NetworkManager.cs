@@ -38,9 +38,12 @@ namespace Synapse.Managers
         private readonly Config _config;
         private readonly IPlatformUserModel _platformUserModel;
         private readonly ListingManager _listingManager;
+        private readonly PingManager _pingManager;
         private readonly Task<AuthenticationToken> _tokenTask;
 
         private readonly List<ArraySegment<byte>> _queuedPackets = new();
+
+        private int _dequeueAmount;
 
         private AsyncTcpClient? _client;
         private string _address = string.Empty;
@@ -50,12 +53,14 @@ namespace Synapse.Managers
             SiraLog log,
             Config config,
             IPlatformUserModel platformUserModel,
-            ListingManager listingManager)
+            ListingManager listingManager,
+            PingManager pingManager)
         {
             _log = log;
             _config = config;
             _platformUserModel = platformUserModel;
             _listingManager = listingManager;
+            _pingManager = pingManager;
             _tokenTask = GetToken();
         }
 
@@ -149,7 +154,12 @@ namespace Synapse.Managers
 
         internal async Task Send(byte[] bytes)
         {
-            ArraySegment<byte> packet = new(bytes, 0, bytes.Length);
+            ushort ushortLength = (ushort)(bytes.Length + 2);
+            byte[] newValues = new byte[bytes.Length + 2];
+            newValues[0] = (byte)ushortLength;
+            newValues[1] = (byte)((uint)ushortLength >> 8);
+            Array.Copy(bytes, 0, newValues, 2, bytes.Length);
+            ArraySegment<byte> packet = new(newValues, 0, newValues.Length);
             if (_client is not { IsConnected: true })
             {
                 _log.Error("Client not connected! Delaying sending packet");
@@ -159,6 +169,14 @@ namespace Synapse.Managers
             }
 
             await _client.Send(packet);
+        }
+
+        internal async Task SendOpcode(ServerOpcode opcode)
+        {
+            using MemoryStream stream = new();
+            using BinaryWriter writer = new(stream);
+            writer.Write((byte)opcode);
+            await Send(stream.ToArray());
         }
 
         internal async Task SendBool(bool message, ServerOpcode opcode)
@@ -283,7 +301,7 @@ namespace Synapse.Managers
                 writer.Write(token.sessionToken);
                 writer.Write(_listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded"));
                 byte[] bytes = stream.ToArray();
-                await client.Send(new ArraySegment<byte>(bytes, 0, bytes.Length));
+                await Send(bytes);
 
                 ArraySegment<byte>[] queued = _queuedPackets.ToArray();
                 _queuedPackets.Clear();
@@ -304,105 +322,35 @@ namespace Synapse.Managers
         {
             try
             {
-                using MemoryStream stream = new(await client.ByteBuffer.DequeueAsync(count));
-                using BinaryReader reader = new(stream);
-                int opcodeByte;
-                while ((opcodeByte = stream.ReadByte()) != -1)
+                while (true)
                 {
-                    ClientOpcode opcode = (ClientOpcode)opcodeByte;
-                    switch (opcode)
+                    if (_dequeueAmount > 0)
                     {
-                        case ClientOpcode.Authenticated:
-                            {
-                                _log.Debug($"Authenticated {_address}");
-                                Connecting?.Invoke(Stage.ReceivingData, -1);
-                                if (_config.JoinChat ?? false)
-                                {
-                                    _ = SendBool(true, ServerOpcode.SetChatter);
-                                }
-                            }
-
-                            break;
-
-                        case ClientOpcode.Disconnected:
-                            {
-                                string message = reader.ReadString();
-                                await Disconnect(message, false);
-                            }
-
-                            break;
-
-                        case ClientOpcode.RefusedPacket:
-                            {
-                                string refusal = reader.ReadString();
-                                _log.Warn($"Packet refused by server ({refusal})");
-                            }
-
-                            break;
-
-                        case ClientOpcode.PlayStatus:
-                            {
-                                string fullStatus = reader.ReadString();
-                                Status status = JsonConvert.DeserializeObject<Status>(fullStatus, JsonSettings.Settings)!;
-                                Status lastStatus = Status;
-                                Status = status;
-                                _log.Info(fullStatus);
-
-                                if (lastStatus.Motd != status.Motd)
-                                {
-                                    MotdUpdated?.Invoke(status.Motd);
-                                }
-
-                                if (lastStatus.Index != status.Index)
-                                {
-                                    MapUpdated?.Invoke(status.Index, status.Map);
-                                }
-
-                                if (lastStatus.StartTime != status.StartTime)
-                                {
-                                    StartTimeUpdated?.Invoke(status.StartTime);
-                                }
-
-                                if (lastStatus.PlayerScore != status.PlayerScore)
-                                {
-                                    PlayerScoreUpdated?.Invoke(status.PlayerScore);
-                                }
-                            }
-
-                            break;
-
-                        case ClientOpcode.ChatMessage:
-                            {
-                                string message = reader.ReadString();
-                                ChatRecieved?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message, JsonSettings.Settings));
-                            }
-
-                            break;
-
-                        case ClientOpcode.UserBanned:
-                            {
-                                string message = reader.ReadString();
-                                UserBanned?.Invoke(message);
-                            }
-
-                            break;
-
-                        case ClientOpcode.LeaderboardScores:
-                            {
-                                string message = reader.ReadString();
-                                LeaderboardReceived?.Invoke(JsonConvert.DeserializeObject<LeaderboardScores>(message, JsonSettings.Settings)!);
-                            }
-
-                            break;
-
-                        case ClientOpcode.StopLevel:
-                            StopLevelReceived?.Invoke();
-                            break;
-
-                        default:
-                            _log.Warn($"Unhandled opcode: ({opcode})");
-                            client.ByteBuffer.Clear();
+                        if (client.ByteBuffer.Count < _dequeueAmount)
+                        {
                             return;
+                        }
+
+                        await ProcessPacket(client, await client.ByteBuffer.DequeueAsync(_dequeueAmount));
+                        _dequeueAmount = 0;
+                        continue;
+                    }
+
+                    byte[] lengthBytes = client.ByteBuffer.Peek(2);
+                    if (lengthBytes.Length != 2)
+                    {
+                        break;
+                    }
+
+                    int length = BitConverter.ToUInt16(lengthBytes, 0);
+                    if (length <= count)
+                    {
+                        await ProcessPacket(client, await client.ByteBuffer.DequeueAsync(length));
+                    }
+                    else
+                    {
+                        _dequeueAmount = length;
+                        return;
                     }
                 }
             }
@@ -411,6 +359,113 @@ namespace Synapse.Managers
                 _log.Error("Received invalid packet");
                 _log.Error(e);
                 client.ByteBuffer.Clear();
+                _dequeueAmount = 0;
+            }
+        }
+
+        private async Task ProcessPacket(AsyncTcpClient client, byte[] bytes)
+        {
+            using MemoryStream stream = new(bytes);
+            using BinaryReader reader = new(stream);
+            reader.ReadUInt16();
+            ClientOpcode opcode = (ClientOpcode)reader.ReadByte();
+            switch (opcode)
+            {
+                case ClientOpcode.Authenticated:
+                    {
+                        _log.Debug($"Authenticated {_address}");
+                        Connecting?.Invoke(Stage.ReceivingData, -1);
+                        if (_config.JoinChat ?? false)
+                        {
+                            _ = SendBool(true, ServerOpcode.SetChatter);
+                        }
+                    }
+
+                    break;
+
+                case ClientOpcode.Disconnected:
+                    {
+                        string message = reader.ReadString();
+                        await Disconnect(message, false);
+                    }
+
+                    break;
+
+                case ClientOpcode.RefusedPacket:
+                    {
+                        string refusal = reader.ReadString();
+                        _log.Warn($"Packet refused by server ({refusal})");
+                    }
+
+                    break;
+
+                case ClientOpcode.Ping:
+                    _pingManager.Stop();
+                    break;
+
+                case ClientOpcode.PlayStatus:
+                    {
+                        string fullStatus = reader.ReadString();
+                        Status status = JsonConvert.DeserializeObject<Status>(fullStatus, JsonSettings.Settings)!;
+                        Status lastStatus = Status;
+                        Status = status;
+                        _log.Info(fullStatus);
+
+                        if (lastStatus.Motd != status.Motd)
+                        {
+                            MotdUpdated?.Invoke(status.Motd);
+                        }
+
+                        if (lastStatus.Index != status.Index)
+                        {
+                            MapUpdated?.Invoke(status.Index, status.Map);
+                        }
+
+                        if (lastStatus.StartTime != status.StartTime)
+                        {
+                            StartTimeUpdated?.Invoke(status.StartTime);
+                        }
+
+                        if (lastStatus.PlayerScore != status.PlayerScore)
+                        {
+                            PlayerScoreUpdated?.Invoke(status.PlayerScore);
+                        }
+                    }
+
+                    break;
+
+                case ClientOpcode.ChatMessage:
+                    {
+                        string message = reader.ReadString();
+                        ChatRecieved?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message, JsonSettings.Settings));
+                    }
+
+                    break;
+
+                case ClientOpcode.UserBanned:
+                    {
+                        string message = reader.ReadString();
+                        UserBanned?.Invoke(message);
+                    }
+
+                    break;
+
+                case ClientOpcode.LeaderboardScores:
+                    {
+                        string message = reader.ReadString();
+                        LeaderboardReceived?.Invoke(JsonConvert.DeserializeObject<LeaderboardScores>(message, JsonSettings.Settings)!);
+                    }
+
+                    break;
+
+                case ClientOpcode.StopLevel:
+                    StopLevelReceived?.Invoke();
+                    break;
+
+                default:
+                    _log.Warn($"Unhandled opcode: ({opcode})");
+                    client.ByteBuffer.Clear();
+                    return;
             }
         }
     }

@@ -8,6 +8,8 @@ namespace Synapse.Models
     {
         public int Index { get; init; }
 
+        public string Title { get; init; } = string.Empty;
+
         public int PlayerScoreIndex { get; init; } = -1;
 
         public List<LeaderboardCell> Scores { get; init; } = new();

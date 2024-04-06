@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using Object = UnityEngine.Object;
 
 namespace Synapse.Extras
 {
@@ -23,6 +24,29 @@ namespace Synapse.Extras
                 }
 
                 taskCompletionSource.SetResult(bundleRequest.assetBundle);
+            };
+
+            return await taskCompletionSource.Task;
+        }
+
+        internal static async Task<T> LoadAssetAsyncTask<T>(this AssetBundle assetBundle, string name)
+            where T : Object
+        {
+            TaskCompletionSource<T> taskCompletionSource = new();
+            AssetBundleRequest bundleRequest = assetBundle.LoadAssetAsync<T>(name);
+            bundleRequest.completed += _ =>
+            {
+                if (bundleRequest.asset == null)
+                {
+                    throw new InvalidOperationException("Asset was null.");
+                }
+
+                if (bundleRequest.asset is not T asset)
+                {
+                    throw new InvalidOperationException($"Asset was not {typeof(T).Name}.");
+                }
+
+                taskCompletionSource.SetResult(asset);
             };
 
             return await taskCompletionSource.Task;
@@ -123,7 +147,7 @@ namespace Synapse.Extras
                 else
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
-                    entry.ExtractToFile(fullPath, false);
+                    entry.ExtractToFile(fullPath, true);
                 }
             }
         }

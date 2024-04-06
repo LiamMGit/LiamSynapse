@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BeatSaberMarkupLanguage.Attributes;
@@ -47,6 +48,8 @@ namespace Synapse.Views
             "Unveiling",
             "Arriving now"
         };
+
+        private static readonly ProfanityFilter.ProfanityFilter _profanityFilter = new();
 
         [UIComponent("chat")]
         private readonly VerticalLayoutGroup _chatObject = null!;
@@ -155,6 +158,22 @@ namespace Synapse.Views
             }
         }
 
+        [UsedImplicitly]
+        [UIValue("profanityFilter")]
+        private bool ProfanityFilter
+        {
+            get => _config.ProfanityFilter;
+            set => _config.ProfanityFilter = value;
+        }
+
+        [UsedImplicitly]
+        [UIValue("muteMusic")]
+        private bool MuteMusic
+        {
+            get => _config.MuteMusic;
+            set => _config.MuteMusic = value;
+        }
+
         protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
         {
             base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
@@ -171,6 +190,7 @@ namespace Synapse.Views
                 rect.offsetMax = new Vector2(-20, -70);
                 _input._keyboardPositionOffset = new Vector3(0, 60, 0);
                 _input._textLengthLimit = 200;
+                _input._textView.richText = false;
                 _instantiator.InstantiateComponent<KeyboardOpener>(_input.gameObject);
                 RectTransform bg = (RectTransform)rect.Find("BG");
                 bg.offsetMin = new Vector2(0, -4);
@@ -313,32 +333,36 @@ namespace Synapse.Views
                 foreach (ChatMessage message in queue)
                 {
                     string content;
-                    bool rich;
                     Color color;
+                    string messageString = message.Message;
+                    string usernameString = message.Username;
+                    string? colorString = message.Color;
+                    if (ProfanityFilter)
+                    {
+                        messageString = _profanityFilter.CensorString(messageString);
+                        usernameString = _profanityFilter.CensorString(usernameString);
+                    }
+
                     switch (message.Type)
                     {
                         case MessageType.System:
-                            content = message.Message;
-                            rich = true;
-                            color = Color.yellow;
+                            content = Colorize(messageString, message.Color);
+                            color = Color.white;
                             break;
 
                         case MessageType.WhisperFrom:
-                            content = $"[From {message.Username}] {message.Message}";
-                            rich = false;
+                            content = $"[From {Colorize(NoParse(usernameString), colorString)}] {NoParse(messageString)}";
                             color = Color.magenta;
                             break;
 
                         case MessageType.WhisperTo:
-                            content = $"[To {message.Username}] {message.Message}";
-                            rich = false;
+                            content = $"[To {Colorize(NoParse(usernameString), colorString)}] {NoParse(messageString)}";
                             color = Color.magenta;
                             break;
 
                         case MessageType.Say:
                         default:
-                            content = $"[{message.Username}] {message.Message}";
-                            rich = false;
+                            content = $"[{Colorize(NoParse(usernameString), colorString)}] {NoParse(messageString)}";
                             color = Color.white;
                             break;
                     }
@@ -349,7 +373,6 @@ namespace Synapse.Views
                         _messages.RemoveFirst();
                         TextMeshProUGUI text = first.Value.Item2;
                         float height = text.rectTransform.rect.height;
-                        text.richText = rich;
                         text.color = color;
                         text.text = content;
                         text.transform.SetAsLastSibling();
@@ -365,7 +388,7 @@ namespace Synapse.Views
                                 content,
                                 Vector2.zero);
                         text.enableWordWrapping = true;
-                        text.richText = rich;
+                        text.richText = true;
                         text.color = color;
                         text.alignment = TextAlignmentOptions.Left;
                         text.fontSize = 4;
@@ -399,6 +422,36 @@ namespace Synapse.Views
             catch (Exception e)
             {
                 _log.Error(e);
+            }
+
+            return;
+
+            static string NoParse(string message)
+            {
+                StringBuilder stringBuilder = new();
+                foreach (char c in message)
+                {
+                    if (c is '<' or '>')
+                    {
+                        stringBuilder.Append($"<noparse>{c}</noparse>");
+                    }
+                    else
+                    {
+                        stringBuilder.Append(c);
+                    }
+                }
+
+                return stringBuilder.ToString();
+            }
+
+            static string Colorize(string message, string? color)
+            {
+                if (color == null)
+                {
+                    return message;
+                }
+
+                return color[0] != '#' ? $"<color=\"{color}\">{message}</color>" : $"<color={color}>{message}</color>";
             }
         }
 

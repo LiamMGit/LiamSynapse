@@ -11,6 +11,12 @@ namespace Synapse
     [Plugin(RuntimeOptions.DynamicInit)]
     internal class Plugin
     {
+#if LATEST
+        internal const string GAME_VERSION = "1.34.2";
+#else
+        internal const string GAME_VERSION = "1.29.1";
+#endif
+
         private readonly Harmony _harmonyInstance = new("dev.aeroluna.Synapse");
 
         [UsedImplicitly]

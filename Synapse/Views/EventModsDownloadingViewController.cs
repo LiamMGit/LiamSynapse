@@ -45,7 +45,7 @@ namespace Synapse.Views
         private readonly GameObject _error = null!;
 
         private SiraLog _log = null!;
-        private List<RequiredMod> _requiredMods = null!;
+        private List<ModInfo> _requiredMods = null!;
 
         internal bool DownloadFinished { get; private set; }
 
@@ -66,7 +66,7 @@ namespace Synapse.Views
 
         protected override GameObject Error => _error;
 
-        internal void Init(List<RequiredMod> requiredMods)
+        internal void Init(List<ModInfo> requiredMods)
         {
             DownloadFinished = false;
             _requiredMods = requiredMods;
@@ -116,7 +116,7 @@ namespace Synapse.Views
                 + $"{Path.DirectorySeparatorChar}IPA{Path.DirectorySeparatorChar}Pending").FullName;
             for (int i = 0; i < count; i++)
             {
-                RequiredMod requiredMod = _requiredMods[i];
+                ModInfo requiredMod = _requiredMods[i];
                 string url = requiredMod.Url;
                 DownloadText = $"Downloading {requiredMod.Id}... ({i + 1}/{count})";
                 _log.Debug($"Attempting to download [{requiredMod.Id}] from [{url}]");

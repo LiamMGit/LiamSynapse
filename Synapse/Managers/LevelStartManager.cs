@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Reflection;
+using HarmonyLib;
+using IPA.Loader;
 using JetBrains.Annotations;
+using SiraUtil.Logging;
 using Synapse.HarmonyPatches;
 using Synapse.Models;
 using Zenject;
@@ -8,15 +12,21 @@ namespace Synapse.Managers
 {
     internal class LevelStartManager
     {
+        private static readonly Action<string>? _nextLevelIsIsolated = GetNextLevelIsIsolated();
+
         private readonly GameplaySetupViewController _gameplaySetupViewController;
         private readonly MenuTransitionsHelper _menuTransitionsHelper;
         private readonly NoEnergyModifier _noEnergyModifier;
         private readonly LazyInject<HeckIntegrationManager>? _heckIntegrationManager;
 
+        private readonly Action? _disableCustomPlatform;
+
         private Ruleset? _ruleset;
 
         [UsedImplicitly]
         private LevelStartManager(
+            SiraLog log,
+            DiContainer container,
             GameplaySetupViewController gameplaySetupViewController,
             MenuTransitionsHelper menuTransitionsHelper,
             NetworkManager networkManager,
@@ -28,6 +38,48 @@ namespace Synapse.Managers
             _noEnergyModifier = noEnergyModifier;
             _heckIntegrationManager = heckIntegrationManager;
             networkManager.MapUpdated += OnMapUpdated;
+
+            // to disable custom platforms
+            PluginMetadata? customPlatforms = PluginManager.GetPlugin("Custom Platforms");
+
+            // ReSharper disable once InvertIf
+            if (customPlatforms != null)
+            {
+                // cannot use ConnectionManager as it is not bound
+                Type? platformManagerType = customPlatforms.Assembly.GetType("CustomFloorPlugin.PlatformManager");
+                if (platformManagerType != null)
+                {
+                    object? platformsConnectionManager = container.TryResolve(platformManagerType);
+                    if (platformsConnectionManager != null)
+                    {
+                        MethodInfo? setPlatform = platformManagerType.GetProperty(
+                            "APIRequestedPlatform", AccessTools.all)?.GetSetMethod(true);
+                        MethodInfo? getDefault = platformManagerType.GetProperty(
+                            "DefaultPlatform", AccessTools.all)?.GetGetMethod();
+                        if (setPlatform == null)
+                        {
+                            log.Error("Could not find [CustomFloorPlugin.PlatformManager.APIRequestedPlatform] setter");
+                        }
+                        else if (getDefault == null)
+                        {
+                            log.Error("Could not find [CustomFloorPlugin.PlatformManager.DefaultPlatform] getter");
+                        }
+                        else
+                        {
+                            object defaultPlatform = getDefault.Invoke(platformsConnectionManager, null);
+                            _disableCustomPlatform = () => setPlatform.Invoke(platformsConnectionManager, new[] { defaultPlatform });
+                        }
+                    }
+                    else
+                    {
+                        log.Error("Could not resolve [CustomFloorPlugin.PlatformManager] instance");
+                    }
+                }
+                else
+                {
+                    log.Error("Could not find [CustomFloorPlugin.ConnectionManager] type");
+                }
+            }
         }
 
         private enum GameplayModifier
@@ -154,6 +206,9 @@ namespace Synapse.Managers
             }
 #endif
 
+            _disableCustomPlatform?.Invoke();
+            _nextLevelIsIsolated?.Invoke("Synapse");
+
             StartStandardOrHeck(
                 "screw yo analytics",
                 downloadedMap.DifficultyBeatmap,
@@ -175,6 +230,33 @@ namespace Synapse.Managers
                 null,
 #endif
                 null);
+        }
+
+        private static Action<string>? GetNextLevelIsIsolated()
+        {
+            // to disable introskip
+            PluginMetadata? bsUtils = PluginManager.GetPlugin("BS_Utils");
+            if (bsUtils == null)
+            {
+                return null;
+            }
+
+            Type? type = bsUtils.Assembly.GetType("BS_Utils.Gameplay.Gamemode");
+            MethodInfo? method = type?.GetMethod("NextLevelIsIsolated", BindingFlags.Static | BindingFlags.Public);
+            if (type == null)
+            {
+                Plugin.Log.Error("Could not find [BS_Utils.Gameplay.Gamemode] type");
+            }
+            else if (method == null)
+            {
+                Plugin.Log.Error("Could not find [BS_Utils.Gameplay.Gamemode.NextLevelIsIsolated] method");
+            }
+            else
+            {
+                return (Action<string>?)method.CreateDelegate(typeof(Action<string>), null);
+            }
+
+            return null;
         }
 
         private void OnMapUpdated(int _, Map? map)

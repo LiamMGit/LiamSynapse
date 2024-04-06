@@ -21,6 +21,7 @@ namespace Synapse.Managers
         private string? _bannerUrl;
         private Sprite? _finishImage;
         private string? _finishUrl;
+        private string? _lastListing;
 
         [UsedImplicitly]
         private ListingManager(SiraLog log, Config config, CancellationTokenManager cancellationTokenManager)
@@ -106,6 +107,12 @@ namespace Synapse.Managers
                     return;
                 }
 
+                if (listing.Guid == _lastListing)
+                {
+                    return;
+                }
+
+                _lastListing = listing.Guid;
                 _log.Debug($"Found active listing for [{listing.Title}]");
 
                 Listing = listing;
@@ -120,6 +127,7 @@ namespace Synapse.Managers
             catch (Exception e)
             {
                 _log.Error(e);
+                _lastListing = null;
                 _listingFound?.Invoke(null);
                 _bannerImageCreated?.Invoke(null);
                 _finishImageCreated?.Invoke(null);

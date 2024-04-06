@@ -1,20 +1,23 @@
 <bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
-    <vertical id='vertical' preferred-width='120' child-expand-height='false' child-control-height='false'>
-        <horizontal preferred-width='120' horizontal-fit='PreferredSize' pad-bottom='4'>
+    <vertical id='vertical' vertical-fit='PreferredSize' child-expand-height='false' child-control-height='false'>
+        <horizontal preferred-width='120' horizontal-fit='PreferredSize' pad-bottom='3'>
             <horizontal id='header' bg='panel-fade-gradient' preferred-width='90' preferred-height='8' horizontal-fit='PreferredSize'>
                 <text text='highscores' all-uppercase='true' italics='true' font-size='6' align='Center'/>
             </horizontal>
         </horizontal>
-        <horizontal preferred-height='72' horizontal-fit='PreferredSize' child-expand-width='false' child-control-width='false'>
+        <horizontal horizontal-fit='PreferredSize' child-expand-width='false' child-control-width='false'>
             <horizontal preferred-width='20' horizontal-fit='PreferredSize'>
                 <horizontal bg='round-rect-panel' preferred-width='8' horizontal-fit='PreferredSize' pad='1'>
                     <text-segments id='segments' select-cell='selectcell'/>
                 </horizontal>
             </horizontal>
-            <vertical preferred-width='90'>
-                <leaderboard id='leaderboard'/>
-                <horizontal id='noscore' preferred-height='60'>
-                    <vertical vertical-fit='PreferredSize'>
+            <vertical preferred-width='90' child-expand-height='false'>
+                <horizontal id='titlelayout' preferred-height='5'>
+                    <text id='titlemap' italics='true' font-size='6' align='Center'/>
+                </horizontal>
+                <horizontal preferred-height='72' id='noscore'>
+                    <leaderboard id='leaderboard'/>
+                    <vertical id='noscore' vertical-fit='PreferredSize'>
                         <text text='No Scores Yet' font-size='8' align='Center'/>
                         <text id='motivation' font-size='4' color='#808080' align='Center'/>
                     </vertical>

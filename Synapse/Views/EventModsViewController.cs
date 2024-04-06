@@ -35,12 +35,10 @@ namespace Synapse.Views
         [UIObject("contentObject")]
         private readonly GameObject? _contentObject;
 
-        private readonly List<RequiredMod> _requiredMods = new(0);
-
         private SiraLog _log = null!;
         private Listing? _listing;
 
-        internal event Action<List<RequiredMod>>? didAcceptEvent;
+        internal event Action? didAcceptEvent;
 
         private static string ContentBSML
         {
@@ -59,18 +57,17 @@ namespace Synapse.Views
             }
         }
 
-        internal bool Init()
+        internal List<ModInfo>? Init(List<ModInfo> modInfos)
         {
             if (_listing == null)
             {
-                return false;
+                return null;
             }
 
-            _requiredMods.Clear();
+            List<ModInfo> modsToDownload = new();
             _contents.Clear();
-            bool result = false;
             PluginMetadata[] plugins = PluginManager.EnabledPlugins.Concat(PluginManager.IgnoredPlugins.Select(n => n.Key)).ToArray();
-            foreach (RequiredMod mod in _listing.RequiredMods)
+            foreach (ModInfo mod in modInfos)
             {
                 // i'll never understand why hive.versioning even exists
                 VersionRange range = new(mod.Version);
@@ -81,15 +78,14 @@ namespace Synapse.Views
                     continue;
                 }
 
-                _requiredMods.Add(mod);
+                modsToDownload.Add(mod);
                 _contents.Add(new ListObject(mod.Id, mod.Version));
                 _log.Debug($"Missing required mod: {mod.Id}@{mod.Version}");
-                result = true;
             }
 
-            if (!result)
+            if (modsToDownload.Count == 0)
             {
-                return false;
+                return null;
             }
 
             if (_contentObject != null)
@@ -98,7 +94,7 @@ namespace Synapse.Views
             }
 
             BSMLParser.instance.Parse(ContentBSML, gameObject, this);
-            return true;
+            return modsToDownload;
         }
 
         protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
@@ -124,7 +120,7 @@ namespace Synapse.Views
         [UIAction("accept-click")]
         private void OnAcceptClick()
         {
-            didAcceptEvent?.Invoke(_requiredMods);
+            didAcceptEvent?.Invoke();
         }
 
         private readonly struct ListObject

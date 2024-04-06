@@ -14,5 +14,9 @@ namespace Synapse
         public bool ShowEliminated { get; set; } = true;
 
         public bool? JoinChat { get; set; }
+
+        public bool ProfanityFilter { get; set; } = true;
+
+        public bool MuteMusic { get; set; }
     }
 }
