@@ -92,8 +92,6 @@ namespace Synapse.Views
                 {
                     if (_dirtyListing)
                     {
-                        _ = _prefabManager.Download();
-
                         RequiredMods? versionMods = _listing.RequiredMods.FirstOrDefault(n => n.GameVersion == Plugin.GAME_VERSION);
                         if (versionMods == null)
                         {
@@ -116,6 +114,8 @@ namespace Synapse.Views
                             ProvideInitialViewControllers(_modsViewController);
                             return;
                         }
+
+                        _ = _prefabManager.Download();
                     }
 
                     _dirtyListing = false;
@@ -123,7 +123,6 @@ namespace Synapse.Views
                     _lobbyViewController.StartLevel += TryStartLevel;
                     _loadingViewController.Finished += OnLoadingFinished;
                     _networkManager.StartTimeUpdated += OnStartTimeUpdated;
-                    _networkManager.Connecting += OnConnecting;
                     _networkManager.Disconnected += OnDisconnected;
                     _prefabManager.Show();
                     if (_config.JoinChat == null)
@@ -179,7 +178,6 @@ namespace Synapse.Views
                 _lobbyViewController.StartLevel -= TryStartLevel;
                 _loadingViewController.Finished -= OnLoadingFinished;
                 _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
-                _networkManager.Connecting -= OnConnecting;
                 _networkManager.Disconnected -= OnDisconnected;
                 _ = _networkManager.Disconnect("Leaving");
                 _prefabManager.Hide();
@@ -292,14 +290,33 @@ namespace Synapse.Views
                 ViewController.AnimationDirection.Vertical);
         }
 
-        private void OnLoadingFinished()
+        private void OnLoadingFinished(string? error)
         {
             TransitionFinished += () =>
             {
-                if (topViewController == _loadingViewController)
+                if (error == null)
                 {
+                    if (topViewController == _loadingViewController)
+                    {
+                        ReplaceTopViewController(
+                            _lobbyViewController,
+                            null,
+                            ViewController.AnimationType.In,
+                            ViewController.AnimationDirection.Vertical);
+                    }
+                }
+                else
+                {
+                    _ = _networkManager.Disconnect("Error");
+
+                    _simpleDialogPromptViewController.Init(
+                        "Error",
+                        error,
+                        "Ok",
+                        _ => { didFinishEvent?.Invoke(this); });
+
                     ReplaceTopViewController(
-                        _lobbyViewController,
+                        _simpleDialogPromptViewController,
                         null,
                         ViewController.AnimationType.In,
                         ViewController.AnimationDirection.Vertical);
@@ -340,29 +357,6 @@ namespace Synapse.Views
                         ViewController.AnimationDirection.Horizontal,
                         TryStartLevel);
                 }
-            };
-        }
-
-        private void OnConnecting(Stage stage, int _)
-        {
-            if (stage != Stage.Failed)
-            {
-                return;
-            }
-
-            TransitionFinished += () =>
-            {
-                _simpleDialogPromptViewController.Init(
-                    "Connection Error",
-                    "Connection failed after 3 tries",
-                    "Ok",
-                    _ => { didFinishEvent?.Invoke(this); });
-
-                ReplaceTopViewController(
-                    _simpleDialogPromptViewController,
-                    null,
-                    ViewController.AnimationType.In,
-                    ViewController.AnimationDirection.Vertical);
             };
         }
 

@@ -37,6 +37,7 @@ namespace Synapse.Views
 
         private SiraLog _log = null!;
         private Listing? _listing;
+        private NotificationManager _notificationManager = null!;
 
         internal event Action? didAcceptEvent;
 
@@ -69,18 +70,26 @@ namespace Synapse.Views
             PluginMetadata[] plugins = PluginManager.EnabledPlugins.Concat(PluginManager.IgnoredPlugins.Select(n => n.Key)).ToArray();
             foreach (ModInfo mod in modInfos)
             {
-                // i'll never understand why hive.versioning even exists
-                VersionRange range = new(mod.Version);
-                PluginMetadata? match = plugins.FirstOrDefault(n => n.Id == mod.Id && range.Matches(n.HVersion));
-
-                if (match != null)
+                try
                 {
-                    continue;
-                }
+                    // i'll never understand why hive.versioning even exists
+                    VersionRange range = new(mod.Version);
+                    PluginMetadata? match = plugins.FirstOrDefault(n => n.Id == mod.Id && range.Matches(n.HVersion));
 
-                modsToDownload.Add(mod);
-                _contents.Add(new ListObject(mod.Id, mod.Version));
-                _log.Debug($"Missing required mod: {mod.Id}@{mod.Version}");
+                    if (match != null)
+                    {
+                        continue;
+                    }
+
+                    modsToDownload.Add(mod);
+                    _contents.Add(new ListObject(mod.Id, mod.Version));
+                    _log.Debug($"Missing required mod: {mod.Id}@{mod.Version}");
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"Error checking mod version for [{mod.Id}@{mod.Version}]: {e}");
+                    _notificationManager.Notify("Unexpected error, please send your log to Aeroluna!", Color.red);
+                }
             }
 
             if (modsToDownload.Count == 0)
@@ -110,10 +119,11 @@ namespace Synapse.Views
 
         [UsedImplicitly]
         [Inject]
-        private void Construct(SiraLog log, ListingManager listingManager)
+        private void Construct(SiraLog log, ListingManager listingManager, NotificationManager notificationManager)
         {
             _log = log;
             listingManager.ListingFound += n => _listing = n;
+            _notificationManager = notificationManager;
         }
 
         [UsedImplicitly]

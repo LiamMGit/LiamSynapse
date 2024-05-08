@@ -12,17 +12,12 @@ namespace Synapse.Extras
 {
     internal static class MediaExtensions
     {
-        internal static async Task<AssetBundle> LoadFromFileAsync(string path, uint crc)
+        internal static async Task<AssetBundle?> LoadFromFileAsync(string path, uint crc)
         {
-            TaskCompletionSource<AssetBundle> taskCompletionSource = new();
+            TaskCompletionSource<AssetBundle?> taskCompletionSource = new();
             AssetBundleCreateRequest bundleRequest = AssetBundle.LoadFromFileAsync(path, crc);
             bundleRequest.completed += _ =>
             {
-                if (bundleRequest.assetBundle == null)
-                {
-                    throw new InvalidOperationException("Assetbundle was null.");
-                }
-
                 taskCompletionSource.SetResult(bundleRequest.assetBundle);
             };
 
@@ -149,6 +144,33 @@ namespace Synapse.Extras
                     Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
                     entry.ExtractToFile(fullPath, true);
                 }
+            }
+        }
+
+        internal static void Purge(this DirectoryInfo directory)
+        {
+            // cleanup
+            if (!directory.Exists)
+            {
+                return;
+            }
+
+            try
+            {
+                foreach (FileInfo file in directory.GetFiles())
+                {
+                    file.Delete();
+                }
+
+                foreach (DirectoryInfo dir in directory.GetDirectories())
+                {
+                    dir.Delete(true);
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Log.Error($"Exception while purging directory: [{directory}]");
+                Plugin.Log.Error(e);
             }
         }
     }

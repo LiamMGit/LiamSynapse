@@ -22,6 +22,7 @@ namespace Synapse.Managers
         private readonly SiraLog _log;
         private readonly CustomLevelLoader _customLevelLoader;
         private readonly CancellationTokenManager _cancellationTokenManager;
+        private readonly DirectoryInfo _directory;
 
         private readonly bool _songCoreActive;
 
@@ -43,7 +44,8 @@ namespace Synapse.Managers
             _log = log;
             _customLevelLoader = customLevelLoader;
             _cancellationTokenManager = cancellationTokenManager;
-            PurgeDirectory();
+            _directory = new DirectoryInfo(_mapFolder);
+            _directory.Purge();
             networkManager.MapUpdated += Init;
 
             _songCoreActive = IPA.Loader.PluginManager.GetPlugin("SongCore") != null;
@@ -88,7 +90,7 @@ namespace Synapse.Managers
 
         public void Dispose()
         {
-            PurgeDirectory();
+            _directory.Purge();
         }
 
         public void Tick()
@@ -125,27 +127,6 @@ namespace Synapse.Managers
         {
             return SongCore.Loader.LoadSong(standardLevelInfoSaveData, songPath, out _) ??
                    throw new InvalidOperationException();
-        }
-
-        private static void PurgeDirectory()
-        {
-            // cleanup
-            if (!Directory.Exists(_mapFolder))
-            {
-                return;
-            }
-
-            DirectoryInfo directory = new(_mapFolder);
-
-            foreach (FileInfo file in directory.GetFiles())
-            {
-                file.Delete();
-            }
-
-            foreach (DirectoryInfo dir in directory.GetDirectories())
-            {
-                dir.Delete(true);
-            }
         }
 
         private void Init(int index, Map? map)
@@ -191,7 +172,7 @@ namespace Synapse.Managers
                 {
                     _log.Error($"Error downloading: {e}");
                     _error = "ERROR!";
-                    PurgeDirectory();
+                    _directory.Purge();
                     return;
                 }
             }
@@ -231,7 +212,7 @@ namespace Synapse.Managers
             {
                 _log.Error($"Error deserializing beatmap data\n({e})");
                 _error = "ERROR!";
-                PurgeDirectory();
+                _directory.Purge();
             }
         }
     }

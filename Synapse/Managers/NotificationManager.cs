@@ -15,11 +15,20 @@ namespace Synapse.Managers
 
         private TextMeshProUGUI _textMesh = null!;
         private string _text = string.Empty;
+        private Color? _color;
 
         private float _hue;
         private float _timer;
         private bool _active;
         private Listing? _listing;
+
+        public void Notify(string text, Color? color = null)
+        {
+            _timer = 15;
+            gameObject.SetActive(true);
+            _text = text;
+            _color = color;
+        }
 
         [UsedImplicitly]
         [Inject]
@@ -63,13 +72,6 @@ namespace Synapse.Managers
             }
         }
 
-        private void Notify(string text)
-        {
-            _timer = 15;
-            gameObject.SetActive(true);
-            _text = text;
-        }
-
         private void OnStarted()
         {
             _active = true;
@@ -98,23 +100,31 @@ namespace Synapse.Managers
                 return;
             }
 
-            _hue = Mathf.Repeat(_hue + (0.5f * Time.deltaTime), 1);
-
-            StringBuilder builder = new(_text.Length);
-            for (int i = 0; i < _text.Length; i++)
+            if (_color == null)
             {
-                char c = _text[i];
-                if (char.IsWhiteSpace(c))
+                _hue = Mathf.Repeat(_hue + (0.5f * Time.deltaTime), 1);
+
+                StringBuilder builder = new(_text.Length);
+                for (int i = 0; i < _text.Length; i++)
                 {
-                    builder.Append(c);
-                    continue;
+                    char c = _text[i];
+                    if (char.IsWhiteSpace(c))
+                    {
+                        builder.Append(c);
+                        continue;
+                    }
+
+                    Color col = Color.HSVToRGB(Mathf.Repeat(_hue + (0.02f * i), 1), 0.8f, 1);
+                    builder.Append($"<color=#{ColorUtility.ToHtmlStringRGB(col)}>{c}");
                 }
 
-                Color col = Color.HSVToRGB(Mathf.Repeat(_hue + (0.02f * i), 1), 0.8f, 1);
-                builder.Append($"<color=#{ColorUtility.ToHtmlStringRGB(col)}>{c}");
+                _textMesh.SetText(builder);
             }
-
-            _textMesh.SetText(builder);
+            else
+            {
+                _textMesh.color = _color.Value;
+                _textMesh.text = _text;
+            }
         }
 
         internal class NotificationManagerFactory : IFactory<NotificationManager>

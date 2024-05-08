@@ -27,6 +27,7 @@ namespace Synapse.Managers
         private readonly IInstantiator _instantiator;
         private readonly MenuEnvironmentManager _menuEnvironmentManager;
         private readonly CancellationTokenManager _cancellationTokenManager;
+        private readonly DirectoryInfo _directory;
 
         private Listing? _listing;
         private string _filePath = string.Empty;
@@ -50,6 +51,7 @@ namespace Synapse.Managers
             _instantiator = instantiator;
             _menuEnvironmentManager = menuEnvironmentManager;
             _cancellationTokenManager = cancellationTokenManager;
+            _directory = new DirectoryInfo(_folder);
             listingManager.ListingFound += n =>
             {
                 if (_prefab != null)
@@ -138,7 +140,7 @@ namespace Synapse.Managers
             else
             {
                 _animator.SetTrigger(_death);
-                _deathController!.ContinueAfterDecay(10, () =>
+                _deathController.ContinueAfterDecay(10, () =>
                 {
                     _prefab.SetActive(false);
                     _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
@@ -205,10 +207,20 @@ namespace Synapse.Managers
 
             if (_listing == null)
             {
-                throw new InvalidOperationException("No listing loaded");
+                throw new InvalidOperationException("No listing loaded.");
             }
 
-            AssetBundle bundle = await MediaExtensions.LoadFromFileAsync(_filePath, _listing.BundleCrc);
+            AssetBundle? bundle = await MediaExtensions.LoadFromFileAsync(_filePath, _listing.BundleCrc);
+            if (bundle == null)
+            {
+                FileInfo file = new(_filePath);
+                if (file.Exists)
+                {
+                    file.Delete();
+                }
+
+                throw new InvalidOperationException("Failed to load bundle.");
+            }
 
             string[] prefabNames = bundle.GetAllAssetNames();
             if (prefabNames.Length > 0)

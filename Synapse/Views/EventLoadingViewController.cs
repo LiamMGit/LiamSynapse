@@ -26,12 +26,13 @@ namespace Synapse.Views
 
         private bool _mapUpdated;
         private bool _prefabDownloaded;
+        private bool _finished;
 
         private float _angle;
         private string _connectingText = string.Empty;
         private Display _display;
 
-        internal event Action? Finished;
+        internal event Action<string?>? Finished;
 
         private enum Display
         {
@@ -44,6 +45,7 @@ namespace Synapse.Views
         {
             base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
             _connectingText = "Connecting...";
+            _finished = false;
             _networkManager.Connecting += OnConnecting;
             _networkManager.MapUpdated += OnMapUpdated;
             _prefabManager.Loaded += OnPrefabLoaded;
@@ -86,7 +88,7 @@ namespace Synapse.Views
                 if (_prefabDownloaded)
                 {
                     _display = Display.Joining;
-                    Finished?.Invoke();
+                    Finish();
                 }
                 else
                 {
@@ -109,6 +111,7 @@ namespace Synapse.Views
         {
             if (!success)
             {
+                Finish("Error occurred while downloading bundle");
                 return;
             }
 
@@ -118,16 +121,15 @@ namespace Synapse.Views
 
         private void OnConnecting(Stage stage, int retries)
         {
-            switch (stage)
+            if (stage == Stage.Failed)
             {
-                case Stage.Failed:
-                case Stage.Connecting:
-                    return;
+                Finish($"Connection failed after {retries} tries");
+                return;
             }
 
             string text = stage switch
             {
-                ////Stage.Connecting => "Connecting...",
+                Stage.Connecting => "Connecting...",
                 Stage.Authenticating => "Authenticating...",
                 Stage.ReceivingData => "Receiving data...",
                 Stage.Timeout => "Connection timed out, retrying...",
@@ -141,6 +143,17 @@ namespace Synapse.Views
             }
 
             _connectingText = text;
+        }
+
+        private void Finish(string? error = null)
+        {
+            if (_finished)
+            {
+                return;
+            }
+
+            _finished = true;
+            Finished?.Invoke(error);
         }
     }
 }
