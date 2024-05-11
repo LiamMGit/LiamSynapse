@@ -45,7 +45,10 @@ namespace Synapse.Views
         {
             base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
             _connectingText = "Connecting...";
+            _mapUpdated = false;
+            _prefabDownloaded = false;
             _finished = false;
+            Refresh();
             _networkManager.Connecting += OnConnecting;
             _networkManager.MapUpdated += OnMapUpdated;
             _prefabManager.Loaded += OnPrefabLoaded;

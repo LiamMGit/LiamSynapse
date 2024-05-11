@@ -39,7 +39,7 @@ namespace Synapse.Views
         private CancellationTokenSource? _startCancel;
         private Queue<Action> _transitionFinished = new();
 
-        internal event Action<EventFlowCoordinator>? didFinishEvent;
+        internal event Action<EventFlowCoordinator>? Finished;
 
         private event Action TransitionFinished
         {
@@ -81,7 +81,7 @@ namespace Synapse.Views
                         "Error",
                         "Listing failed to load",
                         "Ok",
-                        _ => { didFinishEvent?.Invoke(this); });
+                        _ => { Finished?.Invoke(this); });
                     ProvideInitialViewControllers(_simpleDialogPromptViewController);
                 }
                 else if (!_dirtyListing && _modsDownloadingViewController.DownloadFinished)
@@ -101,7 +101,7 @@ namespace Synapse.Views
                                 "Error",
                                 $"{_listing.Title} only allows versions {string.Join(", ", _listing.RequiredMods.Select(n => n.GameVersion))}",
                                 "Ok",
-                                _ => { didFinishEvent?.Invoke(this); });
+                                _ => { Finished?.Invoke(this); });
                             ProvideInitialViewControllers(_simpleDialogPromptViewController);
                             return;
                         }
@@ -110,7 +110,7 @@ namespace Synapse.Views
                         if (modsToDownload != null)
                         {
                             _modsDownloadingViewController.Init(modsToDownload);
-                            _modsViewController.didAcceptEvent += OnAcceptModsDownload;
+                            _modsViewController.Finished += OnAcceptModsDownload;
                             ProvideInitialViewControllers(_modsViewController);
                             return;
                         }
@@ -174,7 +174,7 @@ namespace Synapse.Views
             {
                 IsActive = false;
                 _resultsViewController.continueButtonPressedEvent -= HandleResultsViewControllerContinueButtonPressed;
-                _modsViewController.didAcceptEvent -= OnAcceptModsDownload;
+                _modsViewController.Finished -= OnAcceptModsDownload;
                 _lobbyViewController.StartLevel -= TryStartLevel;
                 _loadingViewController.Finished -= OnLoadingFinished;
                 _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
@@ -234,7 +234,7 @@ namespace Synapse.Views
         {
             if (!topView.isInTransition)
             {
-                didFinishEvent?.Invoke(this);
+                Finished?.Invoke(this);
             }
         }
 
@@ -313,7 +313,7 @@ namespace Synapse.Views
                         "Error",
                         error,
                         "Ok",
-                        _ => { didFinishEvent?.Invoke(this); });
+                        _ => { Finished?.Invoke(this); });
 
                     ReplaceTopViewController(
                         _simpleDialogPromptViewController,
@@ -368,7 +368,7 @@ namespace Synapse.Views
                     "Disconnected",
                     reason,
                     "Ok",
-                    _ => { didFinishEvent?.Invoke(this); });
+                    _ => { Finished?.Invoke(this); });
 
                 ReplaceTopViewController(
                     _simpleDialogPromptViewController,

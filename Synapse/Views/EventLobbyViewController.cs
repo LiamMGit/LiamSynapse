@@ -105,6 +105,9 @@ namespace Synapse.Views
         [UIObject("startobject")]
         private readonly GameObject _startObject = null!;
 
+        [UIComponent("startbutton")]
+        private readonly TextMeshProUGUI _startButton = null!;
+
         [UIObject("toend")]
         private readonly GameObject _toEndObject = null!;
 
@@ -142,7 +145,8 @@ namespace Synapse.Views
         private string? _altCoverUrl;
         private float _angle;
         private IPreviewBeatmapLevel? _preview;
-        private bool _hasScore;
+        private DateTime? _startTime;
+        private PlayerScore? _playerScore;
 
         public event Action? StartLevel;
 
@@ -240,10 +244,12 @@ namespace Synapse.Views
                 _messageManager.MessageRecieved += OnMessageRecieved;
                 _messageManager.RefreshMotd();
                 _networkManager.UserBanned += OnUserBanned;
+                _startTime = _networkManager.Status.StartTime;
+                _playerScore = _networkManager.Status.PlayerScore;
                 RefreshMap(_networkManager.Status.Map);
-                _networkManager.MapUpdated += OnMapUpdated;
                 _networkManager.PlayerScoreUpdated += OnPlayerScoreUpdate;
-                OnPlayerScoreUpdate(_networkManager.Status.PlayerScore);
+                _networkManager.StartTimeUpdated += OnStartTimeUpdated;
+                _networkManager.MapUpdated += OnMapUpdated;
                 _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
                 _mapDownloadingManager.ProgressUpdated += OnProgressUpdated;
                 _countdownManager.CountdownUpdated += OnCountdownUpdated;
@@ -269,8 +275,9 @@ namespace Synapse.Views
 
                 _messageManager.MessageRecieved -= OnMessageRecieved;
                 _networkManager.UserBanned -= OnUserBanned;
-                _networkManager.MapUpdated -= OnMapUpdated;
                 _networkManager.PlayerScoreUpdated -= OnPlayerScoreUpdate;
+                _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
+                _networkManager.MapUpdated -= OnMapUpdated;
                 _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
                 _mapDownloadingManager.ProgressUpdated -= OnProgressUpdated;
                 _mapDownloadingManager.Cancel();
@@ -455,20 +462,11 @@ namespace Synapse.Views
             }
         }
 
-        private void OnMapDownloaded(DownloadedMap map)
-        {
-            _altCoverUrl = string.IsNullOrWhiteSpace(map.Map.AltCoverUrl) ? null : map.Map.AltCoverUrl;
-            _preview = map.PreviewBeatmapLevel;
-            _songInfo.SetActive(true);
-            _loadingGroup.SetActive(false);
-            RefreshSongInfo();
-        }
-
         private void RefreshSongInfo()
         {
             CancellationToken token = _cancellationTokenManager.Reset();
             _coverImage.sprite = _coverPlaceholder;
-            if (_altCoverUrl != null && !_hasScore)
+            if (_altCoverUrl != null && _playerScore == null)
             {
                 _ = SetCoverImage(MediaExtensions.RequestSprite(_altCoverUrl, token));
                 _songText.text = "???";
@@ -485,11 +483,57 @@ namespace Synapse.Views
                 _songText.text = "???";
                 _authorText.text = "??? [???]";
             }
+
+            if (_playerScore != null)
+            {
+                if (_networkManager.Status.Map?.Ruleset?.AllowResubmission ?? false)
+                {
+                    _startButton.text = "rescore";
+                    _startObject.SetActive(true);
+                    _scoreObject.SetActive(false);
+                    _countdownObject.SetActive(false);
+                }
+                else
+                {
+                    _score.text = $"{ScoreFormatter.Format(_playerScore.Score)}";
+                    _accuracy.text = $"{EventLeaderboardVisuals.FormatAccuracy(_playerScore.Accuracy)}";
+                    _startObject.SetActive(false);
+                    _scoreObject.SetActive(true);
+                    _countdownObject.SetActive(false);
+                }
+            }
+            else
+            {
+                if (_startTime == null || _startTime > DateTime.UtcNow)
+                {
+                    _startObject.SetActive(false);
+                    _scoreObject.SetActive(false);
+                    _countdownObject.SetActive(true);
+                }
+                else
+                {
+                    _startButton.text = "play";
+                    _startObject.SetActive(true);
+                    _scoreObject.SetActive(false);
+                    _countdownObject.SetActive(false);
+                }
+            }
+
+            return;
+
+            async Task SetCoverImage(Task<Sprite> spriteTask)
+            {
+                _coverImage.sprite = await spriteTask;
+            }
         }
 
-        private async Task SetCoverImage(Task<Sprite> spriteTask)
+        private void OnMapDownloaded(DownloadedMap map)
         {
-            _coverImage.sprite = await spriteTask;
+            _altCoverUrl = string.IsNullOrWhiteSpace(map.Map.AltCoverUrl) ? null : map.Map.AltCoverUrl;
+            _preview = map.PreviewBeatmapLevel;
+            _songInfo.SetActive(true);
+            _loadingGroup.SetActive(false);
+            RefreshSongInfo();
         }
 
         private void OnMessageRecieved(ChatMessage message)
@@ -505,34 +549,14 @@ namespace Synapse.Views
 
         private void OnPlayerScoreUpdate(PlayerScore? playerScore)
         {
-            _hasScore = playerScore != null;
-            UnityMainThreadTaskScheduler.Factory.StartNew(() =>
-            {
-                RefreshSongInfo();
-                if (playerScore != null)
-                {
-                    if (_networkManager.Status.Map?.Ruleset?.AllowResubmission ?? false)
-                    {
-                        _startObject.SetActive(true);
-                        _scoreObject.SetActive(false);
-                        _countdownObject.SetActive(false);
-                    }
-                    else
-                    {
-                        _score.text = $"{ScoreFormatter.Format(playerScore.Score)}";
-                        _accuracy.text = $"{EventLeaderboardVisuals.FormatAccuracy(playerScore.Accuracy)}";
-                        _startObject.SetActive(false);
-                        _scoreObject.SetActive(true);
-                        _countdownObject.SetActive(false);
-                    }
-                }
-                else
-                {
-                    _startObject.SetActive(false);
-                    _scoreObject.SetActive(false);
-                    _countdownObject.SetActive(true);
-                }
-            });
+            _playerScore = playerScore;
+            UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);
+        }
+
+        private void OnStartTimeUpdated(DateTime? startTime)
+        {
+            _startTime = startTime;
+            UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);
         }
 
         private void OnMapUpdated(int _, Map? map)

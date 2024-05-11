@@ -40,10 +40,10 @@ namespace Synapse.Managers
                     value?.Invoke(Listing);
                 }
 
-                _listingFound += value;
+                ListingFound_Backing += value;
             }
 
-            remove => _listingFound -= value;
+            remove => ListingFound_Backing -= value;
         }
 
         public event Action<Sprite?>? BannerImageCreated
@@ -55,10 +55,10 @@ namespace Synapse.Managers
                     value?.Invoke(_bannerImage);
                 }
 
-                _bannerImageCreated += value;
+                BannerImageCreated_Backing += value;
             }
 
-            remove => _bannerImageCreated -= value;
+            remove => BannerImageCreated_Backing -= value;
         }
 
         public event Action<Sprite?>? FinishImageCreated
@@ -70,17 +70,17 @@ namespace Synapse.Managers
                     value?.Invoke(_finishImage);
                 }
 
-                _finishImageCreated += value;
+                FinishImageCreated_Backing += value;
             }
 
-            remove => _finishImageCreated -= value;
+            remove => FinishImageCreated_Backing -= value;
         }
 
-        private event Action<Listing?>? _listingFound;
+        private event Action<Listing?>? ListingFound_Backing;
 
-        private event Action<Sprite?>? _bannerImageCreated;
+        private event Action<Sprite?>? BannerImageCreated_Backing;
 
-        private event Action<Sprite?>? _finishImageCreated;
+        private event Action<Sprite?>? FinishImageCreated_Backing;
 
         public Listing? Listing { get; private set; }
 
@@ -116,7 +116,7 @@ namespace Synapse.Managers
                 _log.Debug($"Found active listing for [{listing.Title}]");
 
                 Listing = listing;
-                _listingFound?.Invoke(Listing);
+                ListingFound_Backing?.Invoke(Listing);
 
                 _ = GetBannerImage(listing, token);
                 _ = GetFinishImage(listing, token);
@@ -126,11 +126,11 @@ namespace Synapse.Managers
             }
             catch (Exception e)
             {
-                _log.Error(e);
+                _log.Warn(e);
                 _lastListing = null;
-                _listingFound?.Invoke(null);
-                _bannerImageCreated?.Invoke(null);
-                _finishImageCreated?.Invoke(null);
+                ListingFound_Backing?.Invoke(null);
+                BannerImageCreated_Backing?.Invoke(null);
+                FinishImageCreated_Backing?.Invoke(null);
             }
         }
 
@@ -145,7 +145,7 @@ namespace Synapse.Managers
                     _log.Debug($"Fetching banner image from [{listing.BannerImage}]");
                     Sprite bannerImage = await MediaExtensions.RequestSprite(listing.BannerImage, token);
                     _bannerImage = bannerImage;
-                    _bannerImageCreated?.Invoke(bannerImage);
+                    BannerImageCreated_Backing?.Invoke(bannerImage);
                 }
                 catch (OperationCanceledException)
                 {
@@ -153,7 +153,7 @@ namespace Synapse.Managers
                 catch (Exception e)
                 {
                     _log.Error(e);
-                    _bannerImageCreated?.Invoke(null);
+                    BannerImageCreated_Backing?.Invoke(null);
                 }
             }
         }
@@ -169,7 +169,7 @@ namespace Synapse.Managers
                     _log.Debug($"Fetching finish image from [{listing.FinishImage}]");
                     Sprite finishImage = await MediaExtensions.RequestSprite(listing.FinishImage, token);
                     _finishImage = finishImage;
-                    _finishImageCreated?.Invoke(finishImage);
+                    FinishImageCreated_Backing?.Invoke(finishImage);
                 }
                 catch (OperationCanceledException)
                 {
@@ -177,7 +177,7 @@ namespace Synapse.Managers
                 catch (Exception e)
                 {
                     _log.Error(e);
-                    _finishImageCreated?.Invoke(null);
+                    FinishImageCreated_Backing?.Invoke(null);
                 }
             }
         }

@@ -45,6 +45,8 @@ namespace Unclassified.Net
         private NetworkStream stream;
         private TaskCompletionSource<bool> closedTcs = new TaskCompletionSource<bool>();
 
+        private CancellationTokenSource cancelToken = new();
+
         #endregion Private data
 
         #region Constructors
@@ -183,6 +185,9 @@ namespace Unclassified.Net
         /// <returns>The task object representing the asynchronous operation.</returns>
         public async Task RunAsync()
         {
+            cancelToken?.Dispose();
+            cancelToken = new CancellationTokenSource();
+            CancellationToken token = cancelToken.Token;
             bool isReconnected = false;
             int reconnectTry = -1;
             do
@@ -215,7 +220,7 @@ namespace Unclassified.Net
                     {
                         connectTask = tcpClient.ConnectAsync(IPAddress, Port);
                     }
-                    var timeoutTask = Task.Delay(connectTimeout);
+                    var timeoutTask = Task.Delay(connectTimeout, token);
                     if (await Task.WhenAny(connectTask, timeoutTask) == timeoutTask)
                     {
                         Message?.Invoke(this, new AsyncTcpEventArgs(Net.Message.Timeout, null, reconnectTry));
@@ -251,7 +256,7 @@ namespace Unclassified.Net
                         int readLength;
                         try
                         {
-                            readLength = await stream.ReadAsync(buffer, 0, buffer.Length);
+                            readLength = await stream.ReadAsync(buffer, 0, buffer.Length, token);
                         }
                         catch (IOException ex) when ((ex.InnerException as SocketException)?.ErrorCode == (int)SocketError.OperationAborted ||
                             (ex.InnerException as SocketException)?.ErrorCode == 125 /* Operation canceled (Linux) */)
@@ -306,6 +311,8 @@ namespace Unclassified.Net
         /// </summary>
         public void Disconnect()
         {
+            cancelToken?.Cancel();
+            ////tcpClient.Client.Shutdown(SocketShutdown.Both);
             tcpClient.Client.Disconnect(false);
         }
 

@@ -167,6 +167,7 @@ namespace Synapse.Views
                 return;
             }
 
+            _altCover = true;
             _maxIndex = index;
             _textSegmentTexts = Enumerable.Range(1, index + 1).Select(n => n.ToString()).ToArray();
             _dirtyTextSegments = true;

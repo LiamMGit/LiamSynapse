@@ -27,7 +27,6 @@ namespace Synapse.Managers
         private readonly IInstantiator _instantiator;
         private readonly MenuEnvironmentManager _menuEnvironmentManager;
         private readonly CancellationTokenManager _cancellationTokenManager;
-        private readonly DirectoryInfo _directory;
 
         private Listing? _listing;
         private string _filePath = string.Empty;
@@ -51,7 +50,6 @@ namespace Synapse.Managers
             _instantiator = instantiator;
             _menuEnvironmentManager = menuEnvironmentManager;
             _cancellationTokenManager = cancellationTokenManager;
-            _directory = new DirectoryInfo(_folder);
             listingManager.ListingFound += n =>
             {
                 if (_prefab != null)
@@ -84,13 +82,13 @@ namespace Synapse.Managers
                     return;
                 }
 
-                _loaded += value;
+                Loaded_Backing += value;
             }
 
-            remove => _loaded -= value;
+            remove => Loaded_Backing -= value;
         }
 
-        private event Action<bool>? _loaded;
+        private event Action<bool>? Loaded_Backing;
 
         internal float DownloadProgress { get; private set; }
 
@@ -161,7 +159,9 @@ namespace Synapse.Managers
             {
                 if (File.Exists(_filePath))
                 {
+                    DownloadProgress = 0.99f;
                     await LoadBundle();
+                    DownloadProgress = 1;
                     Invoke(true);
                     return;
                 }
@@ -176,10 +176,12 @@ namespace Synapse.Managers
 
                 _log.Debug($"Downloading lobby bundle from [{url}]");
                 UnityWebRequest www = UnityWebRequest.Get(url);
-                await www.SendAndVerify(n => DownloadProgress = n, token);
+                await www.SendAndVerify(n => DownloadProgress = n * 0.98f, token);
                 Directory.CreateDirectory(_folder);
                 File.WriteAllBytes(_filePath, www.downloadHandler.data);
+                DownloadProgress = 0.99f;
                 await LoadBundle();
+                DownloadProgress = 1;
                 Invoke(true);
             }
             catch (OperationCanceledException)
@@ -196,15 +198,13 @@ namespace Synapse.Managers
             void Invoke(bool success)
             {
                 _didLoadSucceed = true;
-                _loaded?.Invoke(success);
-                _loaded = null;
+                Loaded_Backing?.Invoke(success);
+                Loaded_Backing = null;
             }
         }
 
         private async Task LoadBundle()
         {
-            DownloadProgress = 1;
-
             if (_listing == null)
             {
                 throw new InvalidOperationException("No listing loaded.");

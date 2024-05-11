@@ -4,7 +4,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+
+// ReSharper disable once RedundantUsingDirective
 using System.Threading;
+
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Newtonsoft.Json;

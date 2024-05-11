@@ -62,10 +62,10 @@ namespace Synapse.Managers
                     value?.Invoke(_beatmapLevel.Value);
                 }
 
-                _mapDownloaded += value;
+                MapDownloaded_Backing += value;
             }
 
-            remove => _mapDownloaded -= value;
+            remove => MapDownloaded_Backing -= value;
         }
 
         public event Action<DownloadedMap>? MapDownloadedOnce
@@ -78,15 +78,15 @@ namespace Synapse.Managers
                     return;
                 }
 
-                _mapDownloadedOnce += value;
+                MapDownloadedOnce_Backing += value;
             }
 
-            remove => _mapDownloadedOnce -= value;
+            remove => MapDownloadedOnce_Backing -= value;
         }
 
-        private event Action<DownloadedMap>? _mapDownloadedOnce;
+        private event Action<DownloadedMap>? MapDownloadedOnce_Backing;
 
-        private event Action<DownloadedMap>? _mapDownloaded;
+        private event Action<DownloadedMap>? MapDownloaded_Backing;
 
         public void Dispose()
         {
@@ -131,7 +131,7 @@ namespace Synapse.Managers
 
         private void Init(int index, Map? map)
         {
-            _mapDownloadedOnce = null;
+            MapDownloadedOnce_Backing = null;
             _beatmapLevel = null;
 
             if (map == null)
@@ -141,7 +141,23 @@ namespace Synapse.Managers
 
             string mapName = Path.GetInvalidFileNameChars().Aggregate(map.Name, (current, c) => current.Replace(c, '_'));
             string path = $"{_mapFolder}{Path.DirectorySeparatorChar}{mapName}";
-            UnityMainThreadTaskScheduler.Factory.StartNew(() => Download(index, map, path));
+            UnityMainThreadTaskScheduler.Factory.StartNew(async () =>
+            {
+                int i = 0;
+                while (true)
+                {
+                    try
+                    {
+                        await Download(index, map, path);
+                        return;
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error(e);
+                        await Task.Delay(++i * 1000);
+                    }
+                }
+            });
         }
 
         private async Task Download(int index, Map map, string path)
@@ -151,38 +167,23 @@ namespace Synapse.Managers
             _lastProgress = 0;
             _downloadProgress = 0;
             string url = map.DownloadUrl;
-            if (!Directory.Exists(path))
-            {
-                _log.Debug($"Attempting to download [{map.Name}] from [{url}]");
-                try
-                {
-                    await MediaExtensions.DownloadAndSave(
-                        url,
-                        path,
-                        n => _downloadProgress = n * 0.8f,
-                        null,
-                        n => _downloadProgress = 0.8f + (n * 0.15f),
-                        token);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
-                catch (Exception e)
-                {
-                    _log.Error($"Error downloading: {e}");
-                    _error = "ERROR!";
-                    _directory.Purge();
-                    return;
-                }
-            }
-            else
-            {
-                _log.Debug($"[{path}] already exists");
-            }
-
             try
             {
+                DirectoryInfo directory = new(path);
+                if (directory.Exists)
+                {
+                    directory.Delete(true);
+                }
+
+                _log.Debug($"Attempting to download [{map.Name}] from [{url}]");
+                await MediaExtensions.DownloadAndSave(
+                    url,
+                    path,
+                    n => _downloadProgress = n * 0.8f,
+                    null,
+                    n => _downloadProgress = 0.8f + (n * 0.15f),
+                    token);
+
                 _downloadProgress = 0.98f;
                 StandardLevelInfoSaveData infoSaveData =
                     await _customLevelLoader.LoadCustomLevelInfoSaveDataAsync(path, token);
@@ -196,23 +197,29 @@ namespace Synapse.Managers
                 _downloadProgress = 0.99f;
                 CustomBeatmapLevel beatmapLevel =
                     await _customLevelLoader.LoadCustomBeatmapLevelAsync(customPreviewBeatmapLevel, token);
-                IDifficultyBeatmapSet set = beatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(map.Characteristic);
-                IDifficultyBeatmap difficultyBeatmap = set.difficultyBeatmaps.First(n => (int)n.difficulty == map.Difficulty);
+                IDifficultyBeatmapSet set =
+                    beatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(map.Characteristic);
+                IDifficultyBeatmap difficultyBeatmap =
+                    set.difficultyBeatmaps.First(n => (int)n.difficulty == map.Difficulty);
 
                 _log.Debug($"Successfully downloaded [{map.Name}] as [{customPreviewBeatmapLevel.levelID}]");
                 _downloadProgress = 1;
 
                 DownloadedMap downloadedMap = new(index, map, difficultyBeatmap, customPreviewBeatmapLevel);
                 _beatmapLevel = downloadedMap;
-                _mapDownloaded?.Invoke(downloadedMap);
-                _mapDownloadedOnce?.Invoke(downloadedMap);
-                _mapDownloadedOnce = null;
+                MapDownloaded_Backing?.Invoke(downloadedMap);
+                MapDownloadedOnce_Backing?.Invoke(downloadedMap);
+                MapDownloadedOnce_Backing = null;
             }
-            catch (Exception e)
+            catch (OperationCanceledException)
             {
-                _log.Error($"Error deserializing beatmap data\n({e})");
+            }
+            catch
+            {
+                _log.Error($"Error downloading map [{map.Name}]");
                 _error = "ERROR!";
                 _directory.Purge();
+                throw;
             }
         }
     }

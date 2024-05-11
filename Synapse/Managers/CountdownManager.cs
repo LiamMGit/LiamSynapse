@@ -41,7 +41,12 @@ namespace Synapse.Managers
             _log = log;
             _songPreviewPlayer = songPreviewPlayer;
             networkManager.StartTimeUpdated += n => _startTime = n;
-            networkManager.Closed += _ => _startTime = null;
+            networkManager.Closed += _ =>
+            {
+                _startTime = null;
+                _gongPlayed = false;
+                _lastPlayed = -1;
+            };
 
             _ = LoadAudio(audioClipAsyncLoader);
         }

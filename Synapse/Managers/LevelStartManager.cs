@@ -82,6 +82,7 @@ namespace Synapse.Managers
             }
         }
 
+#pragma warning disable SA1300
         private enum GameplayModifier
         {
             noFailOn0Energy,
@@ -98,6 +99,7 @@ namespace Synapse.Managers
             smallCubes,
             noEnergy // custom modifier
         }
+#pragma warning restore SA1300
 
         // WARNING: ruleset has lower priority than heck map settings
         public void StartLevel(
@@ -208,6 +210,7 @@ namespace Synapse.Managers
 
             _disableCustomPlatform?.Invoke();
             _nextLevelIsIsolated?.Invoke("Synapse");
+            IntroSkipInstallationPatch.SkipNext = true;
 
             StartStandardOrHeck(
                 "screw yo analytics",

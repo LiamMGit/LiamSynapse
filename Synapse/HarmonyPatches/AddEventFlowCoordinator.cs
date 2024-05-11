@@ -23,7 +23,7 @@ namespace Synapse.HarmonyPatches
         {
             if (addedToHierarchy)
             {
-                _eventFlowCoordinator.didFinishEvent += HandleEventFlowCoordinatorDidFinish;
+                _eventFlowCoordinator.Finished += HandleEventFlowCoordinatorDidFinish;
             }
         }
 
@@ -33,7 +33,7 @@ namespace Synapse.HarmonyPatches
         {
             if (removedFromHierarchy)
             {
-                _eventFlowCoordinator.didFinishEvent -= HandleEventFlowCoordinatorDidFinish;
+                _eventFlowCoordinator.Finished -= HandleEventFlowCoordinatorDidFinish;
             }
         }
 

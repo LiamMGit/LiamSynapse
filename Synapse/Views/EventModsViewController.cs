@@ -39,7 +39,7 @@ namespace Synapse.Views
         private Listing? _listing;
         private NotificationManager _notificationManager = null!;
 
-        internal event Action? didAcceptEvent;
+        internal event Action? Finished;
 
         private static string ContentBSML
         {
@@ -130,7 +130,7 @@ namespace Synapse.Views
         [UIAction("accept-click")]
         private void OnAcceptClick()
         {
-            didAcceptEvent?.Invoke();
+            Finished?.Invoke();
         }
 
         private readonly struct ListObject
