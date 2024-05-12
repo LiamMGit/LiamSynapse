@@ -2,6 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -116,6 +117,7 @@ namespace Synapse.Extras
 
         internal static async Task DownloadAndSave(
             string url,
+            string hash,
             string unzipPath,
             Action<float>? progress,
             Action? unzipping,
@@ -127,8 +129,18 @@ namespace Synapse.Extras
 
             unzipping?.Invoke();
 
-            using MemoryStream zipStream = new(www.downloadHandler.data);
-            using ZipArchive zip = new(zipStream, ZipArchiveMode.Read, false);
+            using MemoryStream stream = new(www.downloadHandler.data);
+
+            using MD5 md5 = MD5.Create();
+            string computed = BitConverter.ToString(md5.ComputeHash(stream))
+                .Replace("-", string.Empty)
+                .ToLowerInvariant();
+            if (computed != hash)
+            {
+                throw new InvalidOperationException($"MD5 mismatch, expected: [{hash}], calculated: [{computed}].");
+            }
+
+            using ZipArchive zip = new(stream, ZipArchiveMode.Read, false);
             ZipArchiveEntry[] entries = zip.Entries.ToArray();
             for (int j = 0; j < entries.Length; j++)
             {
@@ -169,8 +181,7 @@ namespace Synapse.Extras
             }
             catch (Exception e)
             {
-                Plugin.Log.Error($"Exception while purging directory: [{directory}]");
-                Plugin.Log.Error(e);
+                Plugin.Log.Error($"Exception while purging directory: [{directory}]\n{e}");
             }
         }
     }

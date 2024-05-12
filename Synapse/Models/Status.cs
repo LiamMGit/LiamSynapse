@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using JetBrains.Annotations;
 
 namespace Synapse.Models
@@ -34,11 +35,11 @@ namespace Synapse.Models
 
         public int Difficulty { get; init; }
 
-        public string DownloadUrl { get; init; } = string.Empty;
-
         public string? AltCoverUrl { get; init; } = string.Empty;
 
         public Ruleset? Ruleset { get; init; }
+
+        public List<Download> Downloads { get; init; } = new();
     }
 
     [UsedImplicitly(ImplicitUseTargetFlags.Members)]
@@ -51,5 +52,15 @@ namespace Synapse.Models
         public bool? AllowLeftHand { get; init; }
 
         public bool? AllowResubmission { get; init; }
+    }
+
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
+    public record Download
+    {
+        public string GameVersion { get; init; } = string.Empty;
+
+        public string Url { get; init; } = string.Empty;
+
+        public string Hash { get; init; } = string.Empty;
     }
 }

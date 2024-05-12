@@ -316,8 +316,7 @@ namespace Synapse.Managers
             }
             catch (Exception e)
             {
-                _log.Error("Exception while connecting");
-                _log.Error(e);
+                _log.Error($"Exception while connecting\n{e}");
                 await Disconnect("Exception while connecting");
             }
         }
@@ -360,8 +359,7 @@ namespace Synapse.Managers
             }
             catch (Exception e)
             {
-                _log.Error("Received invalid packet");
-                _log.Error(e);
+                _log.Error($"Received invalid packet\n{e}");
                 client.ByteBuffer.Clear();
                 _dequeueAmount = 0;
             }

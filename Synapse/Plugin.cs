@@ -1,9 +1,11 @@
-﻿using HarmonyLib;
+﻿using System;
+using HarmonyLib;
 using IPA;
 using IPA.Config.Stores;
 using JetBrains.Annotations;
 using SiraUtil.Zenject;
 using Synapse.Installers;
+using UnityEngine;
 using Logger = IPA.Logging.Logger;
 
 namespace Synapse
@@ -11,12 +13,6 @@ namespace Synapse
     [Plugin(RuntimeOptions.DynamicInit)]
     internal class Plugin
     {
-#if LATEST
-        internal const string GAME_VERSION = "1.34.2";
-#else
-        internal const string GAME_VERSION = "1.29.1";
-#endif
-
         private readonly Harmony _harmonyInstance = new("dev.aeroluna.Synapse");
 
         [UsedImplicitly]
@@ -29,7 +25,12 @@ namespace Synapse
             zenjector.Install<SynapseMenuInstaller>(Location.Menu);
             zenjector.Install<SynapsePlayerInstaller>(Location.Player);
             zenjector.UseLogger(pluginLogger);
+
+            string ver = Application.version;
+            GameVersion = ver.Remove(ver.IndexOf("_", StringComparison.Ordinal));
         }
+
+        internal static string GameVersion { get; private set; } = string.Empty;
 
         // ReSharper disable once UnusedAutoPropertyAccessor.Global
         internal static Logger Log { get; private set; } = null!;

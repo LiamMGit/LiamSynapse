@@ -428,7 +428,7 @@ namespace Synapse.Views
             }
             catch (Exception e)
             {
-                _log.Error(e);
+                _log.Error($"Exception while processing message\n{e}");
             }
 
             return;

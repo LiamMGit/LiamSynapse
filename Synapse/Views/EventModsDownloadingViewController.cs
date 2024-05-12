@@ -7,6 +7,7 @@ using BeatSaberMarkupLanguage.Attributes;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
+using Synapse.Extras;
 using Synapse.Models;
 using TMPro;
 using UnityEngine;
@@ -116,27 +117,31 @@ namespace Synapse.Views
                 + $"{Path.DirectorySeparatorChar}IPA{Path.DirectorySeparatorChar}Pending").FullName;
             for (int i = 0; i < count; i++)
             {
-                ModInfo requiredMod = _requiredMods[i];
-                string url = requiredMod.Url;
-                DownloadText = $"Downloading {requiredMod.Id}... ({i + 1}/{count})";
-                _log.Debug($"Attempting to download [{requiredMod.Id}] from [{url}]");
+                ModInfo mod = _requiredMods[i];
+                string url = mod.Url;
+                DownloadText = $"Downloading {mod.Id}... ({i + 1}/{count})";
+                _log.Debug($"Attempting to download [{mod.Id}] from [{url}]");
                 int iteration = i;
                 try
                 {
-                    await Download(
+                    await MediaExtensions.DownloadAndSave(
                         url,
+                        mod.Hash,
                         unzipPath,
                         n => DownloadProgress = (iteration + (n * 0.5f)) / count,
-                        () => DownloadText = $"Unzipping {requiredMod.Id}... ({iteration + 1}/{count})",
+                        () => DownloadText = $"Unzipping {mod.Id}... ({iteration + 1}/{count})",
                         n => DownloadProgress = (iteration + 0.5f + (n * 0.5f)) / count,
                         token);
                 }
-                catch
+                catch (Exception e)
                 {
+                    LastError = $"Error while downloading [{mod}].\nDownload has been cancelled.";
+                    NewView = View.Error;
+                    _log.Error($"Error while downloading [{mod}]\n{e}");
                     return;
                 }
 
-                _log.Debug($"Successfully downloaded [{requiredMod.Id}]");
+                _log.Debug($"Successfully downloaded [{mod.Id}]");
             }
 
             QuitText = $"{count} mod(s) successfully downloaded.\nQuit and manually restart to complete installation.";

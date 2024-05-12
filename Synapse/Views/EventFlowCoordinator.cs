@@ -92,7 +92,7 @@ namespace Synapse.Views
                 {
                     if (_dirtyListing)
                     {
-                        RequiredMods? versionMods = _listing.RequiredMods.FirstOrDefault(n => n.GameVersion == Plugin.GAME_VERSION);
+                        RequiredMods? versionMods = _listing.RequiredMods.FirstOrDefault(n => n.GameVersion.Split(',').Any(v => v == Plugin.GameVersion));
                         if (versionMods == null)
                         {
                             SetTitle(null);
@@ -392,7 +392,7 @@ namespace Synapse.Views
                     }
                     catch (Exception e)
                     {
-                        _log.Error($"Failed to start level: {e}");
+                        _log.Error($"Failed to start level\n{e}");
                         TransitionDidFinish();
                     }
                 };

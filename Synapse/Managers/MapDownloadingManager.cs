@@ -151,9 +151,8 @@ namespace Synapse.Managers
                         await Download(index, map, path);
                         return;
                     }
-                    catch (Exception e)
+                    catch
                     {
-                        _log.Error(e);
                         await Task.Delay(++i * 1000);
                     }
                 }
@@ -166,9 +165,13 @@ namespace Synapse.Managers
             CancellationToken token = _cancellationTokenManager.Reset();
             _lastProgress = 0;
             _downloadProgress = 0;
-            string url = map.DownloadUrl;
             try
             {
+                Download download =
+                    map.Downloads.FirstOrDefault(n => n.GameVersion.Split(',').Any(v => v == Plugin.GameVersion)) ??
+                    throw new InvalidOperationException($"No download found for game version [{Plugin.GameVersion}].");
+                string url = download.Url;
+
                 DirectoryInfo directory = new(path);
                 if (directory.Exists)
                 {
@@ -178,6 +181,7 @@ namespace Synapse.Managers
                 _log.Debug($"Attempting to download [{map.Name}] from [{url}]");
                 await MediaExtensions.DownloadAndSave(
                     url,
+                    download.Hash,
                     path,
                     n => _downloadProgress = n * 0.8f,
                     null,
@@ -214,9 +218,9 @@ namespace Synapse.Managers
             catch (OperationCanceledException)
             {
             }
-            catch
+            catch (Exception e)
             {
-                _log.Error($"Error downloading map [{map.Name}]");
+                _log.Error($"Error downloading map [{map.Name}]\n{e}");
                 _error = "ERROR!";
                 _directory.Purge();
                 throw;

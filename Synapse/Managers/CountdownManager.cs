@@ -170,7 +170,7 @@ namespace Synapse.Managers
             }
             catch (Exception e)
             {
-                _log.Error(e);
+                _log.Error($"Exception while loading countdown audio\n{e}");
             }
         }
     }

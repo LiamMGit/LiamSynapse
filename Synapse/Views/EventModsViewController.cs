@@ -83,11 +83,11 @@ namespace Synapse.Views
 
                     modsToDownload.Add(mod);
                     _contents.Add(new ListObject(mod.Id, mod.Version));
-                    _log.Debug($"Missing required mod: {mod.Id}@{mod.Version}");
+                    _log.Debug($"Missing required mod: {mod}");
                 }
                 catch (Exception e)
                 {
-                    _log.Error($"Error checking mod version for [{mod.Id}@{mod.Version}]: {e}");
+                    _log.Error($"Error checking mod version for [{mod}]\n{e}");
                     _notificationManager.Notify("Unexpected error, please send your log to Aeroluna!", Color.red);
                 }
             }

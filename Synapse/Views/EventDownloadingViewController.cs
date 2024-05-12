@@ -96,26 +96,6 @@ namespace Synapse.Views
             _cancellationTokenManager.Cancel();
         }
 
-        protected async Task Download(string url, string unzipPath, Action<float> progress, Action unzipping, Action<float> unzipProgress, CancellationToken token)
-        {
-            try
-            {
-                await MediaExtensions.DownloadAndSave(
-                    url,
-                    unzipPath,
-                    progress,
-                    unzipping,
-                    unzipProgress,
-                    token);
-            }
-            catch (Exception e)
-            {
-                LastError = e.Message;
-                NewView = View.Error;
-                throw;
-            }
-        }
-
         [UsedImplicitly]
         [Inject]
         private void Construct(CancellationTokenManager cancellationTokenManager)

@@ -189,7 +189,7 @@ namespace Synapse.Managers
             }
             catch (Exception e)
             {
-                _log.Error($"Exception while loading lobby bundle: {e}");
+                _log.Error($"Exception while loading lobby bundle\n{e}");
                 Invoke(false);
             }
 

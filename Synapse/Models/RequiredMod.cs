@@ -19,5 +19,12 @@ namespace Synapse.Models
         public string Version { get; init; } = string.Empty;
 
         public string Url { get; init; } = string.Empty;
+
+        public string Hash { get; init; } = string.Empty;
+
+        public override string ToString()
+        {
+            return $"{Id}@{Version}";
+        }
     }
 }

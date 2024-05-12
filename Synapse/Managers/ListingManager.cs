@@ -126,7 +126,7 @@ namespace Synapse.Managers
             }
             catch (Exception e)
             {
-                _log.Warn(e);
+                _log.Warn($"Exception while loading listing\n{e}");
                 _lastListing = null;
                 ListingFound_Backing?.Invoke(null);
                 BannerImageCreated_Backing?.Invoke(null);
@@ -152,7 +152,7 @@ namespace Synapse.Managers
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e);
+                    _log.Error($"Exception while fetching promo banner image\n{e}");
                     BannerImageCreated_Backing?.Invoke(null);
                 }
             }
@@ -176,7 +176,7 @@ namespace Synapse.Managers
                 }
                 catch (Exception e)
                 {
-                    _log.Error(e);
+                    _log.Error($"Exception while fetching finish image\n{e}");
                     FinishImageCreated_Backing?.Invoke(null);
                 }
             }
