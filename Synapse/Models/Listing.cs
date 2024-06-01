@@ -19,14 +19,22 @@ namespace Synapse.Models
 
         public DateTime Time { get; init;  }
 
-        public string LobbyBundle { get; init; } = string.Empty;
-
-        public uint BundleCrc { get; init; }
-
         public string FinishImage { get; init; } = string.Empty;
 
-        public List<RequiredMods> RequiredMods { get; init; } = new(0);
+        public List<BundleInfo> Bundles { get; init; } = new();
+
+        public List<RequiredMods> RequiredMods { get; init; } = new();
 
         internal TimeSpan TimeSpan => Time - DateTime.UtcNow;
+    }
+
+    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
+    public class BundleInfo
+    {
+        public string GameVersion { get; init; } = string.Empty;
+
+        public string Url { get; init; } = string.Empty;
+
+        public uint Hash { get; init; }
     }
 }

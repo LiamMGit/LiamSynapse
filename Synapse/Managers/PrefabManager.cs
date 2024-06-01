@@ -26,9 +26,10 @@ namespace Synapse.Managers
         private readonly SiraLog _log;
         private readonly IInstantiator _instantiator;
         private readonly MenuEnvironmentManager _menuEnvironmentManager;
+        private readonly SongPreviewPlayer _songPreviewPlayer;
         private readonly CancellationTokenManager _cancellationTokenManager;
 
-        private Listing? _listing;
+        private BundleInfo? _bundleInfo;
         private string _filePath = string.Empty;
 
         private GameObject? _prefab;
@@ -44,11 +45,13 @@ namespace Synapse.Managers
             IInstantiator instantiator,
             ListingManager listingManager,
             MenuEnvironmentManager menuEnvironmentManager,
+            SongPreviewPlayer songPreviewPlayer,
             CancellationTokenManager cancellationTokenManager)
         {
             _log = log;
             _instantiator = instantiator;
             _menuEnvironmentManager = menuEnvironmentManager;
+            _songPreviewPlayer = songPreviewPlayer;
             _cancellationTokenManager = cancellationTokenManager;
             listingManager.ListingFound += n =>
             {
@@ -58,7 +61,7 @@ namespace Synapse.Managers
                     _prefab = null;
                 }
 
-                _listing = n;
+                _bundleInfo = n?.Bundles.FirstOrDefault(b => b.GameVersion.MatchesGameVersion());
                 string listingTitle = n == null ? "undefined" : new string(n.Title.Select(j =>
                 {
                     if (char.IsLetter(j) || char.IsNumber(j))
@@ -114,6 +117,7 @@ namespace Synapse.Managers
 
             _prefab.SetActive(true);
             _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.None);
+            _songPreviewPlayer.FadeOut(1);
         }
 
         internal void Hide()
@@ -134,6 +138,7 @@ namespace Synapse.Managers
             {
                 _prefab.SetActive(false);
                 _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
+                _songPreviewPlayer.CrossfadeToDefault();
             }
             else
             {
@@ -142,6 +147,7 @@ namespace Synapse.Managers
                 {
                     _prefab.SetActive(false);
                     _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
+                    _songPreviewPlayer.CrossfadeToDefault();
                 });
             }
         }
@@ -166,7 +172,7 @@ namespace Synapse.Managers
                     return;
                 }
 
-                string? url = _listing?.LobbyBundle;
+                string? url = _bundleInfo?.Url;
                 if (string.IsNullOrWhiteSpace(url))
                 {
                     _log.Error("No bundle listed");
@@ -205,12 +211,12 @@ namespace Synapse.Managers
 
         private async Task LoadBundle()
         {
-            if (_listing == null)
+            if (_bundleInfo == null)
             {
-                throw new InvalidOperationException("No listing loaded.");
+                throw new InvalidOperationException("No bundle info found.");
             }
 
-            AssetBundle? bundle = await MediaExtensions.LoadFromFileAsync(_filePath, _listing.BundleCrc);
+            AssetBundle? bundle = await MediaExtensions.LoadFromFileAsync(_filePath, _bundleInfo.Hash);
             if (bundle == null)
             {
                 FileInfo file = new(_filePath);

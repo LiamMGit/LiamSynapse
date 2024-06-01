@@ -92,7 +92,7 @@ namespace Synapse.Views
                 {
                     if (_dirtyListing)
                     {
-                        RequiredMods? versionMods = _listing.RequiredMods.FirstOrDefault(n => n.GameVersion.Split(',').Any(v => v == Plugin.GameVersion));
+                        RequiredMods? versionMods = _listing.RequiredMods.FirstOrDefault(n => n.GameVersion.MatchesGameVersion());
                         if (versionMods == null)
                         {
                             SetTitle(null);

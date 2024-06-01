@@ -159,6 +159,11 @@ namespace Synapse.Extras
             }
         }
 
+        internal static bool MatchesGameVersion(this string gameVersion)
+        {
+            return gameVersion.Split(',').Any(n => n == Plugin.GameVersion);
+        }
+
         internal static void Purge(this DirectoryInfo directory)
         {
             // cleanup

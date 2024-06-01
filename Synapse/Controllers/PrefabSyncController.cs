@@ -44,8 +44,7 @@ namespace Synapse.Controllers
             _mute = _config.MuteMusic;
             foreach (AudioSource audioSource in _audioSources)
             {
-                // TODO: find a better way to mute audio sources
-                audioSource.volume = _mute ? 0 : 1;
+                audioSource.mute = _mute;
             }
         }
     }

@@ -47,6 +47,7 @@ namespace Synapse.Managers
             _directory = new DirectoryInfo(_mapFolder);
             _directory.Purge();
             networkManager.MapUpdated += Init;
+            networkManager.Closed += _ => _cancellationTokenManager.Cancel();
 
             _songCoreActive = IPA.Loader.PluginManager.GetPlugin("SongCore") != null;
         }
@@ -168,7 +169,7 @@ namespace Synapse.Managers
             try
             {
                 Download download =
-                    map.Downloads.FirstOrDefault(n => n.GameVersion.Split(',').Any(v => v == Plugin.GameVersion)) ??
+                    map.Downloads.FirstOrDefault(n => n.GameVersion.MatchesGameVersion()) ??
                     throw new InvalidOperationException($"No download found for game version [{Plugin.GameVersion}].");
                 string url = download.Url;
 
