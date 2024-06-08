@@ -465,7 +465,6 @@ namespace Synapse.Views
         private void RefreshSongInfo()
         {
             CancellationToken token = _cancellationTokenManager.Reset();
-            _coverImage.sprite = _coverPlaceholder;
             if (_altCoverUrl != null && _playerScore == null)
             {
                 _ = SetCoverImage(MediaExtensions.RequestSprite(_altCoverUrl, token));
@@ -480,6 +479,7 @@ namespace Synapse.Views
             }
             else
             {
+                _coverImage.sprite = _coverPlaceholder;
                 _songText.text = "???";
                 _authorText.text = "??? [???]";
             }

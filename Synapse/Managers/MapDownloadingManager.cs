@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using HarmonyLib;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
@@ -24,7 +26,7 @@ namespace Synapse.Managers
         private readonly CancellationTokenManager _cancellationTokenManager;
         private readonly DirectoryInfo _directory;
 
-        private readonly bool _songCoreActive;
+        private readonly MethodInfo? _songCoreLoad;
 
         private string _lastSent = string.Empty;
         private string? _error;
@@ -49,7 +51,10 @@ namespace Synapse.Managers
             networkManager.MapUpdated += Init;
             networkManager.Closed += _ => _cancellationTokenManager.Cancel();
 
-            _songCoreActive = IPA.Loader.PluginManager.GetPlugin("SongCore") != null;
+            if (IPA.Loader.PluginManager.GetPlugin("SongCore") != null)
+            {
+                _songCoreLoad = GetSongCoreLoadMethod();
+            }
         }
 
         public event Action<string>? ProgressUpdated;
@@ -121,13 +126,30 @@ namespace Synapse.Managers
             _cancellationTokenManager.Cancel();
         }
 
-        // needed for BeatLeader
-        private static CustomPreviewBeatmapLevel SongCoreLoad(
-            StandardLevelInfoSaveData standardLevelInfoSaveData,
+        // idk why its private
+        private static MethodInfo? GetSongCoreLoadMethod()
+        {
+            return AccessTools.Method(typeof(SongCore.Loader), "LoadSongAndAddToDictionaries");
+        }
+
+        // needed for other mods like BeatTogether/Camera2
+        private CustomPreviewBeatmapLevel SongCoreLoad(
+            CancellationToken token,
             string songPath)
         {
-            return SongCore.Loader.LoadSong(standardLevelInfoSaveData, songPath, out _) ??
-                   throw new InvalidOperationException();
+            SongCore.Data.SongData? songData = SongCore.Loader.Instance.LoadCustomLevelSongData(songPath);
+            if (songData == null)
+            {
+                throw new InvalidOperationException("SongCore error: invalid song data.");
+            }
+
+            object? result = _songCoreLoad!.Invoke(SongCore.Loader.Instance, new object?[] { token, songData, songPath, null });
+            if (result == null)
+            {
+                throw new InvalidOperationException("SongCore error: failed to load.");
+            }
+
+            return (CustomPreviewBeatmapLevel)result;
         }
 
         private void Init(int index, Map? map)
@@ -190,14 +212,20 @@ namespace Synapse.Managers
                     token);
 
                 _downloadProgress = 0.98f;
-                StandardLevelInfoSaveData infoSaveData =
-                    await _customLevelLoader.LoadCustomLevelInfoSaveDataAsync(path, token);
-                CustomPreviewBeatmapLevel customPreviewBeatmapLevel = _songCoreActive
-                    ? SongCoreLoad(infoSaveData, path)
-                    : await _customLevelLoader.LoadCustomPreviewBeatmapLevelAsync(
-                        path,
-                        infoSaveData,
-                        token);
+                CustomPreviewBeatmapLevel customPreviewBeatmapLevel;
+                if (_songCoreLoad != null)
+                {
+                    customPreviewBeatmapLevel = SongCoreLoad(token, path);
+                }
+                else
+                {
+                    StandardLevelInfoSaveData infoSaveData =
+                        await _customLevelLoader.LoadCustomLevelInfoSaveDataAsync(path, token);
+                    customPreviewBeatmapLevel = await _customLevelLoader.LoadCustomPreviewBeatmapLevelAsync(
+                            path,
+                            infoSaveData,
+                            token);
+                }
 
                 _downloadProgress = 0.99f;
                 CustomBeatmapLevel beatmapLevel =

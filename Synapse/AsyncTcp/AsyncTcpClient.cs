@@ -251,7 +251,7 @@ namespace Unclassified.Net
                 {
                     // 10 KiB should be enough for every Ethernet packet
                     byte[] buffer = new byte[10240];
-                    while (true)
+                    while (!token.IsCancellationRequested)
                     {
                         int readLength;
                         try
@@ -302,7 +302,7 @@ namespace Unclassified.Net
 
                 isReconnected = true;
             }
-            while (AutoReconnect && ServerTcpClient == null);
+            while (AutoReconnect && ServerTcpClient == null && !token.IsCancellationRequested);
         }
 
         /// <summary>

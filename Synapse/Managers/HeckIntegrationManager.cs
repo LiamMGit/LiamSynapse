@@ -4,6 +4,7 @@ using JetBrains.Annotations;
 
 namespace Synapse.Managers
 {
+    // TODO: fully remove heck and songcore references
     internal class HeckIntegrationManager
     {
         private readonly PlayViewManager _playViewManager;

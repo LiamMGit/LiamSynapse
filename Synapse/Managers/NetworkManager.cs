@@ -103,8 +103,8 @@ namespace Synapse.Managers
         {
             if (_client != null)
             {
-                _log.Error("Client still running");
-                return;
+                _log.Error("Client still running, disconnecting");
+                await Disconnect("Joining from another client");
             }
 
             string? stringAddress = _listingManager.Listing?.IpAddress;
@@ -147,10 +147,9 @@ namespace Synapse.Managers
             _log.Warn($"Disconnected from {_address} ({reason})");
             if (local && _client.IsConnected)
             {
-                await _client.Send(new ArraySegment<byte>(new[] { (byte)ServerOpcode.Disconnect }, 0, 1));
+                await SendOpcode(ServerOpcode.Disconnect);
             }
 
-            _client.AutoReconnect = false;
             _client.Disconnect();
 
             Disconnected?.Invoke(reason);
