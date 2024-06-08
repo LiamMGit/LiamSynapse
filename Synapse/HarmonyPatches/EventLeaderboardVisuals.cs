@@ -3,6 +3,7 @@ using HarmonyLib;
 using HMUI;
 using Synapse.Views;
 using TMPro;
+using UnityEngine;
 
 namespace Synapse.HarmonyPatches
 {
@@ -14,6 +15,16 @@ namespace Synapse.HarmonyPatches
             float percent = accuracy * 100;
             return $"<color=#FEA959>{percent:F2}<size=60%>%</size></color>";
         }
+
+#if LATEST
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(LeaderboardTableCell), nameof(LeaderboardTableCell.score), MethodType.Setter)]
+        private static void ExpandScore(TextMeshProUGUI ____scoreText)
+        {
+            Vector2 old = ____scoreText.rectTransform.sizeDelta;
+            ____scoreText.rectTransform.sizeDelta = new Vector2(100, old.y);
+        }
+#endif
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(LeaderboardTableCell), nameof(LeaderboardTableCell.rank), MethodType.Setter)]
