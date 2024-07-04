@@ -186,6 +186,8 @@ namespace Synapse.Views
             // Have to be destroyed with DestroyImmediate otherwise the leaderboard sinks
             List<SegmentedControlCell> cells = _textSegments._cells;
             List<GameObject> seperators = _textSegments._separators;
+
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             cells.Where(n => n != null && n.gameObject != null).Do(n => DestroyImmediate(n.gameObject));
             cells.Clear();
             seperators.ForEach(DestroyImmediate);

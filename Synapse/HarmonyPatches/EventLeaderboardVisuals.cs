@@ -3,7 +3,9 @@ using HarmonyLib;
 using HMUI;
 using Synapse.Views;
 using TMPro;
+#if !V1_29_1
 using UnityEngine;
+#endif
 
 namespace Synapse.HarmonyPatches
 {
@@ -16,7 +18,7 @@ namespace Synapse.HarmonyPatches
             return $"<color=#FEA959>{percent:F2}<size=60%>%</size></color>";
         }
 
-#if LATEST
+#if !V1_29_1
         [HarmonyPostfix]
         [HarmonyPatch(typeof(LeaderboardTableCell), nameof(LeaderboardTableCell.score), MethodType.Setter)]
         private static void ExpandScore(TextMeshProUGUI ____scoreText)

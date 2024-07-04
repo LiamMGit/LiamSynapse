@@ -410,7 +410,12 @@ namespace Synapse.Views
             LevelCompletionResults levelCompletionResults)
         {
             TransitionDidFinish();
+#if LATEST
+            BeatmapKey beatmapKey = standardLevelScenesTransitionSetupData.beatmapKey;
+            BeatmapLevel beatmapLevel = standardLevelScenesTransitionSetupData.beatmapLevel;
+#else
             IDifficultyBeatmap difficultyBeatmap = standardLevelScenesTransitionSetupData.difficultyBeatmap;
+#endif
             IReadonlyBeatmapData transformedBeatmapData = standardLevelScenesTransitionSetupData.transformedBeatmapData;
             switch (levelCompletionResults.levelEndStateType)
             {
@@ -429,7 +434,12 @@ namespace Synapse.Views
                     _resultsViewController.Init(
                         levelCompletionResults,
                         transformedBeatmapData,
+#if LATEST
+                        beatmapKey,
+                        beatmapLevel,
+#else
                         difficultyBeatmap,
+#endif
                         false,
                         false);
                     _resultsViewController._restartButton.gameObject.SetActive(false);

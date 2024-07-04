@@ -201,8 +201,12 @@ namespace Synapse.Managers
             }
 
 #if LATEST
+            BeatmapKey beatmapKey = downloadedMap.BeatmapKey;
+            BeatmapLevel beatmapLevel = downloadedMap.BeatmapLevel;
+            ColorScheme? beatmapOverrideColorScheme = beatmapLevel.GetColorScheme(beatmapKey.beatmapCharacteristic, beatmapKey.difficulty);
+#elif !V1_29_1
             ColorScheme? beatmapOverrideColorScheme = null;
-            if (downloadedMap is { PreviewBeatmapLevel: CustomBeatmapLevel customBeatmapLevel, DifficultyBeatmap: CustomDifficultyBeatmap customDifficultyBeatmap })
+            if (downloadedMap is { BeatmapLevel: CustomBeatmapLevel customBeatmapLevel, DifficultyBeatmap: CustomDifficultyBeatmap customDifficultyBeatmap })
             {
                 beatmapOverrideColorScheme = customBeatmapLevel.GetBeatmapLevelColorScheme(customDifficultyBeatmap.beatmapColorSchemeIdx);
             }
@@ -214,22 +218,33 @@ namespace Synapse.Managers
 
             StartStandardOrHeck(
                 "screw yo analytics",
+#if LATEST
+                beatmapKey,
+                beatmapLevel,
+#else
                 downloadedMap.DifficultyBeatmap,
-                downloadedMap.PreviewBeatmapLevel,
+                downloadedMap.BeatmapLevel,
+#endif
                 null, // no environment override
                 overrideColorScheme,
-#if LATEST
+#if !V1_29_1
                 beatmapOverrideColorScheme,
 #endif
                 modifiers,
                 playerSpecificSettings,
                 null,
+#if LATEST
+                null,
+#endif
                 string.Empty, // doesnt matter, gets reset by animation anyways
                 false,
                 false,
                 null,
-                callback,
 #if LATEST
+                null,
+#endif
+                callback,
+#if !V1_29_1
                 null,
 #endif
                 null);
@@ -270,22 +285,33 @@ namespace Synapse.Managers
         // i wish i could use my StartStandardLevelParameters here
         private void StartStandardOrHeck(
             string gameMode,
+#if LATEST
+            in BeatmapKey beatmapKey,
+            BeatmapLevel beatmapLevel,
+#else
             IDifficultyBeatmap difficultyBeatmap,
             IPreviewBeatmapLevel previewBeatmapLevel,
+#endif
             OverrideEnvironmentSettings? overrideEnvironmentSettings,
             ColorScheme? overrideColorScheme,
-#if LATEST
+#if !V1_29_1
             ColorScheme? beatmapOverrideColorScheme,
 #endif
             GameplayModifiers gameplayModifiers,
             PlayerSpecificSettings playerSpecificSettings,
             PracticeSettings? practiceSettings,
+#if LATEST
+            EnvironmentsListModel? environmentsListModel,
+#endif
             string backButtonText,
             bool useTestNoteCutSoundEffects,
             bool startPaused,
             Action? beforeSceneSwitchCallback,
-            Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
 #if LATEST
+            Action<DiContainer>? afterSceneSwitchCallback,
+#endif
+            Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
+#if !V1_29_1
             Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback,
             RecordingToolManager.SetupData? recordingToolData)
 #else
@@ -296,22 +322,33 @@ namespace Synapse.Managers
             {
                 _heckIntegrationManager.Value.StartPlayViewInterruptedLevel(
                     gameMode,
+#if LATEST
+                    beatmapKey,
+                    beatmapLevel,
+#else
                     difficultyBeatmap,
                     previewBeatmapLevel,
+#endif
                     overrideEnvironmentSettings,
                     overrideColorScheme,
-#if LATEST
+#if !V1_29_1
                     beatmapOverrideColorScheme,
 #endif
                     gameplayModifiers,
                     playerSpecificSettings,
                     practiceSettings,
+#if LATEST
+                    environmentsListModel,
+#endif
                     backButtonText,
                     useTestNoteCutSoundEffects,
                     startPaused,
                     beforeSceneSwitchCallback,
-                    levelFinishedCallback,
 #if LATEST
+                    afterSceneSwitchCallback,
+#endif
+                    levelFinishedCallback,
+#if !V1_29_1
                     levelRestartedCallback,
                     recordingToolData);
 #else
@@ -322,22 +359,33 @@ namespace Synapse.Managers
             {
                 _menuTransitionsHelper.StartStandardLevel(
                     gameMode,
+#if LATEST
+                    beatmapKey,
+                    beatmapLevel,
+#else
                     difficultyBeatmap,
                     previewBeatmapLevel,
+#endif
                     overrideEnvironmentSettings,
                     overrideColorScheme,
-#if LATEST
+#if !V1_29_1
                     beatmapOverrideColorScheme,
 #endif
                     gameplayModifiers,
                     playerSpecificSettings,
                     practiceSettings,
+#if LATEST
+                    environmentsListModel,
+#endif
                     backButtonText,
                     useTestNoteCutSoundEffects,
                     startPaused,
                     beforeSceneSwitchCallback,
-                    levelFinishedCallback,
 #if LATEST
+                    afterSceneSwitchCallback,
+#endif
+                    levelFinishedCallback,
+#if !V1_29_1
                     levelRestartedCallback,
                     recordingToolData);
 #else

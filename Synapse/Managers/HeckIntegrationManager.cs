@@ -1,6 +1,9 @@
 ﻿using System;
 using Heck.PlayView;
 using JetBrains.Annotations;
+#if LATEST
+using Zenject;
+#endif
 
 namespace Synapse.Managers
 {
@@ -17,22 +20,33 @@ namespace Synapse.Managers
 
         internal void StartPlayViewInterruptedLevel(
             string gameMode,
+#if LATEST
+            in BeatmapKey beatmapKey,
+            BeatmapLevel beatmapLevel,
+#else
             IDifficultyBeatmap difficultyBeatmap,
             IPreviewBeatmapLevel previewBeatmapLevel,
+#endif
             OverrideEnvironmentSettings? overrideEnvironmentSettings,
             ColorScheme? overrideColorScheme,
-#if LATEST
+#if !V1_29_1
             ColorScheme? beatmapOverrideColorScheme,
 #endif
             GameplayModifiers gameplayModifiers,
             PlayerSpecificSettings playerSpecificSettings,
             PracticeSettings? practiceSettings,
+#if LATEST
+            EnvironmentsListModel? environmentsListModel,
+#endif
             string backButtonText,
             bool useTestNoteCutSoundEffects,
             bool startPaused,
             Action? beforeSceneSwitchCallback,
-            Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
 #if LATEST
+            Action<DiContainer>? afterSceneSwitchCallback,
+#endif
+            Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
+#if !V1_29_1
             Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback,
             RecordingToolManager.SetupData? recordingToolData)
 #else
@@ -41,22 +55,33 @@ namespace Synapse.Managers
         {
             StartStandardLevelParameters parameters = new(
                 gameMode,
+#if LATEST
+                beatmapKey,
+                beatmapLevel,
+#else
                 difficultyBeatmap,
                 previewBeatmapLevel,
+#endif
                 overrideEnvironmentSettings,
                 overrideColorScheme,
-#if LATEST
+#if !V1_29_1
                 beatmapOverrideColorScheme,
 #endif
                 gameplayModifiers,
                 playerSpecificSettings,
                 practiceSettings,
+#if LATEST
+                environmentsListModel,
+#endif
                 backButtonText,
                 useTestNoteCutSoundEffects,
                 startPaused,
                 beforeSceneSwitchCallback,
-                levelFinishedCallback,
 #if LATEST
+                afterSceneSwitchCallback,
+#endif
+                levelFinishedCallback,
+#if !V1_29_1
                 levelRestartedCallback,
                 recordingToolData);
 #else

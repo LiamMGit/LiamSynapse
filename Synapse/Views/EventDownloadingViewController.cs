@@ -1,9 +1,6 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading;
 using BeatSaberMarkupLanguage.ViewControllers;
 using JetBrains.Annotations;
-using Synapse.Extras;
 using Synapse.Managers;
 using TMPro;
 using UnityEngine;

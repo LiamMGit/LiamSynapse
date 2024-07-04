@@ -211,7 +211,7 @@ namespace Synapse.Managers
 
         private async Task<AuthenticationToken> GetToken()
         {
-#if LATEST
+#if !V1_29_1
             UserInfo userInfo = await _platformUserModel.GetUserInfo(CancellationToken.None);
 #else
             UserInfo userInfo = await _platformUserModel.GetUserInfo();

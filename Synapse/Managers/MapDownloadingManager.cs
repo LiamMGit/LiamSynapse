@@ -26,7 +26,11 @@ namespace Synapse.Managers
         private readonly CancellationTokenManager _cancellationTokenManager;
         private readonly DirectoryInfo _directory;
 
+#if LATEST
+        private readonly bool _doSongCoreLoad;
+#else
         private readonly MethodInfo? _songCoreLoad;
+#endif
 
         private string _lastSent = string.Empty;
         private string? _error;
@@ -53,7 +57,11 @@ namespace Synapse.Managers
 
             if (IPA.Loader.PluginManager.GetPlugin("SongCore") != null)
             {
+#if LATEST
+                _doSongCoreLoad = true;
+#else
                 _songCoreLoad = GetSongCoreLoadMethod();
+#endif
             }
         }
 
@@ -126,6 +134,18 @@ namespace Synapse.Managers
             _cancellationTokenManager.Cancel();
         }
 
+#if LATEST
+        private static BeatmapLevel SongCoreLoad(string songPath)
+        {
+            (string, BeatmapLevel)? customLevel = SongCore.Loader.LoadCustomLevel(songPath);
+            if (customLevel == null)
+            {
+                throw new InvalidOperationException("SongCore error: failed to load.");
+            }
+
+            return customLevel.Value.Item2;
+        }
+#else
         // idk why its private
         private static MethodInfo? GetSongCoreLoadMethod()
         {
@@ -133,9 +153,7 @@ namespace Synapse.Managers
         }
 
         // needed for other mods like BeatTogether/Camera2
-        private CustomPreviewBeatmapLevel SongCoreLoad(
-            CancellationToken token,
-            string songPath)
+        private CustomPreviewBeatmapLevel SongCoreLoad(string songPath)
         {
             SongCore.Data.SongData? songData = SongCore.Loader.Instance.LoadCustomLevelSongData(songPath);
             if (songData == null)
@@ -143,7 +161,7 @@ namespace Synapse.Managers
                 throw new InvalidOperationException("SongCore error: invalid song data.");
             }
 
-            object? result = _songCoreLoad!.Invoke(SongCore.Loader.Instance, new object?[] { token, songData, songPath, null });
+            object? result = _songCoreLoad!.Invoke(SongCore.Loader.Instance, new object?[] { CancellationToken.None, songData, songPath, null });
             if (result == null)
             {
                 throw new InvalidOperationException("SongCore error: failed to load.");
@@ -151,6 +169,7 @@ namespace Synapse.Managers
 
             return (CustomPreviewBeatmapLevel)result;
         }
+#endif
 
         private void Init(int index, Map? map)
         {
@@ -212,33 +231,69 @@ namespace Synapse.Managers
                     token);
 
                 _downloadProgress = 0.98f;
-                CustomPreviewBeatmapLevel customPreviewBeatmapLevel;
+#if LATEST
+                BeatmapLevel beatmapLevel;
+                if (_doSongCoreLoad)
+                {
+                    beatmapLevel = SongCoreLoad(path);
+                }
+                else
+                {
+                    CustomLevelFolderInfo? customLevelFolderInfo = await FileSystemCustomLevelProvider.LoadCustomLevelFolderInfoAsync(path, token);
+                    if (customLevelFolderInfo == null)
+                    {
+                        throw new InvalidOperationException("Failed to get CustomLevelFolderInfo.");
+                    }
+
+                    (BeatmapLevel, CustomLevelLoader.LoadedSaveData)? tuple = await _customLevelLoader.LoadBeatmapLevelAsync(customLevelFolderInfo.Value, token);
+                    if (tuple == null)
+                    {
+                        throw new InvalidOperationException("Failed to get BeatmapLevel.");
+                    }
+
+                    beatmapLevel = tuple.Value.Item1;
+                }
+
+                BeatmapCharacteristicSO characteristic = _customLevelLoader._beatmapCharacteristicCollection.GetBeatmapCharacteristicBySerializedName(path);
+                BeatmapKey beatmapKey = new(beatmapLevel.levelID, characteristic, (BeatmapDifficulty)map.Difficulty);
+#else
+                CustomPreviewBeatmapLevel beatmapLevel;
                 if (_songCoreLoad != null)
                 {
-                    customPreviewBeatmapLevel = SongCoreLoad(token, path);
+                    beatmapLevel = SongCoreLoad(path);
                 }
                 else
                 {
                     StandardLevelInfoSaveData infoSaveData =
                         await _customLevelLoader.LoadCustomLevelInfoSaveDataAsync(path, token);
-                    customPreviewBeatmapLevel = await _customLevelLoader.LoadCustomPreviewBeatmapLevelAsync(
+                    beatmapLevel = await _customLevelLoader.LoadCustomPreviewBeatmapLevelAsync(
                             path,
                             infoSaveData,
                             token);
                 }
 
                 _downloadProgress = 0.99f;
-                CustomBeatmapLevel beatmapLevel =
-                    await _customLevelLoader.LoadCustomBeatmapLevelAsync(customPreviewBeatmapLevel, token);
+                CustomBeatmapLevel customBeatmapLevel =
+                    await _customLevelLoader.LoadCustomBeatmapLevelAsync(beatmapLevel, token);
                 IDifficultyBeatmapSet set =
-                    beatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(map.Characteristic);
+                    customBeatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(map.Characteristic);
                 IDifficultyBeatmap difficultyBeatmap =
                     set.difficultyBeatmaps.First(n => (int)n.difficulty == map.Difficulty);
+#endif
 
-                _log.Debug($"Successfully downloaded [{map.Name}] as [{customPreviewBeatmapLevel.levelID}]");
+                _log.Debug($"Successfully downloaded [{map.Name}] as [{beatmapLevel.levelID}]");
                 _downloadProgress = 1;
 
-                DownloadedMap downloadedMap = new(index, map, difficultyBeatmap, customPreviewBeatmapLevel);
+                DownloadedMap downloadedMap = new(
+                    index,
+                    map,
+#if LATEST
+                    beatmapKey,
+                    beatmapLevel);
+#else
+                    difficultyBeatmap,
+                    beatmapLevel);
+#endif
                 _beatmapLevel = downloadedMap;
                 MapDownloaded_Backing?.Invoke(downloadedMap);
                 MapDownloadedOnce_Backing?.Invoke(downloadedMap);

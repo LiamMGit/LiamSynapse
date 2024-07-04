@@ -51,7 +51,7 @@ namespace Synapse.Views
 
         private static readonly ProfanityFilter.ProfanityFilter _profanityFilter = new();
 
-        private static readonly Sprite _finishPlaceholder = MediaExtensions.GetEmbeddedResourceSprite("Synapse.Resources.finish_placeholder.png");
+        private static Sprite? _finishPlaceholder;
 
         [UIComponent("chat")]
         private readonly VerticalLayoutGroup _chatObject = null!;
@@ -144,7 +144,11 @@ namespace Synapse.Views
 
         private string? _altCoverUrl;
         private float _angle;
-        private IPreviewBeatmapLevel? _preview;
+#if LATEST
+        private BeatmapLevel? _beatmapLevel;
+#else
+        private IPreviewBeatmapLevel? _beatmapLevel;
+#endif
         private DateTime? _startTime;
         private PlayerScore? _playerScore;
 
@@ -305,6 +309,15 @@ namespace Synapse.Views
             _cancellationTokenManager = cancellationTokenManager;
             _countdownManager = countdownManager;
             _instantiator = instantiator;
+        }
+
+        private void Awake()
+        {
+            if (_finishPlaceholder == null)
+            {
+                _finishPlaceholder =
+                    MediaExtensions.GetEmbeddedResourceSprite("Synapse.Resources.finish_placeholder.png");
+            }
         }
 
         private new void OnDestroy()
@@ -469,11 +482,18 @@ namespace Synapse.Views
                 _songText.text = "???";
                 _authorText.text = "??? [???]";
             }
-            else if (_preview != null)
+            else if (_beatmapLevel != null)
             {
-                _ = SetCoverImage(_preview.GetCoverImageAsync(token));
-                _songText.text = _preview.songName;
-                _authorText.text = $"{_preview.songAuthorName} [{_preview.levelAuthorName}]";
+#if LATEST
+                Task<Sprite> spriteTask = _beatmapLevel.previewMediaData.GetCoverSpriteAsync(token);
+                string authorName = string.Join(", ", _beatmapLevel.allMappers);
+#else
+                Task<Sprite> spriteTask = _beatmapLevel.GetCoverImageAsync(token);
+                string authorName = _beatmapLevel.levelAuthorName;
+#endif
+                _ = SetCoverImage(spriteTask);
+                _songText.text = _beatmapLevel.songName;
+                _authorText.text = $"{_beatmapLevel.songAuthorName} [{authorName}]";
             }
             else
             {
@@ -528,7 +548,7 @@ namespace Synapse.Views
         private void OnMapDownloaded(DownloadedMap map)
         {
             _altCoverUrl = string.IsNullOrWhiteSpace(map.Map.AltCoverUrl) ? null : map.Map.AltCoverUrl;
-            _preview = map.PreviewBeatmapLevel;
+            _beatmapLevel = map.BeatmapLevel;
             _songInfo.SetActive(true);
             _loadingGroup.SetActive(false);
             RefreshSongInfo();
@@ -570,7 +590,7 @@ namespace Synapse.Views
                 _finish.SetActive(false);
                 _progress.text = "Loading...";
                 _altCoverUrl = null;
-                _preview = null;
+                _beatmapLevel = null;
                 _songInfo.SetActive(false);
                 _loadingGroup.SetActive(true);
                 RefreshSongInfo();
@@ -594,6 +614,11 @@ namespace Synapse.Views
 
         private void OnFinishImageCreated(Sprite? image)
         {
+            if (_finishPlaceholder == null)
+            {
+                return;
+            }
+
             _finishImage.sprite = image != null ? image : _finishPlaceholder;
         }
 

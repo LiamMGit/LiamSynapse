@@ -101,9 +101,16 @@ namespace Synapse.Managers
             GameObject original = orignalButton.gameObject;
             Button newButton = Object.Instantiate(orignalButton, original.transform.parent);
             GameObject newObject = newButton.gameObject;
-            Object.Destroy(newObject.GetComponent<MusicPackPromoBanner>());
             _promoBanner = newObject;
             _originalBanner = original;
+
+            MusicPackPromoBanner musicPackPromoBanner = newObject.GetComponent<MusicPackPromoBanner>();
+#if LATEST
+            Object.Destroy(musicPackPromoBanner._loadingIndicator);
+            musicPackPromoBanner._promoBannerGo.SetActive(true);
+            musicPackPromoBanner._backgroundImage.gameObject.SetActive(true);
+#endif
+            Object.Destroy(musicPackPromoBanner);
 
             SelectableStateController stateController =
                 newObject.GetComponent<NoTransitionButtonSelectableStateController>();
