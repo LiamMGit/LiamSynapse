@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BeatSaberMarkupLanguage.Attributes;
 using BeatSaberMarkupLanguage.ViewControllers;
@@ -69,7 +70,7 @@ namespace Synapse.Views
         private LoadingControl _loadingControl = null!;
 
         private bool _dirtyTextSegments;
-        private string[]? _textSegmentTexts;
+        private string[] _textSegmentTexts = Array.Empty<string>();
 
         private int _maxIndex;
         private int _index;
@@ -125,7 +126,7 @@ namespace Synapse.Views
                 _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
             }
 
-            _motivational.text = _randomMotivationals[Random.Range(0, _randomMotivationals.Length - 1)];
+            _motivational.text = _randomMotivationals[UnityEngine.Random.Range(0, _randomMotivationals.Length - 1)];
         }
 
         protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
@@ -189,6 +190,11 @@ namespace Synapse.Views
             cells.Clear();
             seperators.ForEach(DestroyImmediate);
             seperators.Clear();
+
+            if (_index >= _textSegmentTexts.Length)
+            {
+                _index = 0;
+            }
 
             _textSegments.SetTexts(_textSegmentTexts);
             _textSegments.SelectCellWithNumber(_index);

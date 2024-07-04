@@ -51,6 +51,8 @@ namespace Synapse.Views
 
         private static readonly ProfanityFilter.ProfanityFilter _profanityFilter = new();
 
+        private static readonly Sprite _finishPlaceholder = MediaExtensions.GetEmbeddedResourceSprite("Synapse.Resources.finish_placeholder.png");
+
         [UIComponent("chat")]
         private readonly VerticalLayoutGroup _chatObject = null!;
 
@@ -139,8 +141,6 @@ namespace Synapse.Views
         private InputFieldView _input = null!;
         private OkRelay _okRelay = null!;
         private Sprite _coverPlaceholder = null!;
-
-        private Sprite _finishPlaceholder = null!;
 
         private string? _altCoverUrl;
         private float _angle;
@@ -234,15 +234,13 @@ namespace Synapse.Views
                 LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_songInfo.transform);
 
                 _startObject.SetActive(false);
-
-                _finishPlaceholder = _finishImage.sprite;
-                _listingManager.FinishImageCreated += OnFinishImageCreated;
             }
 
             if (addedToHierarchy)
             {
                 _messageManager.MessageRecieved += OnMessageRecieved;
                 _messageManager.RefreshMotd();
+                _listingManager.FinishImageCreated += OnFinishImageCreated;
                 _networkManager.UserBanned += OnUserBanned;
                 _startTime = _networkManager.Status.StartTime;
                 _playerScore = _networkManager.Status.PlayerScore;

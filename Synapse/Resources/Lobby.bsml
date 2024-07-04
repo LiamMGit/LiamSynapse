@@ -10,7 +10,7 @@
         </vertical>
         <vertical preferred-width='40'>
             <vertical id='finish' horizontal-fit='Unconstrained'>
-                <image id='finishimage' src='Synapse.Resources.finish_placeholder.png'/>
+                <image id='finishimage'/>
             </vertical>
             <vertical id='map' horizontal-fit='Unconstrained' child-expand-height='false' child-control-height='false'>
                 <horizontal id='header' bg='panel-fade-gradient' preferred-width='40' horizontal-fit='PreferredSize' pad='1'>

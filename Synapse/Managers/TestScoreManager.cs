@@ -32,7 +32,7 @@ namespace Synapse.Managers
             ScoreSubmission scoreSubmission = new()
             {
                 Index = _networkManager.Status.Index,
-                Score = _random.Next(99999),
+                Score = _random.Next(999999),
                 Accuracy = (float)_random.NextDouble()
             };
             string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);

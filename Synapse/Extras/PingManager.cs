@@ -32,7 +32,7 @@ namespace Synapse.Extras
 
         private async Task Timeout(CancellationToken cancellationToken)
         {
-            await Task.Delay(999, cancellationToken);
+            await Task.Delay(1000, cancellationToken);
             Finish();
         }
 
