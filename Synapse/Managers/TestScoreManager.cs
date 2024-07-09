@@ -33,7 +33,7 @@ namespace Synapse.Managers
             {
                 Index = _networkManager.Status.Index,
                 Score = _random.Next(999999),
-                Accuracy = (float)_random.NextDouble()
+                Percentage = (float)_random.NextDouble()
             };
             string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
             _log.Info(scoreJson);

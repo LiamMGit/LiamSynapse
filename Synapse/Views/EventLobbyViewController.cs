@@ -101,8 +101,8 @@ namespace Synapse.Views
         [UIComponent("scoretext")]
         private readonly TextMeshProUGUI _score = null!;
 
-        [UIComponent("accuracytext")]
-        private readonly TextMeshProUGUI _accuracy = null!;
+        [UIComponent("percentagetext")]
+        private readonly TextMeshProUGUI _percentage = null!;
 
         [UIObject("startobject")]
         private readonly GameObject _startObject = null!;
@@ -514,7 +514,7 @@ namespace Synapse.Views
                 else
                 {
                     _score.text = $"{ScoreFormatter.Format(_playerScore.Score)}";
-                    _accuracy.text = $"{EventLeaderboardVisuals.FormatAccuracy(_playerScore.Accuracy)}";
+                    _percentage.text = $"{EventLeaderboardVisuals.FormatPercentage(_playerScore.Percentage)}";
                     _startObject.SetActive(false);
                     _scoreObject.SetActive(true);
                     _countdownObject.SetActive(false);

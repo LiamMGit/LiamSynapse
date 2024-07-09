@@ -449,18 +449,18 @@ namespace Synapse.Views
                         ViewController.AnimationDirection.Horizontal,
                         true);
 
-                    SubmitScore(map.Index, levelCompletionResults.modifiedScore, AccuracyHelper.Accuracy);
+                    SubmitScore(map.Index, levelCompletionResults.modifiedScore, ScorePercentageHelper.ScorePercentage);
                     break;
             }
         }
 
-        private void SubmitScore(int index, int score, float accuracy)
+        private void SubmitScore(int index, int score, float percentage)
         {
             ScoreSubmission scoreSubmission = new()
             {
                 Index = index,
                 Score = score,
-                Accuracy = accuracy
+                Percentage = percentage
             };
             string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
             _log.Warn(scoreJson);

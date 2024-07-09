@@ -12,9 +12,9 @@ namespace Synapse.HarmonyPatches
     [HarmonyPatch]
     internal static class EventLeaderboardVisuals
     {
-        internal static string FormatAccuracy(float accuracy)
+        internal static string FormatPercentage(float percentage)
         {
-            float percent = accuracy * 100;
+            float percent = percentage * 100;
             return $"<color=#FEA959>{percent:F2}<size=60%>%</size></color>";
         }
 
@@ -56,9 +56,9 @@ namespace Synapse.HarmonyPatches
             }
 
             // ReSharper disable once InvertIf
-            if (eventScore.Accuracy >= 0)
+            if (eventScore.Percentage >= 0)
             {
-                cell._scoreText.text = $"{FormatAccuracy(eventScore.Accuracy)}    {cell._scoreText.text}";
+                cell._scoreText.text = $"{FormatPercentage(eventScore.Percentage)}    {cell._scoreText.text}";
                 cell._scoreText.color = cell._normalColor;
             }
         }

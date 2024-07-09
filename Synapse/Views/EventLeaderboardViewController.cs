@@ -252,7 +252,7 @@ namespace Synapse.Views
                         n.Score,
                         n.PlayerName,
                         n.Rank + 1,
-                        n.Accuracy,
+                        n.Percentage,
                         color);
                 }).ToList();
                 int playerScoreIndex = ShowEliminated ? scores.ElimPlayerScoreIndex : scores.PlayerScoreIndex;
@@ -285,14 +285,14 @@ namespace Synapse.Views
 
         internal class EventScoreData : LeaderboardTableView.ScoreData
         {
-            public EventScoreData(int score, string playerName, int rank, float accuracy, Color? color)
+            public EventScoreData(int score, string playerName, int rank, float percentage, Color? color)
                 : base(score, playerName, rank, false)
             {
-                Accuracy = accuracy;
+                Percentage = percentage;
                 Color = color;
             }
 
-            public float Accuracy { get; }
+            public float Percentage { get; }
 
             public Color? Color { get; }
         }

@@ -9,6 +9,6 @@ namespace Synapse.Models
 
         public int Score { get; init; }
 
-        public float Accuracy { get; init; }
+        public float Percentage { get; init; }
     }
 }
