@@ -1,29 +1,30 @@
 ﻿using SiraUtil.Affinity;
 using Synapse.Managers;
 
-namespace Synapse.HarmonyPatches
+namespace Synapse.HarmonyPatches;
+
+internal class AddMainMenuEventButton : IAffinity
 {
-    internal class AddMainMenuEventButton : IAffinity
+    private readonly ListingManager _listingManager;
+    private readonly PromoManager _promoManager;
+
+    private AddMainMenuEventButton(PromoManager promoManager, ListingManager listingManager)
     {
-        private readonly PromoManager _promoManager;
-        private readonly ListingManager _listingManager;
+        _promoManager = promoManager;
+        _listingManager = listingManager;
+    }
 
-        private AddMainMenuEventButton(PromoManager promoManager, ListingManager listingManager)
+    [AffinityPrefix]
+    [AffinityPatch(typeof(MainMenuViewController), nameof(MainMenuViewController.DidActivate))]
+    private void DidActivate(MainMenuViewController __instance, bool firstActivation)
+    {
+        if (firstActivation)
         {
-            _promoManager = promoManager;
-            _listingManager = listingManager;
+            __instance.buttonBinder.AddBinding(
+                _promoManager.Button,
+                () => __instance.HandleMenuButton((MainMenuViewController.MenuButton)13));
         }
 
-        [AffinityPrefix]
-        [AffinityPatch(typeof(MainMenuViewController), nameof(MainMenuViewController.DidActivate))]
-        private void DidActivate(MainMenuViewController __instance, bool firstActivation)
-        {
-            if (firstActivation)
-            {
-                __instance.buttonBinder.AddBinding(_promoManager.Button, () => __instance.HandleMenuButton((MainMenuViewController.MenuButton)13));
-            }
-
-            _listingManager.Initialize();
-        }
+        _listingManager.Initialize();
     }
 }

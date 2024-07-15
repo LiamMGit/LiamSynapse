@@ -14,148 +14,147 @@ using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
 
-namespace Synapse.Views
+namespace Synapse.Views;
+
+// ReSharper disable FieldCanBeMadeReadOnly.Local
+////[HotReload(RelativePathToLayout = @"../Resources/ModsDownloading.bsml")]
+[ViewDefinition("Synapse.Resources.ModsDownloading.bsml")]
+internal class EventModsDownloadingViewController : EventDownloadingViewController
 {
-    // ReSharper disable FieldCanBeMadeReadOnly.Local
-    ////[HotReload(RelativePathToLayout = @"../Resources/ModsDownloading.bsml")]
-    [ViewDefinition("Synapse.Resources.ModsDownloading.bsml")]
-    internal class EventModsDownloadingViewController : EventDownloadingViewController
+    [UIComponent("loadingbar")]
+    private readonly VerticalLayoutGroup _barGroup = null!;
+
+    [UIObject("downloading")]
+    private readonly GameObject _downloadingGroup = null!;
+
+    [UIComponent("downloadingtext")]
+    private readonly TMP_Text _downloadingTMP = null!;
+
+    [UIObject("error")]
+    private readonly GameObject _error = null!;
+
+    [UIComponent("errortext")]
+    private readonly TMP_Text _errorTMP = null!;
+
+    [UIComponent("percentage")]
+    private readonly TMP_Text _percentageTMP = null!;
+
+    [UIObject("quit")]
+    private readonly GameObject _quitGroup = null!;
+
+    [UIComponent("quittext")]
+    private readonly TMP_Text _quitTMP = null!;
+
+    private SiraLog _log = null!;
+    private List<ModInfo> _requiredMods = null!;
+
+    internal bool DownloadFinished { get; private set; } // ReSharper disable ConvertToAutoProperty
+
+    protected override TMP_Text PercentageTMP => _percentageTMP;
+
+    protected override TMP_Text DownloadingTMP => _downloadingTMP;
+
+    protected override TMP_Text ErrorTMP => _errorTMP;
+
+    protected override TMP_Text QuitTMP => _quitTMP;
+
+    protected override VerticalLayoutGroup BarGroup => _barGroup;
+
+    protected override GameObject QuitGroup => _quitGroup;
+
+    protected override GameObject DownloadingGroup => _downloadingGroup;
+
+    protected override GameObject Error => _error;
+
+    internal void Init(List<ModInfo> requiredMods)
     {
-        [UIComponent("percentage")]
-        private readonly TMP_Text _percentageTMP = null!;
+        DownloadFinished = false;
+        _requiredMods = requiredMods;
+    }
 
-        [UIComponent("downloadingtext")]
-        private readonly TMP_Text _downloadingTMP = null!;
+    protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+    {
+        base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
 
-        [UIComponent("errortext")]
-        private readonly TMP_Text _errorTMP = null!;
-
-        [UIComponent("quittext")]
-        private readonly TMP_Text _quitTMP = null!;
-
-        [UIComponent("loadingbar")]
-        private readonly VerticalLayoutGroup _barGroup = null!;
-
-        [UIObject("quit")]
-        private readonly GameObject _quitGroup = null!;
-
-        [UIObject("downloading")]
-        private readonly GameObject _downloadingGroup = null!;
-
-        [UIObject("error")]
-        private readonly GameObject _error = null!;
-
-        private SiraLog _log = null!;
-        private List<ModInfo> _requiredMods = null!;
-
-        internal bool DownloadFinished { get; private set; }
-
-        // ReSharper disable ConvertToAutoProperty
-        protected override TMP_Text PercentageTMP => _percentageTMP;
-
-        protected override TMP_Text DownloadingTMP => _downloadingTMP;
-
-        protected override TMP_Text ErrorTMP => _errorTMP;
-
-        protected override TMP_Text QuitTMP => _quitTMP;
-
-        protected override VerticalLayoutGroup BarGroup => _barGroup;
-
-        protected override GameObject QuitGroup => _quitGroup;
-
-        protected override GameObject DownloadingGroup => _downloadingGroup;
-
-        protected override GameObject Error => _error;
-
-        internal void Init(List<ModInfo> requiredMods)
+        if (!addedToHierarchy)
         {
-            DownloadFinished = false;
-            _requiredMods = requiredMods;
+            return;
         }
 
-        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+        if (!DownloadFinished)
         {
-            base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
+            UnityMainThreadTaskScheduler.Factory.StartNew(DownloadAndSave);
+        }
+        else
+        {
+            NewView = View.Quit;
+        }
+    }
 
-            if (!addedToHierarchy)
+    protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
+    {
+        base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
+        if (removedFromHierarchy)
+        {
+            Cancel();
+        }
+    }
+
+    [UsedImplicitly]
+    [Inject]
+    private void Construct(SiraLog log)
+    {
+        _log = log;
+    }
+
+    private async Task DownloadAndSave()
+    {
+        CancellationToken token = ResetToken();
+        int count = _requiredMods.Count;
+        string unzipPath = Directory.CreateDirectory(
+                (Path.GetDirectoryName(Application.dataPath) ?? throw new InvalidOperationException()) +
+                $"{Path.DirectorySeparatorChar}IPA{Path.DirectorySeparatorChar}Pending")
+            .FullName;
+        for (int i = 0; i < count; i++)
+        {
+            ModInfo mod = _requiredMods[i];
+            string url = mod.Url;
+            DownloadText = $"Downloading {mod.Id}... ({i + 1}/{count})";
+            _log.Debug($"Attempting to download [{mod.Id}] from [{url}]");
+            int iteration = i;
+            try
             {
+                await MediaExtensions.DownloadAndSave(
+                    url,
+                    mod.Hash,
+                    unzipPath,
+                    n => DownloadProgress = (iteration + (n * 0.5f)) / count,
+                    () => DownloadText = $"Unzipping {mod.Id}... ({iteration + 1}/{count})",
+                    n => DownloadProgress = (iteration + 0.5f + (n * 0.5f)) / count,
+                    token);
+            }
+            catch (Exception e)
+            {
+                LastError = $"Error while downloading [{mod}].\nDownload has been cancelled.";
+                NewView = View.Error;
+                _log.Error($"Error while downloading [{mod}]\n{e}");
                 return;
             }
 
-            if (!DownloadFinished)
-            {
-                UnityMainThreadTaskScheduler.Factory.StartNew(DownloadAndSave);
-            }
-            else
-            {
-                NewView = View.Quit;
-            }
+            _log.Debug($"Successfully downloaded [{mod.Id}]");
         }
 
-        protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
-        {
-            base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
-            if (removedFromHierarchy)
-            {
-                Cancel();
-            }
-        }
+        QuitText = $"{count} mod(s) successfully downloaded.\nQuit and manually restart to complete installation.";
+        NewView = View.Quit;
+        DownloadFinished = true;
+    }
 
-        [UsedImplicitly]
-        [Inject]
-        private void Construct(SiraLog log)
-        {
-            _log = log;
-        }
-
-        private async Task DownloadAndSave()
-        {
-            CancellationToken token = ResetToken();
-            int count = _requiredMods.Count;
-            string unzipPath = Directory.CreateDirectory(
-                (Path.GetDirectoryName(Application.dataPath) ?? throw new InvalidOperationException())
-                + $"{Path.DirectorySeparatorChar}IPA{Path.DirectorySeparatorChar}Pending").FullName;
-            for (int i = 0; i < count; i++)
-            {
-                ModInfo mod = _requiredMods[i];
-                string url = mod.Url;
-                DownloadText = $"Downloading {mod.Id}... ({i + 1}/{count})";
-                _log.Debug($"Attempting to download [{mod.Id}] from [{url}]");
-                int iteration = i;
-                try
-                {
-                    await MediaExtensions.DownloadAndSave(
-                        url,
-                        mod.Hash,
-                        unzipPath,
-                        n => DownloadProgress = (iteration + (n * 0.5f)) / count,
-                        () => DownloadText = $"Unzipping {mod.Id}... ({iteration + 1}/{count})",
-                        n => DownloadProgress = (iteration + 0.5f + (n * 0.5f)) / count,
-                        token);
-                }
-                catch (Exception e)
-                {
-                    LastError = $"Error while downloading [{mod}].\nDownload has been cancelled.";
-                    NewView = View.Error;
-                    _log.Error($"Error while downloading [{mod}]\n{e}");
-                    return;
-                }
-
-                _log.Debug($"Successfully downloaded [{mod.Id}]");
-            }
-
-            QuitText = $"{count} mod(s) successfully downloaded.\nQuit and manually restart to complete installation.";
-            NewView = View.Quit;
-            DownloadFinished = true;
-        }
-
-        [UsedImplicitly]
-        [UIAction("accept-click")]
+    [UsedImplicitly]
+    [UIAction("accept-click")]
 #pragma warning disable CA1822
-        private void OnAcceptClick()
+    private void OnAcceptClick()
 #pragma warning restore CA1822
-        {
-            Application.Quit();
-        }
+    {
+        Application.Quit();
     }
 }

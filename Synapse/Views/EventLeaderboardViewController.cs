@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using BeatSaberMarkupLanguage.Attributes;
 using BeatSaberMarkupLanguage.ViewControllers;
@@ -13,199 +12,214 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
+using Random = UnityEngine.Random;
 
-namespace Synapse.Views
+namespace Synapse.Views;
+
+[ViewDefinition("Synapse.Resources.Leaderboard.bsml")]
+internal class EventLeaderboardViewController : BSMLAutomaticViewController
 {
-    [ViewDefinition("Synapse.Resources.Leaderboard.bsml")]
-    internal class EventLeaderboardViewController : BSMLAutomaticViewController
+    private static readonly string[] _randomMotivationals =
+    [
+        "glhf!",
+        "Good luck!",
+        "Break a leg!",
+        "Best of luck!",
+        "Knock 'em dead!",
+        "Blow them away!",
+        "Knock their socks off!",
+        "Leave them breathless!",
+        "May the odds be in your favor!",
+        "Bring it on!"
+    ];
+
+    [UIComponent("header")]
+    private readonly ImageView _header = null!;
+
+    [UIObject("leaderboard")]
+    private readonly GameObject _leaderboardObject = null!;
+
+    private readonly Dictionary<int, LeaderboardScores> _leaderboardScores = new();
+
+    [UIComponent("modal")]
+    private readonly ModalView _modal = null!;
+
+    [UIComponent("motivation")]
+    private readonly TextMeshProUGUI _motivational = null!;
+
+    [UIObject("noscore")]
+    private readonly GameObject _noScoreObject = null!;
+
+    [UIComponent("vertical")]
+    private readonly VerticalLayoutGroup _root = null!;
+
+    [UIComponent("segments")]
+    private readonly TextSegmentedControl _textSegments = null!;
+
+    [UIComponent("titlelayout")]
+    private readonly LayoutElement _titleLayout = null!;
+
+    [UIComponent("titlemap")]
+    private readonly TextMeshProUGUI _titleMapText = null!;
+
+    private bool _altCover;
+    private Config _config = null!;
+
+    private bool _dirtyTextSegments;
+    private int _index;
+
+    private LeaderboardTableView _leaderboardTable = null!;
+    private LoadingControl _loadingControl = null!;
+    private MapDownloadingManager _mapDownloadingManager = null!;
+
+    private int _maxIndex;
+
+    private NetworkManager _networkManager = null!;
+    private string[] _textSegmentTexts = [];
+
+    [UsedImplicitly]
+    [UIValue("showEliminated")]
+    private bool ShowEliminated
     {
-        private static readonly string[] _randomMotivationals =
+        get => _config.ShowEliminated;
+        set
         {
-            "glhf!",
-            "Good luck!",
-            "Break a leg!",
-            "Best of luck!",
-            "Knock 'em dead!",
-            "Blow them away!",
-            "Knock their socks off!",
-            "Leave them breathless!",
-            "May the odds be in your favor!",
-            "Bring it on!"
-        };
+            _config.ShowEliminated = value;
+            ChangeView(_index);
+        }
+    }
 
-        [UIComponent("vertical")]
-        private readonly VerticalLayoutGroup _root = null!;
+    internal void ChangeSelection(int index)
+    {
+        _textSegments.SelectCellWithNumber(index);
+        ChangeView(index);
+    }
 
-        [UIObject("leaderboard")]
-        private readonly GameObject _leaderboardObject = null!;
+    protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+    {
+        base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
 
-        [UIComponent("header")]
-        private readonly ImageView _header = null!;
-
-        [UIObject("noscore")]
-        private readonly GameObject _noScoreObject = null!;
-
-        [UIComponent("motivation")]
-        private readonly TextMeshProUGUI _motivational = null!;
-
-        [UIComponent("segments")]
-        private readonly TextSegmentedControl _textSegments = null!;
-
-        [UIComponent("titlelayout")]
-        private readonly LayoutElement _titleLayout = null!;
-
-        [UIComponent("titlemap")]
-        private readonly TextMeshProUGUI _titleMapText = null!;
-
-        [UIComponent("modal")]
-        private readonly ModalView _modal = null!;
-
-        private readonly Dictionary<int, LeaderboardScores> _leaderboardScores = new();
-
-        private NetworkManager _networkManager = null!;
-        private MapDownloadingManager _mapDownloadingManager = null!;
-        private Config _config = null!;
-
-        private LeaderboardTableView _leaderboardTable = null!;
-        private LoadingControl _loadingControl = null!;
-
-        private bool _dirtyTextSegments;
-        private string[] _textSegmentTexts = Array.Empty<string>();
-
-        private int _maxIndex;
-        private int _index;
-        private bool _altCover;
-
-        [UsedImplicitly]
-        [UIValue("showEliminated")]
-        private bool ShowEliminated
+        if (firstActivation)
         {
-            get => _config.ShowEliminated;
-            set
-            {
-                _config.ShowEliminated = value;
-                ChangeView(_index);
-            }
+            _leaderboardTable = GetComponentInChildren<LeaderboardTableView>(true);
+            _loadingControl = GetComponentInChildren<LoadingControl>(true);
+
+            _header.color0 = new Color(1, 1, 1, 1);
+            _header.color1 = new Color(1, 1, 1, 0);
+
+            DestroyImmediate(_textSegments.gameObject.GetComponent<HorizontalLayoutGroup>());
+            VerticalLayoutGroup vertical = _textSegments.gameObject.AddComponent<VerticalLayoutGroup>();
+            vertical.childControlHeight = false;
+            vertical.childForceExpandHeight = false;
+            _textSegments._fontSize = 4;
+
+            _titleLayout.flexibleHeight = 0;
+
+            // for some reason rebuilding it twice fixes it???
+            RectTransform rootRect = (RectTransform)_root.transform;
+            LayoutRebuilder.MarkLayoutForRebuild(rootRect);
         }
 
-        internal void ChangeSelection(int index)
+        if (addedToHierarchy)
         {
-            _textSegments.SelectCellWithNumber(index);
-            ChangeView(index);
+            _leaderboardScores.Clear();
+            ChangeView(_maxIndex);
+            _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
         }
 
-        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+        _motivational.text = _randomMotivationals[Random.Range(0, _randomMotivationals.Length - 1)];
+    }
+
+    protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
+    {
+        base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
+
+        // ReSharper disable once InvertIf
+        if (removedFromHierarchy)
         {
-            base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
-
-            if (firstActivation)
-            {
-                _leaderboardTable = GetComponentInChildren<LeaderboardTableView>(true);
-                _loadingControl = GetComponentInChildren<LoadingControl>(true);
-
-                _header.color0 = new Color(1, 1, 1, 1);
-                _header.color1 = new Color(1, 1, 1, 0);
-
-                DestroyImmediate(_textSegments.gameObject.GetComponent<HorizontalLayoutGroup>());
-                VerticalLayoutGroup vertical = _textSegments.gameObject.AddComponent<VerticalLayoutGroup>();
-                vertical.childControlHeight = false;
-                vertical.childForceExpandHeight = false;
-                _textSegments._fontSize = 4;
-
-                _titleLayout.flexibleHeight = 0;
-
-                // for some reason rebuilding it twice fixes it???
-                RectTransform rootRect = (RectTransform)_root.transform;
-                LayoutRebuilder.MarkLayoutForRebuild(rootRect);
-            }
-
-            if (addedToHierarchy)
-            {
-                _leaderboardScores.Clear();
-                ChangeView(_maxIndex);
-                _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
-            }
-
-            _motivational.text = _randomMotivationals[UnityEngine.Random.Range(0, _randomMotivationals.Length - 1)];
+            _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
         }
+    }
 
-        protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
+    private void AssignScores(LeaderboardScores scores)
+    {
+        bool useAlt = _altCover &&
+                      scores.Index >= _networkManager.Status.Index &&
+                      _networkManager.Status.PlayerScore == null;
+        _titleMapText.text = useAlt ? "???" : scores.Title;
+        List<LeaderboardCell> cells = ShowEliminated ? scores.ElimScores : scores.Scores;
+        if (cells.Count > 0)
         {
-            base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
+            List<LeaderboardTableView.ScoreData> data = cells
+                .Select(
+                    n =>
+                    {
+                        string colorText = n.Color;
+                        Color? color = null;
+                        if (ColorUtility.TryParseHtmlString(colorText, out Color parsedColor))
+                        {
+                            color = parsedColor;
+                        }
 
-            // ReSharper disable once InvertIf
-            if (removedFromHierarchy)
-            {
-                _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
-            }
+                        return (LeaderboardTableView.ScoreData)new EventScoreData(
+                            n.Score,
+                            n.PlayerName,
+                            n.Rank + 1,
+                            n.Percentage,
+                            color);
+                    })
+                .ToList();
+            int playerScoreIndex = ShowEliminated ? scores.ElimPlayerScoreIndex : scores.PlayerScoreIndex;
+            _leaderboardTable.SetScores(data, playerScoreIndex);
+            _noScoreObject.SetActive(false);
+            _leaderboardObject.SetActive(true);
         }
-
-        [UsedImplicitly]
-        [Inject]
-        private void Construct(
-            NetworkManager networkManager,
-            MapDownloadingManager mapDownloadingManager,
-            Config config)
+        else
         {
-            _networkManager = networkManager;
-            networkManager.LeaderboardReceived += OnLeaderboardReceived;
-            networkManager.MapUpdated += OnMapUpdated;
-            _mapDownloadingManager = mapDownloadingManager;
-            _config = config;
+            _noScoreObject.SetActive(true);
+            _leaderboardObject.SetActive(false);
         }
+    }
 
-        private void Refresh()
+    private void ChangeView(int index)
+    {
+        _index = index;
+        if (_leaderboardScores.TryGetValue(index, out LeaderboardScores scores))
         {
-            _loadingControl.ShowLoading();
-            _leaderboardTable.SetScores(null, -1);
-            _ = _networkManager.SendInt(_index, ServerOpcode.LeaderboardRequest);
+            AssignScores(scores);
         }
-
-        private void OnMapUpdated(int index, Map? map)
+        else
         {
-            if (map == null)
-            {
-                return;
-            }
-
-            _altCover = true;
-            _maxIndex = index;
-            _textSegmentTexts = Enumerable.Range(1, index + 1).Select(n => n.ToString()).ToArray();
-            _dirtyTextSegments = true;
+            Refresh();
         }
+    }
 
-        private void Update()
-        {
-            if (!_dirtyTextSegments)
-            {
-                return;
-            }
+    [UsedImplicitly]
+    [Inject]
+    private void Construct(
+        NetworkManager networkManager,
+        MapDownloadingManager mapDownloadingManager,
+        Config config)
+    {
+        _networkManager = networkManager;
+        networkManager.LeaderboardReceived += OnLeaderboardReceived;
+        networkManager.MapUpdated += OnMapUpdated;
+        _mapDownloadingManager = mapDownloadingManager;
+        _config = config;
+    }
 
-            _dirtyTextSegments = false;
+    [UsedImplicitly]
+    [UIAction("selectcell")]
+    private void OnCellClick(SegmentedControl? _, int index)
+    {
+        ChangeView(index);
+    }
 
-            // Have to be destroyed with DestroyImmediate otherwise the leaderboard sinks
-            List<SegmentedControlCell> cells = _textSegments._cells;
-            List<GameObject> seperators = _textSegments._separators;
-
-            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-            cells.Where(n => n != null && n.gameObject != null).Do(n => DestroyImmediate(n.gameObject));
-            cells.Clear();
-            seperators.ForEach(DestroyImmediate);
-            seperators.Clear();
-
-            if (_index >= _textSegmentTexts.Length)
-            {
-                _index = 0;
-            }
-
-            _textSegments.SetTexts(_textSegmentTexts);
-            _textSegments.SelectCellWithNumber(_index);
-        }
-
-        private void OnLeaderboardReceived(LeaderboardScores leaderboardScores)
-        {
-            _leaderboardScores[leaderboardScores.Index] = leaderboardScores;
-            UnityMainThreadTaskScheduler.Factory.StartNew(() =>
+    private void OnLeaderboardReceived(LeaderboardScores leaderboardScores)
+    {
+        _leaderboardScores[leaderboardScores.Index] = leaderboardScores;
+        UnityMainThreadTaskScheduler.Factory.StartNew(
+            () =>
             {
                 if (leaderboardScores.Index != _index)
                 {
@@ -215,86 +229,73 @@ namespace Synapse.Views
                 _loadingControl.Hide();
                 AssignScores(leaderboardScores);
             });
-        }
+    }
 
-        private void ChangeView(int index)
+    private void OnMapDownloaded(DownloadedMap map)
+    {
+        _altCover = !string.IsNullOrWhiteSpace(map.Map.AltCoverUrl);
+    }
+
+    private void OnMapUpdated(int index, Map? map)
+    {
+        if (map == null)
         {
-            _index = index;
-            if (_leaderboardScores.TryGetValue(index, out LeaderboardScores scores))
-            {
-                AssignScores(scores);
-            }
-            else
-            {
-                Refresh();
-            }
+            return;
         }
 
-        private void AssignScores(LeaderboardScores scores)
+        _altCover = true;
+        _maxIndex = index;
+        _textSegmentTexts = Enumerable.Range(1, index + 1).Select(n => n.ToString()).ToArray();
+        _dirtyTextSegments = true;
+    }
+
+    private void Refresh()
+    {
+        _loadingControl.ShowLoading();
+        _leaderboardTable.SetScores(null, -1);
+        _ = _networkManager.SendInt(_index, ServerOpcode.LeaderboardRequest);
+    }
+
+    [UsedImplicitly]
+    [UIAction("show-modal")]
+    private void ShowModal()
+    {
+        _modal.Show(true);
+    }
+
+    private void Update()
+    {
+        if (!_dirtyTextSegments)
         {
-            bool useAlt = _altCover &&
-                          scores.Index >= _networkManager.Status.Index &&
-                          _networkManager.Status.PlayerScore == null;
-            _titleMapText.text = useAlt ? "???" : scores.Title;
-            List<LeaderboardCell> cells = ShowEliminated ? scores.ElimScores : scores.Scores;
-            if (cells.Count > 0)
-            {
-                List<LeaderboardTableView.ScoreData> data = cells.Select(n =>
-                {
-                    string colorText = n.Color;
-                    Color? color = null;
-                    if (ColorUtility.TryParseHtmlString(colorText, out Color parsedColor))
-                    {
-                        color = parsedColor;
-                    }
-
-                    return (LeaderboardTableView.ScoreData)new EventScoreData(
-                        n.Score,
-                        n.PlayerName,
-                        n.Rank + 1,
-                        n.Percentage,
-                        color);
-                }).ToList();
-                int playerScoreIndex = ShowEliminated ? scores.ElimPlayerScoreIndex : scores.PlayerScoreIndex;
-                _leaderboardTable.SetScores(data, playerScoreIndex);
-                _noScoreObject.SetActive(false);
-                _leaderboardObject.SetActive(true);
-            }
-            else
-            {
-                _noScoreObject.SetActive(true);
-                _leaderboardObject.SetActive(false);
-            }
+            return;
         }
 
-        private void OnMapDownloaded(DownloadedMap map)
+        _dirtyTextSegments = false;
+
+        // Have to be destroyed with DestroyImmediate otherwise the leaderboard sinks
+        List<SegmentedControlCell> cells = _textSegments._cells;
+        List<GameObject> seperators = _textSegments._separators;
+
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+        cells.Where(n => n != null && n.gameObject != null).Do(n => DestroyImmediate(n.gameObject));
+        cells.Clear();
+        seperators.ForEach(DestroyImmediate);
+        seperators.Clear();
+
+        if (_index >= _textSegmentTexts.Length)
         {
-            _altCover = !string.IsNullOrWhiteSpace(map.Map.AltCoverUrl);
+            _index = 0;
         }
 
-        [UsedImplicitly]
-        [UIAction("selectcell")]
-        private void OnCellClick(SegmentedControl? _, int index) => ChangeView(index);
+        _textSegments.SetTexts(_textSegmentTexts);
+        _textSegments.SelectCellWithNumber(_index);
+    }
 
-        [UsedImplicitly]
-        [UIAction("show-modal")]
-        private void ShowModal()
-        {
-            _modal.Show(true);
-        }
+    internal class EventScoreData(int score, string playerName, int rank, float percentage, Color? color)
+        : LeaderboardTableView.ScoreData(score, playerName, rank, false)
+    {
+        public Color? Color { get; } = color;
 
-        internal class EventScoreData : LeaderboardTableView.ScoreData
-        {
-            public EventScoreData(int score, string playerName, int rank, float percentage, Color? color)
-                : base(score, playerName, rank, false)
-            {
-                Percentage = percentage;
-                Color = color;
-            }
-
-            public float Percentage { get; }
-
-            public Color? Color { get; }
-        }
+        public float Percentage { get; } = percentage;
     }
 }

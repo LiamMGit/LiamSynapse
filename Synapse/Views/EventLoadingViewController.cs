@@ -9,154 +9,153 @@ using TMPro;
 using UnityEngine;
 using Zenject;
 
-namespace Synapse.Views
+namespace Synapse.Views;
+
+////[HotReload(RelativePathToLayout = @"../Resources/Loading.bsml")]
+[ViewDefinition("Synapse.Resources.Loading.bsml")]
+internal class EventLoadingViewController : BSMLAutomaticViewController
 {
-    ////[HotReload(RelativePathToLayout = @"../Resources/Loading.bsml")]
-    [ViewDefinition("Synapse.Resources.Loading.bsml")]
-    internal class EventLoadingViewController : BSMLAutomaticViewController
+    [UIObject("spinny")]
+    private readonly GameObject _loadingObject = null!;
+
+    [UIComponent("text")]
+    private readonly TMP_Text _textObject = null!;
+
+    private float _angle;
+    private string _connectingText = string.Empty;
+    private Display _display;
+    private bool _finished;
+
+    private bool _mapUpdated;
+
+    private NetworkManager _networkManager = null!;
+    private bool _prefabDownloaded;
+    private PrefabManager _prefabManager = null!;
+
+    internal event Action<string?>? Finished;
+
+    private enum Display
     {
-        [UIObject("spinny")]
-        private readonly GameObject _loadingObject = null!;
+        Joining,
+        Connecting,
+        PrefabDownload
+    }
 
-        [UIComponent("text")]
-        private readonly TMP_Text _textObject = null!;
+    protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+    {
+        base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
+        _connectingText = "Connecting...";
+        _mapUpdated = false;
+        _prefabDownloaded = false;
+        _finished = false;
+        Refresh();
+        _networkManager.Connecting += OnConnecting;
+        _networkManager.MapUpdated += OnMapUpdated;
+        _prefabManager.Loaded += OnPrefabLoaded;
+    }
 
-        private NetworkManager _networkManager = null!;
-        private PrefabManager _prefabManager = null!;
+    protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
+    {
+        base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
+        _networkManager.Connecting -= OnConnecting;
+        _networkManager.MapUpdated -= OnMapUpdated;
+        _prefabManager.Loaded -= OnPrefabLoaded;
+    }
 
-        private bool _mapUpdated;
-        private bool _prefabDownloaded;
-        private bool _finished;
+    [UsedImplicitly]
+    [Inject]
+    private void Construct(NetworkManager networkManager, PrefabManager prefabManager)
+    {
+        _networkManager = networkManager;
+        _prefabManager = prefabManager;
+    }
 
-        private float _angle;
-        private string _connectingText = string.Empty;
-        private Display _display;
-
-        internal event Action<string?>? Finished;
-
-        private enum Display
+    private void Finish(string? error = null)
+    {
+        if (_finished)
         {
-            Joining,
-            Connecting,
-            PrefabDownload
+            return;
         }
 
-        protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
+        _finished = true;
+        Finished?.Invoke(error);
+    }
+
+    private void OnConnecting(Stage stage, int retries)
+    {
+        if (stage == Stage.Failed)
         {
-            base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
-            _connectingText = "Connecting...";
-            _mapUpdated = false;
-            _prefabDownloaded = false;
-            _finished = false;
-            Refresh();
-            _networkManager.Connecting += OnConnecting;
-            _networkManager.MapUpdated += OnMapUpdated;
-            _prefabManager.Loaded += OnPrefabLoaded;
+            Finish($"Connection failed after {retries} tries");
+            return;
         }
 
-        protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
+        string text = stage switch
         {
-            base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
-            _networkManager.Connecting -= OnConnecting;
-            _networkManager.MapUpdated -= OnMapUpdated;
-            _prefabManager.Loaded -= OnPrefabLoaded;
+            Stage.Connecting => "Connecting...",
+            Stage.Authenticating => "Authenticating...",
+            Stage.ReceivingData => "Receiving data...",
+            Stage.Timeout => "Connection timed out, retrying...",
+            Stage.Refused => "Connection refused, retrying...",
+            _ => $"{(SocketError)stage}, retrying..."
+        };
+
+        if (retries > 0)
+        {
+            text += $" ({retries + 1})";
         }
 
-        [UsedImplicitly]
-        [Inject]
-        private void Construct(NetworkManager networkManager, PrefabManager prefabManager)
+        _connectingText = text;
+    }
+
+    private void OnMapUpdated(int index, Map? _)
+    {
+        _mapUpdated = true;
+        Refresh();
+    }
+
+    private void OnPrefabLoaded(bool success)
+    {
+        if (!success)
         {
-            _networkManager = networkManager;
-            _prefabManager = prefabManager;
+            Finish("Error occurred while downloading bundle");
+            return;
         }
 
-        private void Update()
+        _prefabDownloaded = true;
+        Refresh();
+    }
+
+    private void Refresh()
+    {
+        if (_mapUpdated)
         {
-            _angle += Time.deltaTime * 200;
-            _loadingObject.transform.localEulerAngles = new Vector3(0, 0, _angle);
-            string text = _display switch
+            if (_prefabDownloaded)
             {
-                Display.Connecting => _connectingText,
-                Display.Joining => "Joining...",
-                Display.PrefabDownload => $"Downloading assets... {_prefabManager.DownloadProgress:0%}",
-                _ => "ERR"
-            };
-            _textObject.text = text;
-        }
-
-        private void Refresh()
-        {
-            if (_mapUpdated)
-            {
-                if (_prefabDownloaded)
-                {
-                    _display = Display.Joining;
-                    Finish();
-                }
-                else
-                {
-                    _display = Display.PrefabDownload;
-                }
+                _display = Display.Joining;
+                Finish();
             }
             else
             {
-                _display = Display.Connecting;
+                _display = Display.PrefabDownload;
             }
         }
-
-        private void OnMapUpdated(int index, Map? _)
+        else
         {
-            _mapUpdated = true;
-            Refresh();
+            _display = Display.Connecting;
         }
+    }
 
-        private void OnPrefabLoaded(bool success)
+    private void Update()
+    {
+        _angle += Time.deltaTime * 200;
+        _loadingObject.transform.localEulerAngles = new Vector3(0, 0, _angle);
+        string text = _display switch
         {
-            if (!success)
-            {
-                Finish("Error occurred while downloading bundle");
-                return;
-            }
-
-            _prefabDownloaded = true;
-            Refresh();
-        }
-
-        private void OnConnecting(Stage stage, int retries)
-        {
-            if (stage == Stage.Failed)
-            {
-                Finish($"Connection failed after {retries} tries");
-                return;
-            }
-
-            string text = stage switch
-            {
-                Stage.Connecting => "Connecting...",
-                Stage.Authenticating => "Authenticating...",
-                Stage.ReceivingData => "Receiving data...",
-                Stage.Timeout => "Connection timed out, retrying...",
-                Stage.Refused => "Connection refused, retrying...",
-                _ => $"{(SocketError)stage}, retrying..."
-            };
-
-            if (retries > 0)
-            {
-                text += $" ({retries + 1})";
-            }
-
-            _connectingText = text;
-        }
-
-        private void Finish(string? error = null)
-        {
-            if (_finished)
-            {
-                return;
-            }
-
-            _finished = true;
-            Finished?.Invoke(error);
-        }
+            Display.Connecting => _connectingText,
+            Display.Joining => "Joining...",
+            Display.PrefabDownload => $"Downloading assets... {_prefabManager.DownloadProgress:0%}",
+            _ => "ERR"
+        };
+        _textObject.text = text;
     }
 }

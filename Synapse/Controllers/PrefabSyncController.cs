@@ -3,49 +3,48 @@ using UnityEngine;
 using UnityEngine.Audio;
 using Zenject;
 
-namespace Synapse.Controllers
+namespace Synapse.Controllers;
+
+internal class PrefabSyncController : MonoBehaviour
 {
-    internal class PrefabSyncController : MonoBehaviour
+    private AudioMixerGroup _audioMixerGroup = null!;
+    private AudioSource[] _audioSources = null!;
+    private Config _config = null!;
+
+    private bool _mute;
+
+    private void Awake()
     {
-        private AudioSource[] _audioSources = null!;
-        private AudioMixerGroup _audioMixerGroup = null!;
-        private Config _config = null!;
+        _audioSources = GetComponentsInChildren<AudioSource>();
+    }
 
-        private bool _mute;
+    [UsedImplicitly]
+    [Inject]
+    private void Construct(SongPreviewPlayer songPreviewPlayer, Config config)
+    {
+        _audioMixerGroup = songPreviewPlayer._audioSourcePrefab.outputAudioMixerGroup;
+        _config = config;
+    }
 
-        [UsedImplicitly]
-        [Inject]
-        private void Construct(SongPreviewPlayer songPreviewPlayer, Config config)
+    private void Start()
+    {
+        foreach (AudioSource audioSource in _audioSources)
         {
-            _audioMixerGroup = songPreviewPlayer._audioSourcePrefab.outputAudioMixerGroup;
-            _config = config;
+            audioSource.outputAudioMixerGroup = _audioMixerGroup;
+        }
+    }
+
+    private void Update()
+    {
+        if (_config.MuteMusic == _mute)
+        {
+            return;
         }
 
-        private void Awake()
+        _mute = _config.MuteMusic;
+        foreach (AudioSource audioSource in _audioSources)
         {
-            _audioSources = GetComponentsInChildren<AudioSource>();
-        }
-
-        private void Start()
-        {
-            foreach (AudioSource audioSource in _audioSources)
-            {
-                audioSource.outputAudioMixerGroup = _audioMixerGroup;
-            }
-        }
-
-        private void Update()
-        {
-            if (_config.MuteMusic == _mute)
-            {
-                return;
-            }
-
-            _mute = _config.MuteMusic;
-            foreach (AudioSource audioSource in _audioSources)
-            {
-                audioSource.mute = _mute;
-            }
+            audioSource.mute = _mute;
         }
     }
 }

@@ -4,49 +4,48 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 
-namespace Synapse.Extras
+namespace Synapse.Extras;
+
+[UsedImplicitly]
+internal class PingManager
 {
-    [UsedImplicitly]
-    internal class PingManager
+    private readonly Stopwatch _stopwatch = new();
+    private CancellationTokenSource _cancellationToken = new();
+    private bool _finished;
+
+    internal event Action<string>? Finished;
+
+    internal void Start()
     {
-        private readonly Stopwatch _stopwatch = new();
-        private CancellationTokenSource _cancellationToken = new();
-        private bool _finished;
+        _cancellationToken.Cancel();
+        _finished = false;
+        _cancellationToken = new CancellationTokenSource();
+        _ = Timeout(_cancellationToken.Token);
+        _stopwatch.Restart();
+    }
 
-        internal event Action<string>? Finished;
+    internal void Stop()
+    {
+        _cancellationToken.Cancel();
+        Finish();
+    }
 
-        internal void Start()
+    private void Finish()
+    {
+        if (_finished)
         {
-            _cancellationToken.Cancel();
-            _finished = false;
-            _cancellationToken = new CancellationTokenSource();
-            _ = Timeout(_cancellationToken.Token);
-            _stopwatch.Restart();
+            return;
         }
 
-        internal void Stop()
-        {
-            _cancellationToken.Cancel();
-            Finish();
-        }
+        _stopwatch.Stop();
+        _finished = true;
+        long ms = _stopwatch.ElapsedMilliseconds;
+        Finished?.Invoke($"{(ms > 999 ? "999+" : ms)} ms");
+    }
 
-        private async Task Timeout(CancellationToken cancellationToken)
-        {
-            await Task.Delay(1000, cancellationToken);
-            Finish();
-        }
-
-        private void Finish()
-        {
-            if (_finished)
-            {
-                return;
-            }
-
-            _stopwatch.Stop();
-            _finished = true;
-            long ms = _stopwatch.ElapsedMilliseconds;
-            Finished?.Invoke($"{(ms > 999 ? "999+" : ms)} ms");
-        }
+    private async Task Timeout(CancellationToken cancellationToken)
+    {
+        await Task.Delay(1000, cancellationToken);
+        Finish();
     }
 }

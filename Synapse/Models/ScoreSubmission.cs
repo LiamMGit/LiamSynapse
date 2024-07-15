@@ -1,14 +1,13 @@
 ﻿using JetBrains.Annotations;
 
-namespace Synapse.Models
+namespace Synapse.Models;
+
+[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+public record ScoreSubmission
 {
-    [UsedImplicitly(ImplicitUseTargetFlags.Members)]
-    public record ScoreSubmission
-    {
-        public int Index { get; init; }
+    public int Index { get; init; }
 
-        public int Score { get; init; }
+    public int Score { get; init; }
 
-        public float Percentage { get; init; }
-    }
+    public float Percentage { get; init; }
 }

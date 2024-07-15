@@ -6,39 +6,39 @@ using Synapse.Extras;
 using Synapse.Models;
 using UnityEngine;
 using Zenject;
+using Random = System.Random;
 
-namespace Synapse.Managers
+namespace Synapse.Managers;
+
+internal class TestScoreManager : ITickable
 {
-    internal class TestScoreManager : ITickable
+    private readonly SiraLog _log;
+    private readonly NetworkManager _networkManager;
+    private readonly Random _random = new();
+
+    [UsedImplicitly]
+    private TestScoreManager(SiraLog log, NetworkManager networkManager)
     {
-        private readonly SiraLog _log;
-        private readonly NetworkManager _networkManager;
-        private readonly System.Random _random = new();
+        _log = log;
+        _networkManager = networkManager;
+    }
 
-        [UsedImplicitly]
-        private TestScoreManager(SiraLog log, NetworkManager networkManager)
+    public void Tick()
+    {
+        if (!Input.GetKeyDown(KeyCode.KeypadPlus))
         {
-            _log = log;
-            _networkManager = networkManager;
+            return;
         }
 
-        public void Tick()
+        ScoreSubmission scoreSubmission = new()
         {
-            if (!Input.GetKeyDown(KeyCode.KeypadPlus))
-            {
-                return;
-            }
-
-            ScoreSubmission scoreSubmission = new()
-            {
-                Index = _networkManager.Status.Index,
-                Score = _random.Next(999999),
-                Percentage = (float)_random.NextDouble()
-            };
-            string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
-            _log.Info(scoreJson);
-            _ = _networkManager.SendString(scoreJson, ServerOpcode.ScoreSubmission);
-        }
+            Index = _networkManager.Status.Index,
+            Score = _random.Next(999999),
+            Percentage = (float)_random.NextDouble()
+        };
+        string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
+        _log.Info(scoreJson);
+        _ = _networkManager.SendString(scoreJson, ServerOpcode.ScoreSubmission);
     }
 }
 #endif

@@ -2,54 +2,58 @@
 using Synapse.Managers;
 using Synapse.Views;
 
-namespace Synapse.HarmonyPatches
+namespace Synapse.HarmonyPatches;
+
+internal class AddEventFlowCoordinator : IAffinity
 {
-    internal class AddEventFlowCoordinator : IAffinity
+    private readonly EventFlowCoordinator _eventFlowCoordinator;
+    private readonly MainFlowCoordinator _mainFlowCoordinator;
+    private readonly PromoManager _promoManager;
+
+    private AddEventFlowCoordinator(
+        MainFlowCoordinator mainFlowCoordinator,
+        EventFlowCoordinator eventFlowCoordinator,
+        PromoManager promoManager)
     {
-        private readonly MainFlowCoordinator _mainFlowCoordinator;
-        private readonly EventFlowCoordinator _eventFlowCoordinator;
-        private readonly PromoManager _promoManager;
+        _mainFlowCoordinator = mainFlowCoordinator;
+        _eventFlowCoordinator = eventFlowCoordinator;
+        _promoManager = promoManager;
+    }
 
-        private AddEventFlowCoordinator(MainFlowCoordinator mainFlowCoordinator, EventFlowCoordinator eventFlowCoordinator, PromoManager promoManager)
+    [AffinityPrefix]
+    [AffinityPatch(typeof(MainFlowCoordinator), nameof(MainFlowCoordinator.DidActivate))]
+    private void DidActivate(bool addedToHierarchy)
+    {
+        if (addedToHierarchy)
         {
-            _mainFlowCoordinator = mainFlowCoordinator;
-            _eventFlowCoordinator = eventFlowCoordinator;
-            _promoManager = promoManager;
+            _eventFlowCoordinator.Finished += HandleEventFlowCoordinatorDidFinish;
         }
+    }
 
-        [AffinityPrefix]
-        [AffinityPatch(typeof(MainFlowCoordinator), nameof(MainFlowCoordinator.DidActivate))]
-        private void DidActivate(bool addedToHierarchy)
+    [AffinityPrefix]
+    [AffinityPatch(typeof(MainFlowCoordinator), nameof(MainFlowCoordinator.DidDeactivate))]
+    private void DidDeactivate(bool removedFromHierarchy)
+    {
+        if (removedFromHierarchy)
         {
-            if (addedToHierarchy)
-            {
-                _eventFlowCoordinator.Finished += HandleEventFlowCoordinatorDidFinish;
-            }
+            _eventFlowCoordinator.Finished -= HandleEventFlowCoordinatorDidFinish;
         }
+    }
 
-        [AffinityPrefix]
-        [AffinityPatch(typeof(MainFlowCoordinator), nameof(MainFlowCoordinator.DidDeactivate))]
-        private void DidDeactivate(bool removedFromHierarchy)
-        {
-            if (removedFromHierarchy)
-            {
-                _eventFlowCoordinator.Finished -= HandleEventFlowCoordinatorDidFinish;
-            }
-        }
+    private void HandleEventFlowCoordinatorDidFinish(EventFlowCoordinator flowCoordinator)
+    {
+        _mainFlowCoordinator.DismissFlowCoordinator(flowCoordinator);
+    }
 
-        [AffinityPrefix]
-        [AffinityPatch(typeof(MainFlowCoordinator), nameof(MainFlowCoordinator.HandleMainMenuViewControllerDidFinish))]
-        private void HandleMainMenuViewControllerDidFinish(MainFlowCoordinator __instance, MainMenuViewController.MenuButton subMenuType)
+    [AffinityPrefix]
+    [AffinityPatch(typeof(MainFlowCoordinator), nameof(MainFlowCoordinator.HandleMainMenuViewControllerDidFinish))]
+    private void HandleMainMenuViewControllerDidFinish(
+        MainFlowCoordinator __instance,
+        MainMenuViewController.MenuButton subMenuType)
+    {
+        if ((int)subMenuType == 13 && _promoManager.Active)
         {
-            if ((int)subMenuType == 13 && _promoManager.Active)
-            {
-                __instance.PresentFlowCoordinator(_eventFlowCoordinator);
-            }
-        }
-
-        private void HandleEventFlowCoordinatorDidFinish(EventFlowCoordinator flowCoordinator)
-        {
-            _mainFlowCoordinator.DismissFlowCoordinator(flowCoordinator);
+            __instance.PresentFlowCoordinator(_eventFlowCoordinator);
         }
     }
 }

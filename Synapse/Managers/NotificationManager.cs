@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using BeatSaberMarkupLanguage;
 using HMUI;
 using JetBrains.Annotations;
 using Synapse.Models;
@@ -6,159 +7,158 @@ using TMPro;
 using UnityEngine;
 using Zenject;
 
-namespace Synapse.Managers
+namespace Synapse.Managers;
+
+internal class NotificationManager : MonoBehaviour
 {
-    internal class NotificationManager : MonoBehaviour
+    private bool _active;
+    private Color? _color;
+
+    private float _hue;
+    private Listing? _listing;
+    private ListingManager _listingManager = null!;
+    private NetworkManager _networkManager = null!;
+    private string _text = string.Empty;
+
+    private TextMeshProUGUI _textMesh = null!;
+    private float _timer;
+
+    public void Notify(string text, Color? color = null)
     {
-        private ListingManager _listingManager = null!;
-        private NetworkManager _networkManager = null!;
+        _timer = 15;
+        gameObject.SetActive(true);
+        _text = text;
+        _color = color;
+    }
 
-        private TextMeshProUGUI _textMesh = null!;
-        private string _text = string.Empty;
-        private Color? _color;
+    [UsedImplicitly]
+    [Inject]
+    private void Construct(ListingManager listingManager, NetworkManager networkManager, TextMeshProUGUI textMesh)
+    {
+        _textMesh = textMesh;
+        _listingManager = listingManager;
+        listingManager.ListingFound += OnListingFound;
+        _networkManager = networkManager;
+        networkManager.Connecting += OnConnecting;
+    }
 
-        private float _hue;
-        private float _timer;
-        private bool _active;
-        private Listing? _listing;
+    // Dont need notification if we are already connecting
+    private void OnConnecting(Stage stage, int _)
+    {
+        _timer = 0;
+    }
 
-        public void Notify(string text, Color? color = null)
-        {
-            _timer = 15;
-            gameObject.SetActive(true);
-            _text = text;
-            _color = color;
-        }
+    private void OnDestroy()
+    {
+        _listingManager.ListingFound -= OnListingFound;
+        _networkManager.Connecting -= OnConnecting;
+    }
 
-        [UsedImplicitly]
-        [Inject]
-        private void Construct(ListingManager listingManager, NetworkManager networkManager, TextMeshProUGUI textMesh)
-        {
-            _textMesh = textMesh;
-            _listingManager = listingManager;
-            listingManager.ListingFound += OnListingFound;
-            _networkManager = networkManager;
-            networkManager.Connecting += OnConnecting;
-        }
-
-        private void OnDestroy()
-        {
-            _listingManager.ListingFound -= OnListingFound;
-            _networkManager.Connecting -= OnConnecting;
-        }
-
-        // Dont need notification if we are already connecting
-        private void OnConnecting(Stage stage, int _)
+    private void OnListingFound(Listing? listing)
+    {
+        _listing = listing;
+        if (_listing == null)
         {
             _timer = 0;
+            return;
         }
 
-        private void OnListingFound(Listing? listing)
+        if (_listing.TimeSpan.Ticks < 0)
         {
-            _listing = listing;
-            if (_listing == null)
-            {
-                _timer = 0;
-                return;
-            }
+            OnStarted();
+        }
+        else if (_listing.TimeSpan.TotalMinutes < 30)
+        {
+            Notify($"{_listing.Title} is starting soon!");
+        }
+    }
 
-            if (_listing.TimeSpan.Ticks < 0)
-            {
-                OnStarted();
-            }
-            else if (_listing.TimeSpan.TotalMinutes < 30)
-            {
-                Notify($"{_listing.Title} is starting soon!");
-            }
+    private void OnStarted()
+    {
+        _active = true;
+        Notify($"{_listing!.Title} is now live!");
+    }
+
+    private void Update()
+    {
+        if (!_active && _listing is { TimeSpan.Ticks: < 0 })
+        {
+            OnStarted();
         }
 
-        private void OnStarted()
+        if (_timer > 0)
         {
-            _active = true;
-            Notify($"{_listing!.Title} is now live!");
+            _timer -= Time.deltaTime;
+        }
+        else
+        {
+            gameObject.SetActive(false);
+            return;
         }
 
-        private void Update()
+        if (string.IsNullOrWhiteSpace(_text))
         {
-            if (!_active && _listing is { TimeSpan: { Ticks: < 0 } })
-            {
-                OnStarted();
-            }
+            return;
+        }
 
-            if (_timer > 0)
-            {
-                _timer -= Time.deltaTime;
-            }
-            else
-            {
-                gameObject.SetActive(false);
-                return;
-            }
+        if (_color == null)
+        {
+            _hue = Mathf.Repeat(_hue + (0.5f * Time.deltaTime), 1);
 
-            if (string.IsNullOrWhiteSpace(_text))
+            StringBuilder builder = new(_text.Length);
+            for (int i = 0; i < _text.Length; i++)
             {
-                return;
-            }
-
-            if (_color == null)
-            {
-                _hue = Mathf.Repeat(_hue + (0.5f * Time.deltaTime), 1);
-
-                StringBuilder builder = new(_text.Length);
-                for (int i = 0; i < _text.Length; i++)
+                char c = _text[i];
+                if (char.IsWhiteSpace(c))
                 {
-                    char c = _text[i];
-                    if (char.IsWhiteSpace(c))
-                    {
-                        builder.Append(c);
-                        continue;
-                    }
-
-                    Color col = Color.HSVToRGB(Mathf.Repeat(_hue + (0.02f * i), 1), 0.8f, 1);
-                    builder.Append($"<color=#{ColorUtility.ToHtmlStringRGB(col)}>{c}");
+                    builder.Append(c);
+                    continue;
                 }
 
-                _textMesh.SetText(builder);
+                Color col = Color.HSVToRGB(Mathf.Repeat(_hue + (0.02f * i), 1), 0.8f, 1);
+                builder.Append($"<color=#{ColorUtility.ToHtmlStringRGB(col)}>{c}");
             }
-            else
-            {
-                _textMesh.color = _color.Value;
-                _textMesh.text = _text;
-            }
+
+            _textMesh.SetText(builder);
+        }
+        else
+        {
+            _textMesh.color = _color.Value;
+            _textMesh.text = _text;
+        }
+    }
+
+    internal class NotificationManagerFactory : IFactory<NotificationManager>
+    {
+        private readonly IInstantiator _instantiator;
+
+        [UsedImplicitly]
+        private NotificationManagerFactory(IInstantiator instantiator)
+        {
+            _instantiator = instantiator;
         }
 
-        internal class NotificationManagerFactory : IFactory<NotificationManager>
+        public NotificationManager Create()
         {
-            private readonly IInstantiator _instantiator;
-
-            [UsedImplicitly]
-            private NotificationManagerFactory(IInstantiator instantiator)
+            GameObject gameObject = new("NotificationText")
             {
-                _instantiator = instantiator;
-            }
+                layer = 5
+            };
+            DontDestroyOnLoad(gameObject);
 
-            public NotificationManager Create()
-            {
-                GameObject gameObject = new("NotificationText")
-                {
-                    layer = 5
-                };
-                DontDestroyOnLoad(gameObject);
+            Canvas canvas = gameObject.AddComponent<Canvas>();
+            CurvedCanvasSettings curvedCanvasSettings = gameObject.AddComponent<CurvedCanvasSettings>();
+            curvedCanvasSettings.SetRadius(800);
+            canvas.renderMode = RenderMode.WorldSpace;
+            RectTransform rectTransform = (RectTransform)canvas.transform;
+            rectTransform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+            TextMeshProUGUI textMesh = BeatSaberUI.CreateText(rectTransform, string.Empty, Vector2.zero);
+            textMesh.gameObject.layer = 5;
+            textMesh.alignment = TextAlignmentOptions.Center;
+            textMesh.fontSize = 15;
+            gameObject.transform.position = new Vector3(0, 3f, 4f);
 
-                Canvas canvas = gameObject.AddComponent<Canvas>();
-                CurvedCanvasSettings curvedCanvasSettings = gameObject.AddComponent<CurvedCanvasSettings>();
-                curvedCanvasSettings.SetRadius(800);
-                canvas.renderMode = RenderMode.WorldSpace;
-                RectTransform rectTransform = (RectTransform)canvas.transform;
-                rectTransform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
-                TextMeshProUGUI textMesh = BeatSaberMarkupLanguage.BeatSaberUI.CreateText(rectTransform, string.Empty, Vector2.zero);
-                textMesh.gameObject.layer = 5;
-                textMesh.alignment = TextAlignmentOptions.Center;
-                textMesh.fontSize = 15;
-                gameObject.transform.position = new Vector3(0, 3f, 4f);
-
-                return _instantiator.InstantiateComponent<NotificationManager>(gameObject, new object[] { textMesh });
-            }
+            return _instantiator.InstantiateComponent<NotificationManager>(gameObject, new object[] { textMesh });
         }
     }
 }

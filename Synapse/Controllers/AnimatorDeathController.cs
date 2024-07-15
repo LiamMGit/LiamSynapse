@@ -1,39 +1,38 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Synapse.Controllers
+namespace Synapse.Controllers;
+
+[RequireComponent(typeof(Animator))]
+internal class AnimatorDeathController : MonoBehaviour
 {
-    [RequireComponent(typeof(Animator))]
-    internal class AnimatorDeathController : MonoBehaviour
+    private Action? _action;
+    private Animator _animator = null!;
+
+    private float _timeout;
+
+    internal void ContinueAfterDecay(float timeout, Action action)
     {
-        private Animator _animator = null!;
+        _action = action;
+        _timeout = timeout;
+        enabled = true;
+    }
 
-        private float _timeout;
-        private Action? _action;
+    private void Awake()
+    {
+        _animator = GetComponent<Animator>();
+    }
 
-        internal void ContinueAfterDecay(float timeout, Action action)
+    private void Update()
+    {
+        _timeout -= Time.deltaTime;
+        float animatorTime = _animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+
+        // ReSharper disable once InvertIf
+        if (_timeout <= 0 || animatorTime > 1)
         {
-            _action = action;
-            _timeout = timeout;
-            enabled = true;
-        }
-
-        private void Awake()
-        {
-            _animator = GetComponent<Animator>();
-        }
-
-        private void Update()
-        {
-            _timeout -= Time.deltaTime;
-            float animatorTime = _animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
-
-            // ReSharper disable once InvertIf
-            if (_timeout <= 0 || animatorTime > 1)
-            {
-                _action?.Invoke();
-                enabled = false;
-            }
+            _action?.Invoke();
+            enabled = false;
         }
     }
 }

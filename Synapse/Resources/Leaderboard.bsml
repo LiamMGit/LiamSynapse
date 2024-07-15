@@ -1,34 +1,38 @@
-<bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
-    <vertical id='vertical' vertical-fit='PreferredSize' child-expand-height='false' child-control-height='false'>
-        <horizontal preferred-width='120' horizontal-fit='PreferredSize' pad-bottom='3'>
-            <horizontal id='header' bg='panel-fade-gradient' preferred-width='90' preferred-height='8' horizontal-fit='PreferredSize'>
-                <text text='highscores' all-uppercase='true' italics='true' font-size='6' align='Center'/>
-            </horizontal>
+<bg>
+  <vertical id='vertical' vertical-fit='PreferredSize' child-expand-height='false' child-control-height='false'>
+    <horizontal preferred-width='120' horizontal-fit='PreferredSize' pad-bottom='3'>
+      <horizontal id='header' bg='panel-fade-gradient' preferred-width='90' preferred-height='8'
+                  horizontal-fit='PreferredSize'>
+        <text text='highscores' all-uppercase='true' italics='true' font-size='6' align='Center'/>
+      </horizontal>
+    </horizontal>
+    <horizontal horizontal-fit='PreferredSize' child-expand-width='false' child-control-width='false'>
+      <horizontal preferred-width='20' horizontal-fit='PreferredSize'>
+        <horizontal bg='round-rect-panel' preferred-width='8' horizontal-fit='PreferredSize' pad='1'>
+          <text-segments id='segments' select-cell='selectcell'/>
         </horizontal>
-        <horizontal horizontal-fit='PreferredSize' child-expand-width='false' child-control-width='false'>
-            <horizontal preferred-width='20' horizontal-fit='PreferredSize'>
-                <horizontal bg='round-rect-panel' preferred-width='8' horizontal-fit='PreferredSize' pad='1'>
-                    <text-segments id='segments' select-cell='selectcell'/>
-                </horizontal>
-            </horizontal>
-            <vertical preferred-width='90' child-expand-height='false'>
-                <horizontal id='titlelayout' preferred-height='5'>
-                    <text id='titlemap' italics='true' font-size='6' align='Center'/>
-                </horizontal>
-                <horizontal preferred-height='72' id='noscore'>
-                    <leaderboard id='leaderboard'/>
-                    <vertical id='noscore' vertical-fit='PreferredSize'>
-                        <text text='No Scores Yet' font-size='8' align='Center'/>
-                        <text id='motivation' font-size='4' color='#808080' align='Center'/>
-                    </vertical>
-                </horizontal>
-            </vertical>
+      </horizontal>
+      <vertical preferred-width='90' child-expand-height='false'>
+        <horizontal id='titlelayout' preferred-height='5'>
+          <text id='titlemap' italics='true' font-size='6' align='Center'/>
         </horizontal>
+        <horizontal preferred-height='72' id='noscore'>
+          <leaderboard id='leaderboard'/>
+          <vertical id='noscore' vertical-fit='PreferredSize'>
+            <text text='No Scores Yet' font-size='8' align='Center'/>
+            <text id='motivation' font-size='4' color='#808080' align='Center'/>
+          </vertical>
+        </horizontal>
+      </vertical>
+    </horizontal>
+  </vertical>
+  <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='50' anchor-pos-y='30'
+                   size-delta-x='4' size-delta-y='4'/>
+  <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='12'>
+    <vertical horizontal-fit='PreferredSize' pref-width='78'>
+      <checkbox-setting text='Show eliminated players' value='showEliminated'
+                        hover-hint='Show scores set by eliminated players' apply-on-change='true'
+                        bind-value='true'/>
     </vertical>
-    <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='50' anchor-pos-y='30' size-delta-x='4' size-delta-y='4' />
-    <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='12'>
-        <vertical horizontal-fit='PreferredSize' pref-width='78'>
-            <checkbox-setting text='Show eliminated players' value='showEliminated' hover-hint='Show scores set by eliminated players' apply-on-change='true' bind-value='true' />
-        </vertical>
-    </modal>
+  </modal>
 </bg>

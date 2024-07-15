@@ -1,64 +1,78 @@
-<bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://raw.githubusercontent.com/monkeymanboy/BSML-Docs/gh-pages/BSMLSchema.xsd'>
-    <horizontal>
-        <vertical id='chat' preferred-width='110' child-expand-width='true'>
-            <vertical bg='round-rect-panel' preferred-height='60' horizontal-fit='Unconstrained'>
-                <scroll-view id='scrollview' child-expand-height='true' child-control-height='true'>
-                    <vertical id='textbox' preferred-width='94' vertical-fit='PreferredSize'>
-                    </vertical>
-                </scroll-view>
-            </vertical>
+<bg>
+  <horizontal>
+    <vertical id='chat' preferred-width='110' child-expand-width='true'>
+      <vertical bg='round-rect-panel' preferred-height='60' horizontal-fit='Unconstrained'>
+        <scroll-view id='scrollview' child-expand-height='true' child-control-height='true'>
+          <vertical id='textbox' preferred-width='94' vertical-fit='PreferredSize'>
+          </vertical>
+        </scroll-view>
+      </vertical>
+    </vertical>
+    <vertical preferred-width='40'>
+      <vertical id='finish' horizontal-fit='Unconstrained'>
+        <image id='finishimage'/>
+      </vertical>
+      <vertical id='map' horizontal-fit='Unconstrained' child-expand-height='false' child-control-height='false'>
+        <horizontal id='header' bg='panel-fade-gradient' preferred-width='40' horizontal-fit='PreferredSize'
+                    pad='1'>
+          <text id='headertext' all-uppercase='true' italics='true' align='Center'/>
+        </horizontal>
+        <vertical id='loading' size-delta-y='50' child-control-height='false' child-align='MiddleCenter'>
+          <vertical size-delta-y='20'>
+            <text id='progress' text='Loading...' align='Center' font-size="6"/>
+            <image id='spinny' src='#LoadingIndicator' preserve-aspect='true' min-width='10'
+                   min-height='10'/>
+          </vertical>
         </vertical>
-        <vertical preferred-width='40'>
-            <vertical id='finish' horizontal-fit='Unconstrained'>
-                <image id='finishimage'/>
+        <vertical id='songinfo' horizontal-fit='Unconstrained' size-delta-y='62' child-expand-height='false'
+                  child-control-height='false'>
+          <horizontal horizontal-fit='PreferredSize' pad-top='4' pad='2'>
+            <image id='cover' src='#CustomLevelsPack' preferred-width='28' preferred-height='28'/>
+          </horizontal>
+          <horizontal vertical-fit='Unconstrained' size-delta-y='8' child-expand-height='false'
+                      child-control-height='false'>
+            <text id='songtext' align='Center' font-size='8' size-delta-y='12' overflow-mode='Ellipsis'/>
+          </horizontal>
+          <horizontal vertical-fit='Unconstrained' size-delta-y='6' child-expand-height='false'
+                      child-control-height='false'>
+            <text id='artisttext' align='Center' font-size='4' color='#808080' size-delta-y='6'
+                  overflow-mode='Ellipsis'/>
+          </horizontal>
+          <horizontal id='countdownobject' vertical-fit='Unconstrained' size-delta-y='16'>
+            <text id='countdown' align='Center' font-size='8' all-uppercase='true'/>
+          </horizontal>
+          <horizontal id='scoreobject' pad-top='5' child-expand-width='false' child-control-width='false'>
+            <vertical size-delta-x='20' horizontal-fit='Unconstrained' child-expand-height='false'
+                      child-control-height='false'>
+              <text text='score' align='Center' font-size='4' color='#808080' size-delta-y='4'
+                    all-uppercase='true' italics='true'/>
+              <text id='scoretext' align='Center' font-size='4' size-delta-y='4' italics='true'/>
             </vertical>
-            <vertical id='map' horizontal-fit='Unconstrained' child-expand-height='false' child-control-height='false'>
-                <horizontal id='header' bg='panel-fade-gradient' preferred-width='40' horizontal-fit='PreferredSize' pad='1'>
-                    <text id='headertext' all-uppercase='true' italics='true' align='Center'/>
-                </horizontal>
-                <vertical id='loading' size-delta-y='50' child-control-height='false' child-align='MiddleCenter'>
-                    <vertical size-delta-y='20'>
-                        <text id='progress' text='Loading...' align='Center' font-size="6" />
-                        <image id='spinny' src='#LoadingIndicator' preserve-aspect='true' min-width='10' min-height='10' />
-                    </vertical>
-                </vertical>
-                <vertical id='songinfo' horizontal-fit='Unconstrained' size-delta-y='62' child-expand-height='false' child-control-height='false'>
-                    <horizontal horizontal-fit='PreferredSize' pad-top='4' pad='2'>
-                        <image id='cover' src='#CustomLevelsPack' preferred-width='28' preferred-height='28'/>
-                    </horizontal>
-                    <horizontal vertical-fit='Unconstrained' size-delta-y='8' child-expand-height='false' child-control-height='false'>
-                        <text id='songtext' align='Center' font-size='8' size-delta-y='12' overflow-mode='Ellipsis'/>
-                    </horizontal>
-                    <horizontal vertical-fit='Unconstrained' size-delta-y='6' child-expand-height='false' child-control-height='false'>
-                        <text id='artisttext' align='Center' font-size='4' color='#808080' size-delta-y='6' overflow-mode='Ellipsis'/>
-                    </horizontal>
-                    <horizontal id='countdownobject' vertical-fit='Unconstrained' size-delta-y='16'>
-                        <text id='countdown' align='Center' font-size='8' all-uppercase='true'/>
-                    </horizontal>
-                    <horizontal id='scoreobject' pad-top='5' child-expand-width='false' child-control-width='false'>
-                        <vertical size-delta-x='20' horizontal-fit='Unconstrained' child-expand-height='false' child-control-height='false'>
-                            <text text='score' align='Center' font-size='4' color='#808080' size-delta-y='4' all-uppercase='true' italics='true'/>
-                            <text id='scoretext' align='Center' font-size='4' size-delta-y='4' italics='true'/>
-                        </vertical>
-                        <vertical size-delta-x='20' horizontal-fit='Unconstrained' child-expand-height='false' child-control-height='false'>
-                            <text text='percentage' align='Center' font-size='4' color='#808080' size-delta-y='4' all-uppercase='true' italics='true'/>
-                            <text id='percentagetext' align='Center' font-size='4' size-delta-y='4' italics='true'/>
-                        </vertical>
-                    </horizontal>
-                    <horizontal id='startobject' horizontal-fit='PreferredSize' vertical-fit='PreferredSize' pad-top='4'>
-                        <primary-button id='startbutton' on-click='start-click' preferred-height='10' preferred-width='24'/>
-                    </horizontal>
-                </vertical>
+            <vertical size-delta-x='20' horizontal-fit='Unconstrained' child-expand-height='false'
+                      child-control-height='false'>
+              <text text='percentage' align='Center' font-size='4' color='#808080' size-delta-y='4'
+                    all-uppercase='true' italics='true'/>
+              <text id='percentagetext' align='Center' font-size='4' size-delta-y='4' italics='true'/>
             </vertical>
+          </horizontal>
+          <horizontal id='startobject' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'
+                      pad-top='4'>
+            <primary-button id='startbutton' on-click='start-click' preferred-height='10'
+                            preferred-width='24'/>
+          </horizontal>
         </vertical>
-    </horizontal>
-    <icon-button id='toend' on-click='toend-click' icon='#ArrowIcon' anchor-pos-x='60' anchor-pos-y='-60' vertical-fit='Unconstrained' size-delta-y='7'/>
-    <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='76' anchor-pos-y='22' size-delta-x='4' size-delta-y='4' />
-    <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='36'>
-        <vertical horizontal-fit='PreferredSize' pref-width='78'>
-            <checkbox-setting text='Join chat' value='joinChat' apply-on-change='true' bind-value='true' />
-            <checkbox-setting text='Profanity filter' value='profanityFilter' apply-on-change='true' bind-value='true' />
-            <checkbox-setting text='Mute music' value='muteMusic' apply-on-change='true' bind-value='true' />
-        </vertical>
-    </modal>
+      </vertical>
+    </vertical>
+  </horizontal>
+  <icon-button id='toend' on-click='toend-click' icon='#ArrowIcon' anchor-pos-x='60' anchor-pos-y='-60'
+               vertical-fit='Unconstrained' size-delta-y='7'/>
+  <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='76' anchor-pos-y='22'
+                   size-delta-x='4' size-delta-y='4'/>
+  <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='36'>
+    <vertical horizontal-fit='PreferredSize' pref-width='78'>
+      <checkbox-setting text='Join chat' value='joinChat' apply-on-change='true' bind-value='true'/>
+      <checkbox-setting text='Profanity filter' value='profanityFilter' apply-on-change='true' bind-value='true'/>
+      <checkbox-setting text='Mute music' value='muteMusic' apply-on-change='true' bind-value='true'/>
+    </vertical>
+  </modal>
 </bg>

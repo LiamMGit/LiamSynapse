@@ -3,50 +3,49 @@ using JetBrains.Annotations;
 using UnityEngine;
 using Zenject;
 
-namespace Synapse.Controllers
+namespace Synapse.Controllers;
+
+[RequireComponent(typeof(InputFieldView))]
+public class KeyboardOpener : MonoBehaviour
 {
-    [RequireComponent(typeof(InputFieldView))]
-    public class KeyboardOpener : MonoBehaviour
+    private InputFieldView _inputFieldView = null!;
+    private UIKeyboardManager _uiKeyboardManager = null!;
+
+    private void Awake()
     {
-        private UIKeyboardManager _uiKeyboardManager = null!;
-        private InputFieldView _inputFieldView = null!;
+        _inputFieldView = GetComponent<InputFieldView>();
+    }
 
-        [UsedImplicitly]
-        [Inject]
-        private void Construct(UIKeyboardManager uiKeyboardManager)
+    [UsedImplicitly]
+    [Inject]
+    private void Construct(UIKeyboardManager uiKeyboardManager)
+    {
+        _uiKeyboardManager = uiKeyboardManager;
+    }
+
+    private void OnGUI()
+    {
+        Event e = Event.current;
+
+        if (!e.isKey || e.type != EventType.KeyDown)
         {
-            _uiKeyboardManager = uiKeyboardManager;
+            return;
         }
 
-        private void Awake()
+        switch (e.keyCode)
         {
-            _inputFieldView = GetComponent<InputFieldView>();
-        }
+            case KeyCode.Escape:
+                if (_uiKeyboardManager.ShouldCloseKeyboard(gameObject))
+                {
+                    _uiKeyboardManager.CloseKeyboard();
+                }
 
-        private void OnGUI()
-        {
-            Event e = Event.current;
+                break;
 
-            if (!e.isKey || e.type != EventType.KeyDown)
-            {
-                return;
-            }
-
-            switch (e.keyCode)
-            {
-                case KeyCode.Escape:
-                    if (_uiKeyboardManager.ShouldCloseKeyboard(gameObject))
-                    {
-                        _uiKeyboardManager.CloseKeyboard();
-                    }
-
-                    break;
-
-                case KeyCode.Slash when !_inputFieldView._hasKeyboardAssigned:
-                case KeyCode.Return when !_inputFieldView._hasKeyboardAssigned:
-                    _uiKeyboardManager.ProcessMousePress(gameObject);
-                    break;
-            }
+            case KeyCode.Slash when !_inputFieldView._hasKeyboardAssigned:
+            case KeyCode.Return when !_inputFieldView._hasKeyboardAssigned:
+                _uiKeyboardManager.ProcessMousePress(gameObject);
+                break;
         }
     }
 }

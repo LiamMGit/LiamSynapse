@@ -2,29 +2,28 @@
 using System.Threading;
 using JetBrains.Annotations;
 
-namespace Synapse.Managers
+namespace Synapse.Managers;
+
+[UsedImplicitly]
+internal sealed class CancellationTokenManager : IDisposable
 {
-    [UsedImplicitly]
-    internal sealed class CancellationTokenManager : IDisposable
+    private CancellationTokenSource _tokenSource = new();
+
+    public void Dispose()
     {
-        private CancellationTokenSource _tokenSource = new();
+        _tokenSource.Dispose();
+    }
 
-        public void Dispose()
-        {
-            _tokenSource.Dispose();
-        }
+    internal void Cancel()
+    {
+        _tokenSource.Cancel();
+    }
 
-        internal void Cancel()
-        {
-            _tokenSource.Cancel();
-        }
-
-        internal CancellationToken Reset()
-        {
-            _tokenSource.Cancel();
-            _tokenSource.Dispose();
-            _tokenSource = new CancellationTokenSource();
-            return _tokenSource.Token;
-        }
+    internal CancellationToken Reset()
+    {
+        _tokenSource.Cancel();
+        _tokenSource.Dispose();
+        _tokenSource = new CancellationTokenSource();
+        return _tokenSource.Token;
     }
 }

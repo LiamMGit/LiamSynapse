@@ -10,176 +10,175 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Zenject;
 
-namespace Synapse.Managers
+namespace Synapse.Managers;
+
+internal class ListingManager : IInitializable
 {
-    internal class ListingManager : IInitializable
+    private readonly CancellationTokenManager _cancellationTokenManager;
+    private readonly Config _config;
+    private readonly SiraLog _log;
+    private Sprite? _bannerImage;
+    private string? _bannerUrl;
+    private Sprite? _finishImage;
+    private string? _finishUrl;
+    private string? _lastListing;
+
+    [UsedImplicitly]
+    private ListingManager(SiraLog log, Config config, CancellationTokenManager cancellationTokenManager)
     {
-        private readonly SiraLog _log;
-        private readonly Config _config;
-        private readonly CancellationTokenManager _cancellationTokenManager;
-        private Sprite? _bannerImage;
-        private string? _bannerUrl;
-        private Sprite? _finishImage;
-        private string? _finishUrl;
-        private string? _lastListing;
+        _log = log;
+        _config = config;
+        _cancellationTokenManager = cancellationTokenManager;
+    }
 
-        [UsedImplicitly]
-        private ListingManager(SiraLog log, Config config, CancellationTokenManager cancellationTokenManager)
+    public event Action<Sprite?>? BannerImageCreated
+    {
+        add
         {
-            _log = log;
-            _config = config;
-            _cancellationTokenManager = cancellationTokenManager;
-        }
-
-        public event Action<Listing?>? ListingFound
-        {
-            add
+            if (_bannerImage != null)
             {
-                if (Listing != null)
-                {
-                    value?.Invoke(Listing);
-                }
-
-                ListingFound_Backing += value;
+                value?.Invoke(_bannerImage);
             }
 
-            remove => ListingFound_Backing -= value;
+            BannerImageCreatedBacking += value;
         }
 
-        public event Action<Sprite?>? BannerImageCreated
-        {
-            add
-            {
-                if (_bannerImage != null)
-                {
-                    value?.Invoke(_bannerImage);
-                }
+        remove => BannerImageCreatedBacking -= value;
+    }
 
-                BannerImageCreated_Backing += value;
+    public event Action<Sprite?>? FinishImageCreated
+    {
+        add
+        {
+            if (_finishImage != null)
+            {
+                value?.Invoke(_finishImage);
             }
 
-            remove => BannerImageCreated_Backing -= value;
+            FinishImageCreatedBacking += value;
         }
 
-        public event Action<Sprite?>? FinishImageCreated
-        {
-            add
-            {
-                if (_finishImage != null)
-                {
-                    value?.Invoke(_finishImage);
-                }
+        remove => FinishImageCreatedBacking -= value;
+    }
 
-                FinishImageCreated_Backing += value;
+    public event Action<Listing?>? ListingFound
+    {
+        add
+        {
+            if (Listing != null)
+            {
+                value?.Invoke(Listing);
             }
 
-            remove => FinishImageCreated_Backing -= value;
+            ListingFoundBacking += value;
         }
 
-        private event Action<Listing?>? ListingFound_Backing;
+        remove => ListingFoundBacking -= value;
+    }
 
-        private event Action<Sprite?>? BannerImageCreated_Backing;
+    private event Action<Sprite?>? BannerImageCreatedBacking;
 
-        private event Action<Sprite?>? FinishImageCreated_Backing;
+    private event Action<Sprite?>? FinishImageCreatedBacking;
 
-        public Listing? Listing { get; private set; }
+    private event Action<Listing?>? ListingFoundBacking;
 
-        public void Initialize()
+    public Listing? Listing { get; private set; }
+
+    public void Initialize()
+    {
+        _ = InitializeAsync();
+    }
+
+    private async Task GetBannerImage(Listing listing, CancellationToken token)
+    {
+        if (_bannerUrl != listing.BannerImage)
         {
-            _ = InitializeAsync();
-        }
+            _bannerUrl = listing.BannerImage;
 
-        private async Task InitializeAsync()
-        {
             try
             {
-                CancellationToken token = _cancellationTokenManager.Reset();
-                string url = _config.Url;
-                _log.Debug($"Checking [{url}] for active listing");
-                UnityWebRequest www = UnityWebRequest.Get(url);
-                await www.SendAndVerify(token);
-
-                string json = www.downloadHandler.text;
-                Listing? listing = JsonConvert.DeserializeObject<Listing>(json, JsonSettings.Settings);
-                if (listing == null)
-                {
-                    _log.Error("Error deserializing listing");
-                    return;
-                }
-
-                if (listing.Guid == _lastListing)
-                {
-                    return;
-                }
-
-                _lastListing = listing.Guid;
-                _log.Debug($"Found active listing for [{listing.Title}]");
-
-                Listing = listing;
-                ListingFound_Backing?.Invoke(Listing);
-
-                _ = GetBannerImage(listing, token);
-                _ = GetFinishImage(listing, token);
+                _log.Debug($"Fetching banner image from [{listing.BannerImage}]");
+                Sprite bannerImage = await MediaExtensions.RequestSprite(listing.BannerImage, token);
+                _bannerImage = bannerImage;
+                BannerImageCreatedBacking?.Invoke(bannerImage);
             }
             catch (OperationCanceledException)
             {
             }
             catch (Exception e)
             {
-                _log.Warn($"Exception while loading listing\n{e}");
-                _lastListing = null;
-                ListingFound_Backing?.Invoke(null);
-                BannerImageCreated_Backing?.Invoke(null);
-                FinishImageCreated_Backing?.Invoke(null);
+                _log.Error($"Exception while fetching promo banner image\n{e}");
+                BannerImageCreatedBacking?.Invoke(null);
             }
         }
+    }
 
-        private async Task GetBannerImage(Listing listing, CancellationToken token)
+    private async Task GetFinishImage(Listing listing, CancellationToken token)
+    {
+        if (_finishUrl != listing.FinishImage)
         {
-            if (_bannerUrl != listing.BannerImage)
-            {
-                _bannerUrl = listing.BannerImage;
+            _finishUrl = listing.FinishImage;
 
-                try
-                {
-                    _log.Debug($"Fetching banner image from [{listing.BannerImage}]");
-                    Sprite bannerImage = await MediaExtensions.RequestSprite(listing.BannerImage, token);
-                    _bannerImage = bannerImage;
-                    BannerImageCreated_Backing?.Invoke(bannerImage);
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (Exception e)
-                {
-                    _log.Error($"Exception while fetching promo banner image\n{e}");
-                    BannerImageCreated_Backing?.Invoke(null);
-                }
+            try
+            {
+                _log.Debug($"Fetching finish image from [{listing.FinishImage}]");
+                Sprite finishImage = await MediaExtensions.RequestSprite(listing.FinishImage, token);
+                _finishImage = finishImage;
+                FinishImageCreatedBacking?.Invoke(finishImage);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception e)
+            {
+                _log.Error($"Exception while fetching finish image\n{e}");
+                FinishImageCreatedBacking?.Invoke(null);
             }
         }
+    }
 
-        private async Task GetFinishImage(Listing listing, CancellationToken token)
+    private async Task InitializeAsync()
+    {
+        try
         {
-            if (_finishUrl != listing.FinishImage)
-            {
-                _finishUrl = listing.FinishImage;
+            CancellationToken token = _cancellationTokenManager.Reset();
+            string url = _config.Url;
+            _log.Debug($"Checking [{url}] for active listing");
+            UnityWebRequest www = UnityWebRequest.Get(url);
+            await www.SendAndVerify(token);
 
-                try
-                {
-                    _log.Debug($"Fetching finish image from [{listing.FinishImage}]");
-                    Sprite finishImage = await MediaExtensions.RequestSprite(listing.FinishImage, token);
-                    _finishImage = finishImage;
-                    FinishImageCreated_Backing?.Invoke(finishImage);
-                }
-                catch (OperationCanceledException)
-                {
-                }
-                catch (Exception e)
-                {
-                    _log.Error($"Exception while fetching finish image\n{e}");
-                    FinishImageCreated_Backing?.Invoke(null);
-                }
+            string json = www.downloadHandler.text;
+            Listing? listing = JsonConvert.DeserializeObject<Listing>(json, JsonSettings.Settings);
+            if (listing == null)
+            {
+                _log.Error("Error deserializing listing");
+                return;
             }
+
+            if (listing.Guid == _lastListing)
+            {
+                return;
+            }
+
+            _lastListing = listing.Guid;
+            _log.Debug($"Found active listing for [{listing.Title}]");
+
+            Listing = listing;
+            ListingFoundBacking?.Invoke(Listing);
+
+            _ = GetBannerImage(listing, token);
+            _ = GetFinishImage(listing, token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception e)
+        {
+            _log.Warn($"Exception while loading listing\n{e}");
+            _lastListing = null;
+            ListingFoundBacking?.Invoke(null);
+            BannerImageCreatedBacking?.Invoke(null);
+            FinishImageCreatedBacking?.Invoke(null);
         }
     }
 }

@@ -5,89 +5,88 @@ using JetBrains.Annotations;
 using Zenject;
 #endif
 
-namespace Synapse.Managers
+namespace Synapse.Managers;
+
+// TODO: fully remove heck and songcore references
+internal class HeckIntegrationManager
 {
-    // TODO: fully remove heck and songcore references
-    internal class HeckIntegrationManager
+    private readonly PlayViewManager _playViewManager;
+
+    [UsedImplicitly]
+    private HeckIntegrationManager(PlayViewManager playViewManager)
     {
-        private readonly PlayViewManager _playViewManager;
+        _playViewManager = playViewManager;
+    }
 
-        [UsedImplicitly]
-        private HeckIntegrationManager(PlayViewManager playViewManager)
-        {
-            _playViewManager = playViewManager;
-        }
-
-        internal void StartPlayViewInterruptedLevel(
-            string gameMode,
+    internal void StartPlayViewInterruptedLevel(
+        string gameMode,
 #if LATEST
-            in BeatmapKey beatmapKey,
-            BeatmapLevel beatmapLevel,
+        in BeatmapKey beatmapKey,
+        BeatmapLevel beatmapLevel,
 #else
-            IDifficultyBeatmap difficultyBeatmap,
-            IPreviewBeatmapLevel previewBeatmapLevel,
+        IDifficultyBeatmap difficultyBeatmap,
+        IPreviewBeatmapLevel previewBeatmapLevel,
 #endif
-            OverrideEnvironmentSettings? overrideEnvironmentSettings,
-            ColorScheme? overrideColorScheme,
+        OverrideEnvironmentSettings? overrideEnvironmentSettings,
+        ColorScheme? overrideColorScheme,
 #if !V1_29_1
-            ColorScheme? beatmapOverrideColorScheme,
+        ColorScheme? beatmapOverrideColorScheme,
 #endif
-            GameplayModifiers gameplayModifiers,
-            PlayerSpecificSettings playerSpecificSettings,
-            PracticeSettings? practiceSettings,
+        GameplayModifiers gameplayModifiers,
+        PlayerSpecificSettings playerSpecificSettings,
+        PracticeSettings? practiceSettings,
 #if LATEST
-            EnvironmentsListModel? environmentsListModel,
+        EnvironmentsListModel? environmentsListModel,
 #endif
-            string backButtonText,
-            bool useTestNoteCutSoundEffects,
-            bool startPaused,
-            Action? beforeSceneSwitchCallback,
+        string backButtonText,
+        bool useTestNoteCutSoundEffects,
+        bool startPaused,
+        Action? beforeSceneSwitchCallback,
 #if LATEST
-            Action<DiContainer>? afterSceneSwitchCallback,
+        Action<DiContainer>? afterSceneSwitchCallback,
 #endif
-            Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
+        Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
 #if !V1_29_1
-            Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback,
-            RecordingToolManager.SetupData? recordingToolData)
+        Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback,
+        RecordingToolManager.SetupData? recordingToolData)
 #else
-            Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback)
+        Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback)
 #endif
-        {
-            StartStandardLevelParameters parameters = new(
-                gameMode,
+    {
+        StartStandardLevelParameters parameters = new(
+            gameMode,
 #if LATEST
-                beatmapKey,
-                beatmapLevel,
+            beatmapKey,
+            beatmapLevel,
 #else
-                difficultyBeatmap,
-                previewBeatmapLevel,
+            difficultyBeatmap,
+            previewBeatmapLevel,
 #endif
-                overrideEnvironmentSettings,
-                overrideColorScheme,
+            overrideEnvironmentSettings,
+            overrideColorScheme,
 #if !V1_29_1
-                beatmapOverrideColorScheme,
+            beatmapOverrideColorScheme,
 #endif
-                gameplayModifiers,
-                playerSpecificSettings,
-                practiceSettings,
+            gameplayModifiers,
+            playerSpecificSettings,
+            practiceSettings,
 #if LATEST
-                environmentsListModel,
+            environmentsListModel,
 #endif
-                backButtonText,
-                useTestNoteCutSoundEffects,
-                startPaused,
-                beforeSceneSwitchCallback,
+            backButtonText,
+            useTestNoteCutSoundEffects,
+            startPaused,
+            beforeSceneSwitchCallback,
 #if LATEST
-                afterSceneSwitchCallback,
+            afterSceneSwitchCallback,
 #endif
-                levelFinishedCallback,
+            levelFinishedCallback,
 #if !V1_29_1
-                levelRestartedCallback,
-                recordingToolData);
+            levelRestartedCallback,
+            recordingToolData);
 #else
-                levelRestartedCallback);
+            levelRestartedCallback);
 #endif
-            _playViewManager.ForceStart(parameters);
-        }
+        _playViewManager.ForceStart(parameters);
     }
 }

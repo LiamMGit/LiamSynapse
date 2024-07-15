@@ -1,21 +1,23 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Synapse.Controllers
+namespace Synapse.Controllers;
+
+internal class OkRelay : MonoBehaviour
 {
-    internal class OkRelay : MonoBehaviour
+    internal event Action? OkPressed;
+
+    internal void KeyboardOkPressed()
     {
-        internal event Action? OkPressed;
+        OkPressed?.Invoke();
+    }
 
-        internal void KeyboardOkPressed() => OkPressed?.Invoke();
-
-        private void Start()
+    private void Start()
+    {
+        // Destroy self when other losers try to duplicate this
+        if (name != "EventChatInputField")
         {
-            // Destroy self when other losers try to duplicate this
-            if (name != "EventChatInputField")
-            {
-                Destroy(this);
-            }
+            Destroy(this);
         }
     }
 }

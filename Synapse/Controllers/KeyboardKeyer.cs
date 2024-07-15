@@ -2,77 +2,81 @@
 using IPA.Utilities;
 using UnityEngine;
 
-namespace Synapse.Controllers
+namespace Synapse.Controllers;
+
+[RequireComponent(typeof(HMUI.UIKeyboard))]
+internal class KeyboardKeyer : MonoBehaviour
 {
-    [RequireComponent(typeof(HMUI.UIKeyboard))]
-    internal class KeyboardKeyer : MonoBehaviour
+    private static readonly FieldAccessor<HMUI.UIKeyboard, Action>.Accessor _deleteButtonWasPressedEventAccessor =
+        FieldAccessor<HMUI.UIKeyboard, Action>.GetAccessor("deleteButtonWasPressedEvent");
+
+    private static readonly FieldAccessor<HMUI.UIKeyboard, Action<char>>.Accessor _keyWasPressedEventAccessor =
+        FieldAccessor<HMUI.UIKeyboard, Action<char>>.GetAccessor("keyWasPressedEvent");
+
+    private static readonly FieldAccessor<HMUI.UIKeyboard, Action>.Accessor _okButtonWasPressedEventAccessor =
+        FieldAccessor<HMUI.UIKeyboard, Action>.GetAccessor("okButtonWasPressedEvent");
+
+    private bool _caps;
+
+    private HMUI.UIKeyboard _keyboard = null!;
+
+    private void Awake()
     {
-        private static readonly FieldAccessor<HMUI.UIKeyboard, Action>.Accessor _okButtonWasPressedEventAccessor = FieldAccessor<HMUI.UIKeyboard, Action>.GetAccessor("okButtonWasPressedEvent");
-        private static readonly FieldAccessor<HMUI.UIKeyboard, Action<char>>.Accessor _keyWasPressedEventAccessor = FieldAccessor<HMUI.UIKeyboard, Action<char>>.GetAccessor("keyWasPressedEvent");
-        private static readonly FieldAccessor<HMUI.UIKeyboard, Action>.Accessor _deleteButtonWasPressedEventAccessor = FieldAccessor<HMUI.UIKeyboard, Action>.GetAccessor("deleteButtonWasPressedEvent");
+        _keyboard = GetComponent<HMUI.UIKeyboard>();
+    }
 
-        private HMUI.UIKeyboard _keyboard = null!;
+    private void OnGUI()
+    {
+        Event e = Event.current;
 
-        private bool _caps;
-
-        private void Awake()
+        if (!e.isKey)
         {
-            _keyboard = GetComponent<HMUI.UIKeyboard>();
+            return;
         }
 
-        private void OnGUI()
+        // e.capsLock documentation is incorrect
+        ////bool caps = e.capsLock;
+        bool caps = _caps;
+        if (e.shift)
         {
-            Event e = Event.current;
+            caps = !caps;
+        }
 
-            if (!e.isKey)
+        if (caps != _keyboard._shouldCapitalize)
+        {
+            _keyboard._shouldCapitalize = caps;
+            _keyboard.SetKeyboardCapitalization(caps);
+        }
+
+        if (e.type != EventType.KeyDown)
+        {
+            return;
+        }
+
+        KeyCode keyCode = e.keyCode;
+        if (keyCode != KeyCode.None)
+        {
+            switch (keyCode)
             {
-                return;
-            }
+                case KeyCode.Backspace:
+                    MulticastDelegate deleteDelegate = _deleteButtonWasPressedEventAccessor(ref _keyboard);
+                    deleteDelegate?.DynamicInvoke();
+                    break;
 
-            // e.capsLock documentation is incorrect
-            ////bool caps = e.capsLock;
-            bool caps = _caps;
-            if (e.shift)
-            {
-                caps = !caps;
-            }
+                case KeyCode.Return:
+                    MulticastDelegate okDelegate = _okButtonWasPressedEventAccessor(ref _keyboard);
+                    okDelegate?.DynamicInvoke();
+                    break;
 
-            if (caps != _keyboard._shouldCapitalize)
-            {
-                _keyboard._shouldCapitalize = caps;
-                _keyboard.SetKeyboardCapitalization(caps);
+                case KeyCode.CapsLock:
+                    _caps = !_caps;
+                    break;
             }
-
-            if (e.type != EventType.KeyDown)
-            {
-                return;
-            }
-
-            KeyCode keyCode = e.keyCode;
-            if (keyCode != KeyCode.None)
-            {
-                switch (keyCode)
-                {
-                    case KeyCode.Backspace:
-                        MulticastDelegate deleteDelegate = _deleteButtonWasPressedEventAccessor(ref _keyboard);
-                        deleteDelegate?.DynamicInvoke();
-                        break;
-
-                    case KeyCode.Return:
-                        MulticastDelegate okDelegate = _okButtonWasPressedEventAccessor(ref _keyboard);
-                        okDelegate?.DynamicInvoke();
-                        break;
-
-                    case KeyCode.CapsLock:
-                        _caps = !_caps;
-                        break;
-                }
-            }
-            else if (!char.IsControl(e.character))
-            {
-                MulticastDelegate keyDelegate = _keyWasPressedEventAccessor(ref _keyboard);
-                keyDelegate?.DynamicInvoke(e.character);
-            }
+        }
+        else if (!char.IsControl(e.character))
+        {
+            MulticastDelegate keyDelegate = _keyWasPressedEventAccessor(ref _keyboard);
+            keyDelegate?.DynamicInvoke(e.character);
         }
     }
 }
