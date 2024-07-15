@@ -20,6 +20,7 @@ internal class QuitLevelManager : IDisposable
         _prepareLevelCompletionResults = prepareLevelCompletionResults;
         _standardLevelScenesTransitionSetupDataSo = standardLevelScenesTransitionSetupDataSo;
         networkManager.StopLevelReceived += OnStopLevelReceived;
+        networkManager.Disconnected += OnDisconnected;
     }
 
     public void Dispose()
@@ -27,7 +28,11 @@ internal class QuitLevelManager : IDisposable
         _networkManager.StopLevelReceived -= OnStopLevelReceived;
     }
 
-    private void OnStopLevelReceived()
+    private void OnStopLevelReceived() => StopLevel();
+
+    private void OnDisconnected(string _) => StopLevel();
+
+    private void StopLevel()
     {
         LevelCompletionResults levelCompletionResults = _prepareLevelCompletionResults.FillLevelCompletionResults(
             LevelCompletionResults.LevelEndStateType.Incomplete,
@@ -35,21 +40,4 @@ internal class QuitLevelManager : IDisposable
         UnityMainThreadTaskScheduler.Factory.StartNew(
             () => { _standardLevelScenesTransitionSetupDataSo.Finish(levelCompletionResults); });
     }
-
-    /*private async Task StopLevel()
-    {
-        LevelCompletionResults levelCompletionResults = _prepareLevelCompletionResults.FillLevelCompletionResults(
-            LevelCompletionResults.LevelEndStateType.Incomplete, LevelCompletionResults.LevelEndAction.None);
-        await UnityMainThreadTaskScheduler.Factory.StartNew(() =>
-        {
-            _gameSongController.FailStopSong();
-            _beatmapObjectSpawnController.StopSpawning();
-            _beatmapObjectManager.DissolveAllObjects();
-        });
-        await Task.Delay(1000);
-        await UnityMainThreadTaskScheduler.Factory.StartNew(() =>
-        {
-            _standardLevelScenesTransitionSetupDataSo.Finish(levelCompletionResults);
-        });
-    }*/
 }

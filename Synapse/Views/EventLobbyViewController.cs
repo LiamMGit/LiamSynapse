@@ -163,7 +163,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         set
         {
             _config.JoinChat = value;
-            _ = _networkManager.SendBool(value, ServerOpcode.SetChatter);
+            _ = _networkManager.Send(ServerOpcode.SetChatter, value);
         }
     }
 
@@ -244,7 +244,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
 
         if (addedToHierarchy)
         {
-            _messageManager.MessageRecieved += OnMessageRecieved;
+            _messageManager.MessageReceived += OnMessageReceived;
             _messageManager.RefreshMotd();
             _listingManager.FinishImageCreated += OnFinishImageCreated;
             _networkManager.UserBanned += OnUserBanned;
@@ -277,7 +277,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
                 Destroy(obj.gameObject);
             }
 
-            _messageManager.MessageRecieved -= OnMessageRecieved;
+            _messageManager.MessageReceived -= OnMessageReceived;
             _networkManager.UserBanned -= OnUserBanned;
             _networkManager.PlayerScoreUpdated -= OnPlayerScoreUpdate;
             _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
@@ -556,7 +556,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         RefreshSongInfo();
     }
 
-    private void OnMessageRecieved(ChatMessage message)
+    private void OnMessageReceived(ChatMessage message)
     {
         _messageQueue.Add(message);
     }

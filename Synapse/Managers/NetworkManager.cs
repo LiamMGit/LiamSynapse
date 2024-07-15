@@ -64,7 +64,7 @@ internal class NetworkManager : IDisposable
         _tokenTask = GetToken();
     }
 
-    internal event Action<ChatMessage>? ChatRecieved;
+    internal event Action<ChatMessage>? ChatReceived;
 
     ////internal event Action<FailReason>? ConnectionFailed;
 
@@ -105,7 +105,7 @@ internal class NetworkManager : IDisposable
         _log.Warn($"Disconnected from {_address} ({reason})");
         if (local && _client.IsConnected)
         {
-            await SendOpcode(ServerOpcode.Disconnect);
+            await Send(ServerOpcode.Disconnect);
         }
 
         _client.Disconnect();
@@ -130,79 +130,65 @@ internal class NetworkManager : IDisposable
 
         Status = new Status();
         AsyncTcpClient client = new();
-        int portidx = stringAddress.LastIndexOf(':');
-        IPAddress address = IPAddress.Parse(stringAddress.Substring(0, portidx));
-        int port = int.Parse(stringAddress.Substring(portidx + 1));
+        int portIdx = stringAddress.LastIndexOf(':');
+        IPAddress address = IPAddress.Parse(stringAddress.Substring(0, portIdx));
+        int port = int.Parse(stringAddress.Substring(portIdx + 1));
         _address = $"{address}:{port}";
         _log.Info($"Connecting to {_address}");
         client.IPAddress = address;
         client.Port = port;
         client.AutoReconnect = true;
         client.AutoReconnectTries = 2;
-        client.Message += OnMessageRecieved;
+        client.Message += OnMessageReceived;
         client.ConnectedCallback += OnConnected;
         client.ReceivedCallback += OnReceived;
         _client = client;
         await client.RunAsync();
-        client.Message -= OnMessageRecieved;
+        client.Message -= OnMessageReceived;
         client.ConnectedCallback -= OnConnected;
         client.ReceivedCallback -= OnReceived;
         client.Dispose();
         _client = null;
     }
 
-    internal async Task Send(byte[] bytes)
+    internal async Task Send(ArraySegment<byte> data)
     {
-        ushort ushortLength = (ushort)(bytes.Length + 2);
-        byte[] newValues = new byte[bytes.Length + 2];
-        newValues[0] = (byte)ushortLength;
-        newValues[1] = (byte)((uint)ushortLength >> 8);
-        Array.Copy(bytes, 0, newValues, 2, bytes.Length);
-        ArraySegment<byte> packet = new(newValues, 0, newValues.Length);
         if (_client is not { IsConnected: true })
         {
             _log.Error("Client not connected! Delaying sending packet");
             _log.Error(new StackTrace());
-            _queuedPackets.Add(packet);
+            _queuedPackets.Add(data);
             return;
         }
 
-        await _client.Send(packet);
+        await _client.Send(data);
     }
 
-    internal async Task SendBool(bool message, ServerOpcode opcode)
+    internal async Task Send(ServerOpcode opcode)
     {
-        using MemoryStream stream = new();
-        using BinaryWriter writer = new(stream);
-        writer.Write((byte)opcode);
-        writer.Write(message);
-        await Send(stream.ToArray());
+        using PacketBuilder packetBuilder = new(opcode);
+        await Send(packetBuilder.ToSegment());
     }
 
-    internal async Task SendInt(int message, ServerOpcode opcode)
+    internal async Task Send(ServerOpcode opcode, bool value)
     {
-        using MemoryStream stream = new();
-        using BinaryWriter writer = new(stream);
-        writer.Write((byte)opcode);
-        writer.Write(message);
-        await Send(stream.ToArray());
+        using PacketBuilder packetBuilder = new(opcode);
+        packetBuilder.Write(value);
+        await Send(packetBuilder.ToSegment());
     }
 
-    internal async Task SendOpcode(ServerOpcode opcode)
+    internal async Task Send(ServerOpcode opcode, int value)
     {
-        using MemoryStream stream = new();
-        using BinaryWriter writer = new(stream);
-        writer.Write((byte)opcode);
-        await Send(stream.ToArray());
+        using PacketBuilder packetBuilder = new(opcode);
+        packetBuilder.Write(value);
+        await Send(packetBuilder.ToSegment());
     }
 
-    internal async Task SendString(string message, ServerOpcode opcode)
+    internal async Task Send(ServerOpcode opcode, string value)
     {
-        using MemoryStream stream = new();
-        using BinaryWriter writer = new(stream);
-        writer.Write((byte)opcode);
-        writer.Write(message);
-        await Send(stream.ToArray());
+        using PacketBuilder packetBuilder = new(opcode);
+        packetBuilder.Write(value);
+        await Send(packetBuilder.ToSegment());
     }
 
     private async Task<AuthenticationToken> GetToken()
@@ -231,17 +217,14 @@ internal class NetworkManager : IDisposable
                     : $"Successfully connected to {_address}");
             Connecting?.Invoke(Stage.Authenticating, -1);
 
-            using MemoryStream stream = new();
-            using BinaryWriter writer = new(stream);
             AuthenticationToken token = await _tokenTask;
-            writer.Write((byte)ServerOpcode.Authentication);
-            writer.Write(token.userId);
-            writer.Write(token.userName);
-            writer.Write((byte)token.platform);
-            writer.Write(token.sessionToken);
-            writer.Write(_listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded"));
-            byte[] bytes = stream.ToArray();
-            await Send(bytes);
+            using PacketBuilder packetBuilder = new(ServerOpcode.Authentication);
+            packetBuilder.Write(token.userId);
+            packetBuilder.Write(token.userName);
+            packetBuilder.Write((byte)token.platform);
+            packetBuilder.Write(token.sessionToken);
+            packetBuilder.Write(_listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded"));
+            await Send(packetBuilder.ToSegment());
 
             ArraySegment<byte>[] queued = _queuedPackets.ToArray();
             _queuedPackets.Clear();
@@ -257,7 +240,7 @@ internal class NetworkManager : IDisposable
         }
     }
 
-    private void OnMessageRecieved(object _, AsyncTcpEventArgs args)
+    private void OnMessageReceived(object _, AsyncTcpEventArgs args)
     {
         if (args.Exception != null)
         {
@@ -376,7 +359,7 @@ internal class NetworkManager : IDisposable
                 Connecting?.Invoke(Stage.ReceivingData, -1);
                 if (_config.JoinChat ?? false)
                 {
-                    _ = SendBool(true, ServerOpcode.SetChatter);
+                    _ = Send(ServerOpcode.SetChatter, true);
                 }
 
                 break;
@@ -436,7 +419,7 @@ internal class NetworkManager : IDisposable
             case ClientOpcode.ChatMessage:
             {
                 string message = reader.ReadString();
-                ChatRecieved?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message, JsonSettings.Settings));
+                ChatReceived?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message, JsonSettings.Settings));
 
                 break;
             }

@@ -253,7 +253,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     {
         _loadingControl.ShowLoading();
         _leaderboardTable.SetScores(null, -1);
-        _ = _networkManager.SendInt(_index, ServerOpcode.LeaderboardRequest);
+        _ = _networkManager.Send(ServerOpcode.LeaderboardRequest, _index);
     }
 
     [UsedImplicitly]
@@ -274,13 +274,13 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
 
         // Have to be destroyed with DestroyImmediate otherwise the leaderboard sinks
         List<SegmentedControlCell> cells = _textSegments._cells;
-        List<GameObject> seperators = _textSegments._separators;
+        List<GameObject> separators = _textSegments._separators;
 
         // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         cells.Where(n => n != null && n.gameObject != null).Do(n => DestroyImmediate(n.gameObject));
         cells.Clear();
-        seperators.ForEach(DestroyImmediate);
-        seperators.Clear();
+        separators.ForEach(DestroyImmediate);
+        separators.Clear();
 
         if (_index >= _textSegmentTexts.Length)
         {

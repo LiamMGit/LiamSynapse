@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 
-namespace Synapse.Extras;
+namespace Synapse.Managers;
 
 [UsedImplicitly]
 internal class PingManager

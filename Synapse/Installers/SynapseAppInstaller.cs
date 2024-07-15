@@ -1,5 +1,4 @@
 ﻿using JetBrains.Annotations;
-using Synapse.Extras;
 using Synapse.HarmonyPatches;
 using Synapse.Managers;
 using Zenject;

@@ -152,7 +152,7 @@ internal class EventFlowCoordinator : FlowCoordinator
                             {
                                 case 0:
                                     _config.JoinChat = true;
-                                    _ = _networkManager.SendBool(true, ServerOpcode.SetChatter);
+                                    _ = _networkManager.Send(ServerOpcode.SetChatter, true);
                                     break;
 
                                 case 1:
@@ -457,7 +457,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         };
         string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
         _log.Warn(scoreJson);
-        _ = _networkManager.SendString(scoreJson, ServerOpcode.ScoreSubmission);
+        _ = _networkManager.Send(ServerOpcode.ScoreSubmission, scoreJson);
         _leaderboardViewController.ChangeSelection(index);
     }
 

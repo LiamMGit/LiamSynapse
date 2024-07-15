@@ -38,7 +38,7 @@ internal class TestScoreManager : ITickable
         };
         string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
         _log.Info(scoreJson);
-        _ = _networkManager.SendString(scoreJson, ServerOpcode.ScoreSubmission);
+        _ = _networkManager.Send(ServerOpcode.ScoreSubmission, scoreJson);
     }
 }
 #endif

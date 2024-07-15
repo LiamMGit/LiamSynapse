@@ -3,7 +3,6 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
-using Synapse.Extras;
 using Synapse.Models;
 
 namespace Synapse.Managers;
@@ -20,18 +19,18 @@ internal sealed class MessageManager : IDisposable
         _pingManager = pingManager;
         networkManager.Closed += OnClosed;
         networkManager.Connecting += OnConnecting;
-        networkManager.ChatRecieved += OnChatMessageRecieved;
+        networkManager.ChatReceived += OnChatMessageReceived;
         networkManager.MotdUpdated += OnMotdUpdated;
         pingManager.Finished += RelaySystemMessage;
     }
 
-    internal event Action<ChatMessage>? MessageRecieved;
+    internal event Action<ChatMessage>? MessageReceived;
 
     public void Dispose()
     {
         _networkManager.Closed -= OnClosed;
         _networkManager.Connecting -= OnConnecting;
-        _networkManager.ChatRecieved -= OnChatMessageRecieved;
+        _networkManager.ChatReceived -= OnChatMessageReceived;
         _networkManager.MotdUpdated -= OnMotdUpdated;
         _pingManager.Finished -= RelaySystemMessage;
     }
@@ -61,23 +60,23 @@ internal sealed class MessageManager : IDisposable
                 if (message == "ping")
                 {
                     _pingManager.Start();
-                    await _networkManager.SendOpcode(ServerOpcode.Ping);
+                    await _networkManager.Send(ServerOpcode.Ping);
                 }
                 else
                 {
-                    await _networkManager.SendString(message, ServerOpcode.Command);
+                    await _networkManager.Send(ServerOpcode.Command, message);
                 }
             }
         }
         else
         {
-            await _networkManager.SendString(message, ServerOpcode.ChatMessage);
+            await _networkManager.Send(ServerOpcode.ChatMessage, message);
         }
     }
 
-    private void OnChatMessageRecieved(ChatMessage messages)
+    private void OnChatMessageReceived(ChatMessage messages)
     {
-        MessageRecieved?.Invoke(messages);
+        MessageReceived?.Invoke(messages);
     }
 
     private void OnClosed(ClosedReason closedReason)
@@ -114,12 +113,12 @@ internal sealed class MessageManager : IDisposable
 
     private void OnMotdUpdated(string message)
     {
-        MessageRecieved?.Invoke(new ChatMessage(string.Empty, string.Empty, null, MessageType.System, message));
+        MessageReceived?.Invoke(new ChatMessage(string.Empty, string.Empty, null, MessageType.System, message));
     }
 
     private void RelaySystemMessage(string message)
     {
         ////message = $"<color=\"yellow\">{message}</color>";
-        MessageRecieved?.Invoke(new ChatMessage(string.Empty, string.Empty, "yellow", MessageType.System, message));
+        MessageReceived?.Invoke(new ChatMessage(string.Empty, string.Empty, "yellow", MessageType.System, message));
     }
 }
