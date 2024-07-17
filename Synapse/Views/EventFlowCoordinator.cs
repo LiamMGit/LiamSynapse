@@ -36,6 +36,7 @@ internal class EventFlowCoordinator : FlowCoordinator
     private PrefabManager _prefabManager = null!;
     private ResultsViewController _resultsViewController = null!;
     private SimpleDialogPromptViewController _simpleDialogPromptViewController = null!;
+    private TimeSyncManager _timeSyncManager = null!;
     private CancellationTokenSource? _startCancel;
     private Queue<Action> _transitionFinished = new();
 
@@ -148,17 +149,11 @@ internal class EventFlowCoordinator : FlowCoordinator
                         "No",
                         n =>
                         {
-                            switch (n)
+                            _config.JoinChat = n switch
                             {
-                                case 0:
-                                    _config.JoinChat = true;
-                                    _ = _networkManager.Send(ServerOpcode.SetChatter, true);
-                                    break;
-
-                                case 1:
-                                    _config.JoinChat = false;
-                                    break;
-                            }
+                                0 => true,
+                                _ => false
+                            };
 
                             TransitionFinished += () =>
                             {
@@ -264,7 +259,8 @@ internal class EventFlowCoordinator : FlowCoordinator
         LevelStartManager levelStartManager,
         ListingManager listingManager,
         NetworkManager networkManager,
-        PrefabManager prefabManager)
+        PrefabManager prefabManager,
+        TimeSyncManager timeSyncManager)
     {
         _log = log;
         _config = config;
@@ -281,14 +277,15 @@ internal class EventFlowCoordinator : FlowCoordinator
         listingManager.ListingFound += OnListingFound;
         _networkManager = networkManager;
         _prefabManager = prefabManager;
+        _timeSyncManager = timeSyncManager;
     }
 
-    private async Task DelayedStart(DateTime startTime, CancellationToken token)
+    private async Task DelayedStart(float startTime, CancellationToken token)
     {
-        TimeSpan diff = startTime - DateTime.UtcNow;
-        if (diff.Ticks > 0)
+        float diff = startTime - _timeSyncManager.SyncTime;
+        if (diff > 0)
         {
-            await Task.Delay(diff, token);
+            await Task.Delay(diff.ToTimeSpan(), token);
         }
 
         TransitionFinished += () =>
@@ -434,7 +431,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         };
     }
 
-    private void OnStartTimeUpdated(DateTime? startTime)
+    private void OnStartTimeUpdated(float? startTime)
     {
         if (startTime == null ||
             (_networkManager.Status.PlayerScore != null &&

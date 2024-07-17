@@ -11,7 +11,7 @@ public record Status
 
     public int Index { get; private set; } = -1;
 
-    public DateTime? StartTime { get; private set; }
+    public float? StartTime { get; private set; }
 
     public PlayerScore? PlayerScore { get; init; }
 

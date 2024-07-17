@@ -138,6 +138,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
     private MapDownloadingManager _mapDownloadingManager = null!;
     private CancellationTokenManager _cancellationTokenManager = null!;
     private IInstantiator _instantiator = null!;
+    private TimeSyncManager _timeSyncManager = null!;
 
     private InputFieldView _input = null!;
     private OkRelay _okRelay = null!;
@@ -150,7 +151,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
 #else
     private IPreviewBeatmapLevel? _beatmapLevel;
 #endif
-    private DateTime? _startTime;
+    private float? _startTime;
     private PlayerScore? _playerScore;
 
     public event Action? StartLevel;
@@ -300,7 +301,8 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         MapDownloadingManager mapDownloadingManager,
         CancellationTokenManager cancellationTokenManager,
         CountdownManager countdownManager,
-        IInstantiator instantiator)
+        IInstantiator instantiator,
+        TimeSyncManager timeSyncManager)
     {
         _log = log;
         _config = config;
@@ -311,6 +313,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         _cancellationTokenManager = cancellationTokenManager;
         _countdownManager = countdownManager;
         _instantiator = instantiator;
+        _timeSyncManager = timeSyncManager;
     }
 
     private void Awake()
@@ -357,7 +360,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
                 string messageString = message.Message;
                 string usernameString = message.Username;
                 string? colorString = message.Color;
-                if (ProfanityFilter)
+                if (message.Type != MessageType.System && ProfanityFilter)
                 {
                     messageString = _profanityFilter.CensorString(messageString);
                     usernameString = _profanityFilter.CensorString(usernameString);
@@ -524,7 +527,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         }
         else
         {
-            if (_startTime == null || _startTime > DateTime.UtcNow)
+            if (_startTime == null || _startTime > _timeSyncManager.SyncTime)
             {
                 _startObject.SetActive(false);
                 _scoreObject.SetActive(false);
@@ -573,7 +576,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);
     }
 
-    private void OnStartTimeUpdated(DateTime? startTime)
+    private void OnStartTimeUpdated(float? startTime)
     {
         _startTime = startTime;
         UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);

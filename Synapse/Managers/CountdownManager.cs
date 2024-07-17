@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using SiraUtil.Logging;
+using Synapse.Extras;
 using UnityEngine;
 using UnityEngine.Audio;
 using Zenject;
@@ -11,7 +12,7 @@ using Object = UnityEngine.Object;
 
 namespace Synapse.Managers;
 
-internal class CountdownManager : ITickable, IInitializable
+internal class CountdownManager : ITickable, IInitializable, IDisposable
 {
     private static readonly string _folder =
         Directory.CreateDirectory(
@@ -20,6 +21,8 @@ internal class CountdownManager : ITickable, IInitializable
             .FullName;
 
     private readonly SiraLog _log;
+    private readonly NetworkManager _networkManager;
+    private readonly TimeSyncManager _timeSyncManager;
     private readonly SongPreviewPlayer _songPreviewPlayer;
     private AudioClip[] _audioClips = null!;
     private AudioSource _countAudioSource = null!;
@@ -31,23 +34,22 @@ internal class CountdownManager : ITickable, IInitializable
     private int _lastPlayed;
     private string _lastSent = string.Empty;
 
-    private DateTime? _startTime;
+    // in local time
+    private float? _startTime;
 
     private CountdownManager(
         SiraLog log,
         NetworkManager networkManager,
+        TimeSyncManager timeSyncManager,
         AudioClipAsyncLoader audioClipAsyncLoader,
         SongPreviewPlayer songPreviewPlayer)
     {
         _log = log;
+        _networkManager = networkManager;
+        _timeSyncManager = timeSyncManager;
         _songPreviewPlayer = songPreviewPlayer;
-        networkManager.StartTimeUpdated += n => _startTime = n;
-        networkManager.Closed += _ =>
-        {
-            _startTime = null;
-            _gongPlayed = false;
-            _lastPlayed = -1;
-        };
+        networkManager.StartTimeUpdated += OnStartTimeUpdated;
+        networkManager.Closed += OnClosed;
 
         _ = LoadAudio(audioClipAsyncLoader);
     }
@@ -74,6 +76,12 @@ internal class CountdownManager : ITickable, IInitializable
         _countAudioSource = count;
     }
 
+    public void Dispose()
+    {
+        _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
+        _networkManager.Closed -= OnClosed;
+    }
+
     public void Tick()
     {
         if (_startTime == null)
@@ -82,7 +90,7 @@ internal class CountdownManager : ITickable, IInitializable
             return;
         }
 
-        TimeSpan diff = _startTime.Value - DateTime.UtcNow;
+        TimeSpan diff = (_startTime.Value - _timeSyncManager.ElapsedSeconds).ToTimeSpan();
         TimeSpan alteredDiff = diff + TimeSpan.FromSeconds(1);
         if ((int)alteredDiff.TotalHours > 0)
         {
@@ -119,8 +127,6 @@ internal class CountdownManager : ITickable, IInitializable
         }
         else
         {
-            _gongPlayed = false;
-
             _hue = Mathf.Repeat(_hue + (0.6f * Time.deltaTime), 1);
             Color col = Color.HSVToRGB(Mathf.Repeat(_hue, 1), 0.8f, 1);
 
@@ -173,5 +179,24 @@ internal class CountdownManager : ITickable, IInitializable
 
         _lastSent = text;
         CountdownUpdated?.Invoke(text);
+    }
+
+    private void OnStartTimeUpdated(float? startTime)
+    {
+        if (startTime == null)
+        {
+            _startTime = null;
+            return;
+        }
+
+        _gongPlayed = false;
+        _startTime = startTime - _timeSyncManager.Offset;
+    }
+
+    private void OnClosed(ClosedReason reason)
+    {
+        _startTime = null;
+        _gongPlayed = false;
+        _lastPlayed = -1;
     }
 }

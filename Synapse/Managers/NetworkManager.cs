@@ -37,7 +37,6 @@ internal class NetworkManager : IDisposable
     private readonly Config _config;
     private readonly ListingManager _listingManager;
     private readonly SiraLog _log;
-    private readonly PingManager _pingManager;
     private readonly IPlatformUserModel _platformUserModel;
 
     private readonly List<ArraySegment<byte>> _queuedPackets = [];
@@ -53,18 +52,14 @@ internal class NetworkManager : IDisposable
         SiraLog log,
         Config config,
         IPlatformUserModel platformUserModel,
-        ListingManager listingManager,
-        PingManager pingManager)
+        ListingManager listingManager)
     {
         _log = log;
         _config = config;
         _platformUserModel = platformUserModel;
         _listingManager = listingManager;
-        _pingManager = pingManager;
         _tokenTask = GetToken();
     }
-
-    internal event Action<ChatMessage>? ChatReceived;
 
     ////internal event Action<FailReason>? ConnectionFailed;
 
@@ -74,6 +69,8 @@ internal class NetworkManager : IDisposable
 
     internal event Action<string>? Disconnected;
 
+    internal event Action<ChatMessage>? ChatReceived;
+
     internal event Action<LeaderboardScores>? LeaderboardReceived;
 
     internal event Action<int, Map?>? MapUpdated;
@@ -82,11 +79,13 @@ internal class NetworkManager : IDisposable
 
     internal event Action<PlayerScore?>? PlayerScoreUpdated;
 
-    internal event Action<DateTime?>? StartTimeUpdated;
+    internal event Action<float?>? StartTimeUpdated;
 
     internal event Action? StopLevelReceived;
 
     internal event Action<string>? UserBanned;
+
+    internal event Action<float, float>? PongReceived;
 
     internal Status Status { get; private set; } = new();
 
@@ -382,7 +381,9 @@ internal class NetworkManager : IDisposable
             }
 
             case ClientOpcode.Ping:
-                _pingManager.Stop();
+                float clientTime = reader.ReadSingle();
+                float serverTime = reader.ReadSingle();
+                PongReceived?.Invoke(clientTime, serverTime);
                 break;
 
             case ClientOpcode.PlayStatus:
@@ -403,7 +404,11 @@ internal class NetworkManager : IDisposable
                     MapUpdated?.Invoke(status.Index, status.Map);
                 }
 
-                if (lastStatus.StartTime != status.StartTime)
+                // i hate floats
+                if ((lastStatus.StartTime == null && status.StartTime != null) ||
+                    (lastStatus.StartTime != null && status.StartTime == null) ||
+                    (lastStatus.StartTime != null && status.StartTime != null &&
+                     Math.Abs(lastStatus.StartTime.Value - status.StartTime.Value) > 0.001))
                 {
                     StartTimeUpdated?.Invoke(status.StartTime);
                 }

@@ -10,18 +10,17 @@ namespace Synapse.Managers;
 internal sealed class MessageManager : IDisposable
 {
     private readonly NetworkManager _networkManager;
-    private readonly PingManager _pingManager;
+    private readonly TimeSyncManager _timeSyncManager;
 
     [UsedImplicitly]
-    private MessageManager(SiraLog log, NetworkManager networkManager, PingManager pingManager)
+    private MessageManager(SiraLog log, NetworkManager networkManager, TimeSyncManager timeSyncManager)
     {
         _networkManager = networkManager;
-        _pingManager = pingManager;
+        _timeSyncManager = timeSyncManager;
         networkManager.Closed += OnClosed;
         networkManager.Connecting += OnConnecting;
         networkManager.ChatReceived += OnChatMessageReceived;
         networkManager.MotdUpdated += OnMotdUpdated;
-        pingManager.Finished += RelaySystemMessage;
     }
 
     internal event Action<ChatMessage>? MessageReceived;
@@ -32,7 +31,6 @@ internal sealed class MessageManager : IDisposable
         _networkManager.Connecting -= OnConnecting;
         _networkManager.ChatReceived -= OnChatMessageReceived;
         _networkManager.MotdUpdated -= OnMotdUpdated;
-        _pingManager.Finished -= RelaySystemMessage;
     }
 
     internal void RefreshMotd()
@@ -59,8 +57,13 @@ internal sealed class MessageManager : IDisposable
                 message = message.Substring(1);
                 if (message == "ping")
                 {
-                    _pingManager.Start();
-                    await _networkManager.Send(ServerOpcode.Ping);
+                    float latency = _timeSyncManager.Latency;
+                    MessageReceived?.Invoke(new ChatMessage(
+                        string.Empty,
+                        string.Empty,
+                        "yellow",
+                        MessageType.System,
+                        $"{(latency > 999 ? "999+" : latency.ToString("F0"))} ms"));
                 }
                 else
                 {

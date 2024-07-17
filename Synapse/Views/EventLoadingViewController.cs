@@ -27,10 +27,12 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
     private bool _finished;
 
     private bool _mapUpdated;
+    private bool _prefabDownloaded;
+    private bool _timeSynced;
 
     private NetworkManager _networkManager = null!;
-    private bool _prefabDownloaded;
     private PrefabManager _prefabManager = null!;
+    private TimeSyncManager _timeSyncManager = null!;
 
     internal event Action<string?>? Finished;
 
@@ -38,7 +40,8 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
     {
         Joining,
         Connecting,
-        PrefabDownload
+        DownloadingPrefab,
+        Synchronizing
     }
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
@@ -52,6 +55,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         _networkManager.Connecting += OnConnecting;
         _networkManager.MapUpdated += OnMapUpdated;
         _prefabManager.Loaded += OnPrefabLoaded;
+        _timeSyncManager.Synced += OnSynced;
     }
 
     protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
@@ -60,14 +64,16 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         _networkManager.Connecting -= OnConnecting;
         _networkManager.MapUpdated -= OnMapUpdated;
         _prefabManager.Loaded -= OnPrefabLoaded;
+        _timeSyncManager.Synced -= OnSynced;
     }
 
     [UsedImplicitly]
     [Inject]
-    private void Construct(NetworkManager networkManager, PrefabManager prefabManager)
+    private void Construct(NetworkManager networkManager, PrefabManager prefabManager, TimeSyncManager timeSyncManager)
     {
         _networkManager = networkManager;
         _prefabManager = prefabManager;
+        _timeSyncManager = timeSyncManager;
     }
 
     private void Finish(string? error = null)
@@ -125,18 +131,37 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         Refresh();
     }
 
+    private void OnSynced(bool success)
+    {
+        if (!success)
+        {
+            Finish("Time sync timed out");
+            return;
+        }
+
+        _timeSynced = true;
+        Refresh();
+    }
+
     private void Refresh()
     {
         if (_mapUpdated)
         {
             if (_prefabDownloaded)
             {
-                _display = Display.Joining;
-                Finish();
+                if (_timeSynced)
+                {
+                    _display = Display.Joining;
+                    Finish();
+                }
+                else
+                {
+                    _display = Display.Synchronizing;
+                }
             }
             else
             {
-                _display = Display.PrefabDownload;
+                _display = Display.DownloadingPrefab;
             }
         }
         else
@@ -153,7 +178,8 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         {
             Display.Connecting => _connectingText,
             Display.Joining => "Joining...",
-            Display.PrefabDownload => $"Downloading assets... {_prefabManager.DownloadProgress:0%}",
+            Display.DownloadingPrefab => $"Downloading assets... {_prefabManager.DownloadProgress:0%}",
+            Display.Synchronizing => "Synchronizing...",
             _ => "ERR"
         };
         _textObject.text = text;
