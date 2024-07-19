@@ -6,7 +6,7 @@ public enum ClientOpcode
     Disconnected = 1,
     RefusedPacket = 2,
     Ping = 3,
-    PlayStatus = 4,
+    Status = 4,
     ChatMessage = 10,
     UserBanned = 11,
     LeaderboardScores = 21,

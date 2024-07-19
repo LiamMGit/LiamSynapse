@@ -25,14 +25,15 @@ internal class TestScoreManager : ITickable
 
     public void Tick()
     {
-        if (!Input.GetKeyDown(KeyCode.KeypadPlus))
+        if (!Input.GetKeyDown(KeyCode.KeypadPlus) ||
+            _networkManager.Status.Stage is not PlayStatus playStatus)
         {
             return;
         }
 
         ScoreSubmission scoreSubmission = new()
         {
-            Index = _networkManager.Status.Index,
+            Index = playStatus.Index,
             Score = _random.Next(999999),
             Percentage = (float)_random.NextDouble()
         };

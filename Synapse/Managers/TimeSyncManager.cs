@@ -62,9 +62,9 @@ internal class TimeSyncManager : IDisposable
         _networkManager.Disconnected -= OnDisconnected;
     }
 
-    internal void OnConnecting(Stage stage, int retries)
+    internal void OnConnecting(ConnectingStage connectingStage, int retries)
     {
-        if (stage == Stage.ReceivingData)
+        if (connectingStage == ConnectingStage.ReceivingData)
         {
             _ = StartSync();
         }

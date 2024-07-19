@@ -14,7 +14,7 @@ using Unclassified.Net;
 
 namespace Synapse.Managers;
 
-internal enum Stage
+internal enum ConnectingStage
 {
     Connecting,
     Authenticating,
@@ -65,7 +65,7 @@ internal class NetworkManager : IDisposable
 
     internal event Action<ClosedReason>? Closed;
 
-    internal event Action<Stage, int>? Connecting;
+    internal event Action<ConnectingStage, int>? Connecting;
 
     internal event Action<string>? Disconnected;
 
@@ -73,13 +73,17 @@ internal class NetworkManager : IDisposable
 
     internal event Action<LeaderboardScores>? LeaderboardReceived;
 
-    internal event Action<int, Map?>? MapUpdated;
-
     internal event Action<string>? MotdUpdated;
+
+    internal event Action<IStageStatus>? StageUpdated;
+
+    internal event Action<int, Map>? MapUpdated;
 
     internal event Action<PlayerScore?>? PlayerScoreUpdated;
 
-    internal event Action<float?>? StartTimeUpdated;
+    internal event Action<string>? FinishUrlUpdated;
+
+    internal event Action<float>? StartTimeUpdated;
 
     internal event Action? StopLevelReceived;
 
@@ -214,7 +218,7 @@ internal class NetworkManager : IDisposable
                 isReconnected
                     ? $"Successfully reconnected to {_address}"
                     : $"Successfully connected to {_address}");
-            Connecting?.Invoke(Stage.Authenticating, -1);
+            Connecting?.Invoke(ConnectingStage.Authenticating, -1);
 
             AuthenticationToken token = await _tokenTask;
             using PacketBuilder packetBuilder = new(ServerOpcode.Authentication);
@@ -254,15 +258,15 @@ internal class NetworkManager : IDisposable
         switch (args.Message)
         {
             case Message.FailedAfterRetries:
-                Connecting?.Invoke(Stage.Failed, args.ReconnectTries);
+                Connecting?.Invoke(ConnectingStage.Failed, args.ReconnectTries);
                 break;
 
             case Message.Connecting:
-                Connecting?.Invoke(Stage.Connecting, args.ReconnectTries);
+                Connecting?.Invoke(ConnectingStage.Connecting, args.ReconnectTries);
                 break;
 
             case Message.Timeout:
-                Connecting?.Invoke(Stage.Timeout, args.ReconnectTries);
+                Connecting?.Invoke(ConnectingStage.Timeout, args.ReconnectTries);
                 break;
 
             case Message.ConnectionAborted:
@@ -275,12 +279,12 @@ internal class NetworkManager : IDisposable
                 switch (error)
                 {
                     case SocketError.ConnectionRefused:
-                        Connecting?.Invoke(Stage.Refused, args.ReconnectTries);
+                        Connecting?.Invoke(ConnectingStage.Refused, args.ReconnectTries);
                         break;
 
                     default:
                         _log.Warn($"Unhandled socket error: {error}");
-                        Connecting?.Invoke((Stage)error, args.ReconnectTries);
+                        Connecting?.Invoke((ConnectingStage)error, args.ReconnectTries);
                         break;
                 }
 
@@ -355,7 +359,7 @@ internal class NetworkManager : IDisposable
             case ClientOpcode.Authenticated:
             {
                 _log.Debug($"Authenticated {_address}");
-                Connecting?.Invoke(Stage.ReceivingData, -1);
+                Connecting?.Invoke(ConnectingStage.ReceivingData, -1);
                 if (_config.JoinChat ?? false)
                 {
                     _ = Send(ServerOpcode.SetChatter, true);
@@ -386,7 +390,7 @@ internal class NetworkManager : IDisposable
                 PongReceived?.Invoke(clientTime, serverTime);
                 break;
 
-            case ClientOpcode.PlayStatus:
+            case ClientOpcode.Status:
             {
                 string fullStatus = reader.ReadString();
                 Status status = JsonConvert.DeserializeObject<Status>(fullStatus, JsonSettings.Settings)!;
@@ -399,23 +403,49 @@ internal class NetworkManager : IDisposable
                     MotdUpdated?.Invoke(status.Motd);
                 }
 
-                if (lastStatus.Index != status.Index)
+                if (status.Stage.GetType() != lastStatus.Stage.GetType())
                 {
-                    MapUpdated?.Invoke(status.Index, status.Map);
+                    StageUpdated?.Invoke(status.Stage);
                 }
 
-                // i hate floats
-                if ((lastStatus.StartTime == null && status.StartTime != null) ||
-                    (lastStatus.StartTime != null && status.StartTime == null) ||
-                    (lastStatus.StartTime != null && status.StartTime != null &&
-                     Math.Abs(lastStatus.StartTime.Value - status.StartTime.Value) > 0.001))
+                switch (status.Stage)
                 {
-                    StartTimeUpdated?.Invoke(status.StartTime);
-                }
+                    case PlayStatus playStatus:
+                        if (lastStatus.Stage is not PlayStatus lastPlayStatus)
+                        {
+                            lastPlayStatus = new PlayStatus();
+                        }
 
-                if (lastStatus.PlayerScore != status.PlayerScore)
-                {
-                    PlayerScoreUpdated?.Invoke(status.PlayerScore);
+                        if (lastPlayStatus.Index != playStatus.Index)
+                        {
+                            MapUpdated?.Invoke(playStatus.Index, playStatus.Map);
+                        }
+
+                        // i hate floats
+                        if (Math.Abs(lastPlayStatus.StartTime - playStatus.StartTime) > 0.001)
+                        {
+                            StartTimeUpdated?.Invoke(playStatus.StartTime);
+                        }
+
+                        if (lastPlayStatus.PlayerScore != playStatus.PlayerScore)
+                        {
+                            PlayerScoreUpdated?.Invoke(playStatus.PlayerScore);
+                        }
+
+                        break;
+
+                    case FinishStatus finishStatus:
+                        if (lastStatus.Stage is not FinishStatus lastFinishStatus)
+                        {
+                            lastFinishStatus = new FinishStatus();
+                        }
+
+                        if (lastFinishStatus.Url != finishStatus.Url)
+                        {
+                            FinishUrlUpdated?.Invoke(finishStatus.Url);
+                        }
+
+                        break;
                 }
 
                 break;

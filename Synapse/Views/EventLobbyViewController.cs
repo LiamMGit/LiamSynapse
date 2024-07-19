@@ -118,7 +118,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
     private readonly ModalView _modal = null!;
 
     [UIObject("map")]
-    private readonly GameObject _map = null!;
+    private readonly GameObject _mapInfo = null!;
 
     [UIObject("finish")]
     private readonly GameObject _finish = null!;
@@ -133,10 +133,10 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
     private Config _config = null!;
     private MessageManager _messageManager = null!;
     private NetworkManager _networkManager = null!;
-    private ListingManager _listingManager = null!;
     private CountdownManager _countdownManager = null!;
     private MapDownloadingManager _mapDownloadingManager = null!;
     private CancellationTokenManager _cancellationTokenManager = null!;
+    private FinishManager _finishManager = null!;
     private IInstantiator _instantiator = null!;
     private TimeSyncManager _timeSyncManager = null!;
 
@@ -151,8 +151,9 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
 #else
     private IPreviewBeatmapLevel? _beatmapLevel;
 #endif
-    private float? _startTime;
+    private float _startTime;
     private PlayerScore? _playerScore;
+    private Map _map = new();
 
     public event Action? StartLevel;
 
@@ -247,11 +248,18 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         {
             _messageManager.MessageReceived += OnMessageReceived;
             _messageManager.RefreshMotd();
-            _listingManager.FinishImageCreated += OnFinishImageCreated;
+            _finishManager.FinishImageCreated += OnFinishImageCreated;
             _networkManager.UserBanned += OnUserBanned;
-            _startTime = _networkManager.Status.StartTime;
-            _playerScore = _networkManager.Status.PlayerScore;
-            RefreshMap(_networkManager.Status.Map);
+
+            if (_networkManager.Status.Stage is PlayStatus playStatus)
+            {
+                _startTime = playStatus.StartTime;
+                _playerScore = playStatus.PlayerScore;
+                RefreshMap();
+            }
+
+            OnStageUpdate(_networkManager.Status.Stage);
+            _networkManager.StageUpdated += OnStageUpdate;
             _networkManager.PlayerScoreUpdated += OnPlayerScoreUpdate;
             _networkManager.StartTimeUpdated += OnStartTimeUpdated;
             _networkManager.MapUpdated += OnMapUpdated;
@@ -279,7 +287,9 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
             }
 
             _messageManager.MessageReceived -= OnMessageReceived;
+            _finishManager.FinishImageCreated -= OnFinishImageCreated;
             _networkManager.UserBanned -= OnUserBanned;
+            _networkManager.StageUpdated -= OnStageUpdate;
             _networkManager.PlayerScoreUpdated -= OnPlayerScoreUpdate;
             _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
             _networkManager.MapUpdated -= OnMapUpdated;
@@ -297,10 +307,10 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         Config config,
         MessageManager messageManager,
         NetworkManager networkManager,
-        ListingManager listingManager,
         MapDownloadingManager mapDownloadingManager,
         CancellationTokenManager cancellationTokenManager,
         CountdownManager countdownManager,
+        FinishManager finishManager,
         IInstantiator instantiator,
         TimeSyncManager timeSyncManager)
     {
@@ -308,10 +318,10 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         _config = config;
         _messageManager = messageManager;
         _networkManager = networkManager;
-        _listingManager = listingManager;
         _mapDownloadingManager = mapDownloadingManager;
         _cancellationTokenManager = cancellationTokenManager;
         _countdownManager = countdownManager;
+        _finishManager = finishManager;
         _instantiator = instantiator;
         _timeSyncManager = timeSyncManager;
     }
@@ -323,12 +333,6 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
             _finishPlaceholder =
                 MediaExtensions.GetEmbeddedResourceSprite("Synapse.Resources.finish_placeholder.png");
         }
-    }
-
-    private new void OnDestroy()
-    {
-        base.OnDestroy();
-        _listingManager.FinishImageCreated -= OnFinishImageCreated;
     }
 
     private void Update()
@@ -509,7 +513,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
 
         if (_playerScore != null)
         {
-            if (_networkManager.Status.Map?.Ruleset?.AllowResubmission ?? false)
+            if (_map.Ruleset?.AllowResubmission ?? false)
             {
                 _startButton.text = "rescore";
                 _startObject.SetActive(true);
@@ -527,7 +531,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         }
         else
         {
-            if (_startTime == null || _startTime > _timeSyncManager.SyncTime)
+            if (_startTime > _timeSyncManager.SyncTime)
             {
                 _startObject.SetActive(false);
                 _scoreObject.SetActive(false);
@@ -570,41 +574,54 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         _messages.Where(n => n.Item1.Id == id).Do(n => n.Item2.text = "<deleted>");
     }
 
+    private void OnStageUpdate(IStageStatus stage)
+    {
+        UnityMainThreadTaskScheduler.Factory.StartNew(() => RefreshStage(stage));
+    }
+
     private void OnPlayerScoreUpdate(PlayerScore? playerScore)
     {
         _playerScore = playerScore;
         UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);
     }
 
-    private void OnStartTimeUpdated(float? startTime)
+    private void OnStartTimeUpdated(float startTime)
     {
         _startTime = startTime;
         UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);
     }
 
-    private void OnMapUpdated(int _, Map? map)
+    private void OnMapUpdated(int _, Map map)
     {
-        UnityMainThreadTaskScheduler.Factory.StartNew(() => RefreshMap(map));
+        _map = map;
+        UnityMainThreadTaskScheduler.Factory.StartNew(RefreshMap);
     }
 
-    private void RefreshMap(Map? map)
+    private void RefreshStage(IStageStatus stage)
     {
-        if (map != null)
+        switch (stage)
         {
-            _map.SetActive(true);
-            _finish.SetActive(false);
-            _progress.text = "Loading...";
-            _altCoverUrl = null;
-            _beatmapLevel = null;
-            _songInfo.SetActive(false);
-            _loadingGroup.SetActive(true);
-            RefreshSongInfo();
+            case PlayStatus:
+                _mapInfo.SetActive(true);
+                _finish.SetActive(false);
+                break;
+
+            case FinishStatus:
+                _log.Warn("_mapInfo SET TO FALSE!!!!");
+                _mapInfo.SetActive(false);
+                _finish.SetActive(true);
+                break;
         }
-        else
-        {
-            _map.SetActive(false);
-            _finish.SetActive(true);
-        }
+    }
+
+    private void RefreshMap()
+    {
+        _progress.text = "Loading...";
+        _altCoverUrl = null;
+        _beatmapLevel = null;
+        _songInfo.SetActive(false);
+        _loadingGroup.SetActive(true);
+        RefreshSongInfo();
     }
 
     private void OnCountdownUpdated(string text)

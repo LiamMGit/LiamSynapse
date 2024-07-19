@@ -35,7 +35,7 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
     private string _lastSent = string.Empty;
 
     // in local time
-    private float? _startTime;
+    private float _startTime;
 
     private CountdownManager(
         SiraLog log,
@@ -84,13 +84,7 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
 
     public void Tick()
     {
-        if (_startTime == null)
-        {
-            Send("Soon™");
-            return;
-        }
-
-        TimeSpan diff = (_startTime.Value - _timeSyncManager.ElapsedSeconds).ToTimeSpan();
+        TimeSpan diff = (_startTime - _timeSyncManager.ElapsedSeconds).ToTimeSpan();
         TimeSpan alteredDiff = diff + TimeSpan.FromSeconds(1);
         if ((int)alteredDiff.TotalHours > 0)
         {
@@ -181,21 +175,15 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
         CountdownUpdated?.Invoke(text);
     }
 
-    private void OnStartTimeUpdated(float? startTime)
+    private void OnStartTimeUpdated(float startTime)
     {
-        if (startTime == null)
-        {
-            _startTime = null;
-            return;
-        }
-
         _gongPlayed = false;
         _startTime = startTime - _timeSyncManager.Offset;
     }
 
     private void OnClosed(ClosedReason reason)
     {
-        _startTime = null;
+        _startTime = float.MaxValue;
         _gongPlayed = false;
         _lastPlayed = -1;
     }

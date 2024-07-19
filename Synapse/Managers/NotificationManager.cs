@@ -43,7 +43,7 @@ internal class NotificationManager : MonoBehaviour
     }
 
     // Dont need notification if we are already connecting
-    private void OnConnecting(Stage stage, int _)
+    private void OnConnecting(ConnectingStage connectingStage, int _)
     {
         _timer = 0;
     }

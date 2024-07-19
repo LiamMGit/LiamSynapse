@@ -19,8 +19,6 @@ internal class ListingManager : IInitializable
     private readonly SiraLog _log;
     private Sprite? _bannerImage;
     private string? _bannerUrl;
-    private Sprite? _finishImage;
-    private string? _finishUrl;
     private string? _lastListing;
 
     [UsedImplicitly]
@@ -46,21 +44,6 @@ internal class ListingManager : IInitializable
         remove => BannerImageCreatedBacking -= value;
     }
 
-    public event Action<Sprite?>? FinishImageCreated
-    {
-        add
-        {
-            if (_finishImage != null)
-            {
-                value?.Invoke(_finishImage);
-            }
-
-            FinishImageCreatedBacking += value;
-        }
-
-        remove => FinishImageCreatedBacking -= value;
-    }
-
     public event Action<Listing?>? ListingFound
     {
         add
@@ -77,8 +60,6 @@ internal class ListingManager : IInitializable
     }
 
     private event Action<Sprite?>? BannerImageCreatedBacking;
-
-    private event Action<Sprite?>? FinishImageCreatedBacking;
 
     private event Action<Listing?>? ListingFoundBacking;
 
@@ -113,30 +94,6 @@ internal class ListingManager : IInitializable
         }
     }
 
-    private async Task GetFinishImage(Listing listing, CancellationToken token)
-    {
-        if (_finishUrl != listing.FinishImage)
-        {
-            _finishUrl = listing.FinishImage;
-
-            try
-            {
-                _log.Debug($"Fetching finish image from [{listing.FinishImage}]");
-                Sprite finishImage = await MediaExtensions.RequestSprite(listing.FinishImage, token);
-                _finishImage = finishImage;
-                FinishImageCreatedBacking?.Invoke(finishImage);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (Exception e)
-            {
-                _log.Error($"Exception while fetching finish image\n{e}");
-                FinishImageCreatedBacking?.Invoke(null);
-            }
-        }
-    }
-
     private async Task InitializeAsync()
     {
         try
@@ -167,7 +124,6 @@ internal class ListingManager : IInitializable
             ListingFoundBacking?.Invoke(Listing);
 
             _ = GetBannerImage(listing, token);
-            _ = GetFinishImage(listing, token);
         }
         catch (OperationCanceledException)
         {
@@ -178,7 +134,6 @@ internal class ListingManager : IInitializable
             _lastListing = null;
             ListingFoundBacking?.Invoke(null);
             BannerImageCreatedBacking?.Invoke(null);
-            FinishImageCreatedBacking?.Invoke(null);
         }
     }
 }

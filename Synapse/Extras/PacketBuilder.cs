@@ -70,4 +70,12 @@ public sealed class PacketBuilder : IDisposable
             _writer.Write(value);
         }
     }
+
+    public void Write(int value)
+    {
+        lock (_lock)
+        {
+            _writer.Write(value);
+        }
+    }
 }

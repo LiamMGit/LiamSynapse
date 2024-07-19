@@ -87,23 +87,23 @@ internal sealed class MessageManager : IDisposable
         RelaySystemMessage("Connection closed unexpectedly, reconnecting...");
     }
 
-    private void OnConnecting(Stage stage, int retries)
+    private void OnConnecting(ConnectingStage connectingStage, int retries)
     {
-        switch (stage)
+        switch (connectingStage)
         {
-            case Stage.Failed:
-            case Stage.Connecting:
+            case ConnectingStage.Failed:
+            case ConnectingStage.Connecting:
                 return;
         }
 
-        string text = stage switch
+        string text = connectingStage switch
         {
             ////Stage.Connecting => "Connecting...",
-            Stage.Authenticating => "Authenticating...",
-            Stage.ReceivingData => "Receiving data...",
-            Stage.Timeout => "Connection timed out, retrying...",
-            Stage.Refused => "Connection refused, retrying...",
-            _ => $"{(SocketError)stage}, retrying..."
+            ConnectingStage.Authenticating => "Authenticating...",
+            ConnectingStage.ReceivingData => "Receiving data...",
+            ConnectingStage.Timeout => "Connection timed out, retrying...",
+            ConnectingStage.Refused => "Connection refused, retrying...",
+            _ => $"{(SocketError)connectingStage}, retrying..."
         };
 
         if (retries > 0)

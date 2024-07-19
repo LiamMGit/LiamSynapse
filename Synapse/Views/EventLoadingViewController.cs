@@ -26,7 +26,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
     private Display _display;
     private bool _finished;
 
-    private bool _mapUpdated;
+    private bool _stageUpdated;
     private bool _prefabDownloaded;
     private bool _timeSynced;
 
@@ -48,12 +48,12 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
     {
         base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
         _connectingText = "Connecting...";
-        _mapUpdated = false;
+        _stageUpdated = false;
         _prefabDownloaded = false;
         _finished = false;
         Refresh();
         _networkManager.Connecting += OnConnecting;
-        _networkManager.MapUpdated += OnMapUpdated;
+        _networkManager.StageUpdated += OnStageUpdated;
         _prefabManager.Loaded += OnPrefabLoaded;
         _timeSyncManager.Synced += OnSynced;
     }
@@ -62,7 +62,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
     {
         base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
         _networkManager.Connecting -= OnConnecting;
-        _networkManager.MapUpdated -= OnMapUpdated;
+        _networkManager.StageUpdated -= OnStageUpdated;
         _prefabManager.Loaded -= OnPrefabLoaded;
         _timeSyncManager.Synced -= OnSynced;
     }
@@ -87,22 +87,22 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         Finished?.Invoke(error);
     }
 
-    private void OnConnecting(Stage stage, int retries)
+    private void OnConnecting(ConnectingStage connectingStage, int retries)
     {
-        if (stage == Stage.Failed)
+        if (connectingStage == ConnectingStage.Failed)
         {
             Finish($"Connection failed after {retries} tries");
             return;
         }
 
-        string text = stage switch
+        string text = connectingStage switch
         {
-            Stage.Connecting => "Connecting...",
-            Stage.Authenticating => "Authenticating...",
-            Stage.ReceivingData => "Receiving data...",
-            Stage.Timeout => "Connection timed out, retrying...",
-            Stage.Refused => "Connection refused, retrying...",
-            _ => $"{(SocketError)stage}, retrying..."
+            ConnectingStage.Connecting => "Connecting...",
+            ConnectingStage.Authenticating => "Authenticating...",
+            ConnectingStage.ReceivingData => "Receiving data...",
+            ConnectingStage.Timeout => "Connection timed out, retrying...",
+            ConnectingStage.Refused => "Connection refused, retrying...",
+            _ => $"{(SocketError)connectingStage}, retrying..."
         };
 
         if (retries > 0)
@@ -113,9 +113,9 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         _connectingText = text;
     }
 
-    private void OnMapUpdated(int index, Map? _)
+    private void OnStageUpdated(IStageStatus _)
     {
-        _mapUpdated = true;
+        _stageUpdated = true;
         Refresh();
     }
 
@@ -145,7 +145,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
 
     private void Refresh()
     {
-        if (_mapUpdated)
+        if (_stageUpdated)
         {
             if (_prefabDownloaded)
             {

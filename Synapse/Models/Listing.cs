@@ -19,8 +19,6 @@ public record Listing
 
     public DateTime Time { get; init; }
 
-    public string FinishImage { get; init; } = string.Empty;
-
     public List<BundleInfo> Bundles { get; init; } = [];
 
     public List<RequiredMods> RequiredMods { get; init; } = [];

@@ -431,17 +431,16 @@ internal class EventFlowCoordinator : FlowCoordinator
         };
     }
 
-    private void OnStartTimeUpdated(float? startTime)
+    private void OnStartTimeUpdated(float startTime)
     {
-        if (startTime == null ||
-            (_networkManager.Status.PlayerScore != null &&
-             !(_networkManager.Status.Map?.Ruleset?.AllowResubmission ?? false)))
+        if (_networkManager.Status.Stage is PlayStatus { PlayerScore: not null } playStatus &&
+             !(playStatus.Map.Ruleset?.AllowResubmission ?? false))
         {
             return;
         }
 
         _startCancel?.Cancel();
-        _ = DelayedStart(startTime.Value, (_startCancel = new CancellationTokenSource()).Token);
+        _ = DelayedStart(startTime, (_startCancel = new CancellationTokenSource()).Token);
     }
 
     private void SubmitScore(int index, int score, float percentage)

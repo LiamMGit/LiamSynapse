@@ -1,21 +1,71 @@
 ﻿using System;
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Synapse.Models;
+
+[JsonConverter(typeof(StageStatusConverter))]
+public interface IStageStatus;
+
+public class StageStatusConverter : JsonConverter<IStageStatus>
+{
+    public override bool CanWrite => false;
+
+    public override void WriteJson(JsonWriter writer, IStageStatus? value, JsonSerializer serializer)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override IStageStatus ReadJson(
+        JsonReader reader,
+        Type objectType,
+        IStageStatus? existingValue,
+        bool hasExistingValue,
+        JsonSerializer serializer)
+    {
+        JObject obj = JObject.Load(reader);
+        string type = (string?)obj["name"] ?? throw new InvalidOperationException("No stage name.");
+        IStageStatus result = type switch
+        {
+            "play" => new PlayStatus(),
+            "finish" => new FinishStatus(),
+            _ => throw new ArgumentOutOfRangeException($"{type} out of range.")
+        };
+
+        serializer.Populate(obj.CreateReader(), result);
+
+        return result;
+    }
+}
 
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]
 public record Status
 {
-    public string Motd { get; private set; } = string.Empty;
+    public string Motd { get; init; } = string.Empty;
 
-    public int Index { get; private set; } = -1;
+    public IStageStatus Stage { get; init; } = new InvalidStatus();
+}
 
-    public float? StartTime { get; private set; }
+public record InvalidStatus : IStageStatus;
+
+[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+public record PlayStatus : IStageStatus
+{
+    public int Index { get; init; } = -1;
+
+    public float StartTime { get; init; } = float.MinValue;
 
     public PlayerScore? PlayerScore { get; init; }
 
-    public Map? Map { get; init; }
+    public Map Map { get; init; } = new();
+}
+
+[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+public record FinishStatus : IStageStatus
+{
+    public string Url { get; init; } = string.Empty;
 }
 
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]

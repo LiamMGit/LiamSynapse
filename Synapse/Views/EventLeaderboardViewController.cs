@@ -144,8 +144,9 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     private void AssignScores(LeaderboardScores scores)
     {
         bool useAlt = _altCover &&
-                      scores.Index >= _networkManager.Status.Index &&
-                      _networkManager.Status.PlayerScore == null;
+                      _networkManager.Status.Stage is PlayStatus playStatus &&
+                      scores.Index >= playStatus.Index &&
+                      playStatus.PlayerScore == null;
         _titleMapText.text = useAlt ? "???" : scores.Title;
         List<LeaderboardCell> cells = ShowEliminated ? scores.ElimScores : scores.Scores;
         if (cells.Count > 0)
