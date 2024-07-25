@@ -15,7 +15,7 @@ internal class PrefabSyncController : MonoBehaviour
 
     private void Awake()
     {
-        _audioSources = GetComponentsInChildren<AudioSource>();
+        _audioSources = GetComponentsInChildren<AudioSource>(true);
     }
 
     [UsedImplicitly]

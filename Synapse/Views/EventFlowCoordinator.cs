@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using HMUI;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
@@ -22,22 +20,21 @@ internal class EventFlowCoordinator : FlowCoordinator
     private Config _config = null!;
     private bool _dirtyListing;
     private GameplaySetupViewController _gameplaySetupViewController = null!;
+    private EventIntroViewController _introViewController = null!;
     private EventLeaderboardViewController _leaderboardViewController = null!;
     private LevelStartManager _levelStartManager = null!;
-
     private Listing? _listing;
     private EventLoadingViewController _loadingViewController = null!;
     private EventLobbyViewController _lobbyViewController = null!;
     private SiraLog _log = null!;
     private MapDownloadingManager _mapDownloadingManager = null!;
+    private MenuPrefabManager _menuPrefabManager = null!;
     private EventModsDownloadingViewController _modsDownloadingViewController = null!;
     private EventModsViewController _modsViewController = null!;
     private NetworkManager _networkManager = null!;
-    private PrefabManager _prefabManager = null!;
     private ResultsViewController _resultsViewController = null!;
     private SimpleDialogPromptViewController _simpleDialogPromptViewController = null!;
-    private TimeSyncManager _timeSyncManager = null!;
-    private CancellationTokenSource? _startCancel;
+
     private Queue<Action> _transitionFinished = new();
 
     internal event Action<EventFlowCoordinator>? Finished;
@@ -48,8 +45,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         {
             if (!_isInTransition)
             {
-                // not sure why this is the only thing to have problems with background threads
-                UnityMainThreadTaskScheduler.Factory.StartNew(value.Invoke);
+                UnityMainThreadTaskScheduler.Factory.StartNew(value);
                 return;
             }
 
@@ -130,16 +126,17 @@ internal class EventFlowCoordinator : FlowCoordinator
                         return;
                     }
 
-                    _ = _prefabManager.Download();
+                    _ = _menuPrefabManager.Download();
                 }
 
                 _dirtyListing = false;
                 _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
-                _lobbyViewController.StartLevel += TryStartLevel;
+                _lobbyViewController.StartLevel += StartLevel;
+                _lobbyViewController.StartIntro += StartIntro;
                 _loadingViewController.Finished += OnLoadingFinished;
-                _networkManager.StartTimeUpdated += OnStartTimeUpdated;
+                _introViewController.Finished += OnIntroFinished;
                 _networkManager.Disconnected += OnDisconnected;
-                _prefabManager.Show();
+                _menuPrefabManager.Show();
                 if (_config.JoinChat == null)
                 {
                     _simpleDialogPromptViewController.Init(
@@ -184,12 +181,12 @@ internal class EventFlowCoordinator : FlowCoordinator
             IsActive = false;
             _resultsViewController.continueButtonPressedEvent -= HandleResultsViewControllerContinueButtonPressed;
             _modsViewController.Finished -= OnAcceptModsDownload;
-            _lobbyViewController.StartLevel -= TryStartLevel;
+            _lobbyViewController.StartLevel -= StartLevel;
+            _lobbyViewController.StartIntro -= StartIntro;
             _loadingViewController.Finished -= OnLoadingFinished;
-            _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
             _networkManager.Disconnected -= OnDisconnected;
             _ = _networkManager.Disconnect("Leaving");
-            _prefabManager.Hide();
+            _menuPrefabManager.Hide();
         }
     }
 
@@ -214,10 +211,10 @@ internal class EventFlowCoordinator : FlowCoordinator
         switch (newViewController)
         {
             case EventLobbyViewController:
-                SetLeftScreenViewController(_gameplaySetupViewController, animationType);
                 SetTitle(_listing?.Title ?? "N/A", animationType);
                 showBackButton = true;
                 break;
+            case EventIntroViewController:
             case SimpleDialogPromptViewController:
                 SetTitle(null, animationType);
                 showBackButton = false;
@@ -249,60 +246,35 @@ internal class EventFlowCoordinator : FlowCoordinator
         Config config,
         GameplaySetupViewController gameplaySetupViewController,
         ResultsViewController resultsViewController,
-        EventLobbyViewController lobbyViewController,
+        EventIntroViewController introViewController,
+        EventLeaderboardViewController leaderboardViewController,
         EventLoadingViewController loadingViewController,
-        EventModsViewController modsViewController,
+        EventLobbyViewController lobbyViewController,
         EventModsDownloadingViewController modsDownloadingViewController,
-        EventLeaderboardViewController eventLeaderboardViewController,
+        EventModsViewController modsViewController,
         SimpleDialogPromptViewController simpleDialogPromptViewController,
         MapDownloadingManager mapDownloadingManager,
         LevelStartManager levelStartManager,
         ListingManager listingManager,
         NetworkManager networkManager,
-        PrefabManager prefabManager,
-        TimeSyncManager timeSyncManager)
+        MenuPrefabManager menuPrefabManager)
     {
         _log = log;
         _config = config;
         _gameplaySetupViewController = gameplaySetupViewController;
         _resultsViewController = resultsViewController;
-        _lobbyViewController = lobbyViewController;
+        _introViewController = introViewController;
+        _leaderboardViewController = leaderboardViewController;
         _loadingViewController = loadingViewController;
-        _modsViewController = modsViewController;
+        _lobbyViewController = lobbyViewController;
         _modsDownloadingViewController = modsDownloadingViewController;
-        _leaderboardViewController = eventLeaderboardViewController;
+        _modsViewController = modsViewController;
         _simpleDialogPromptViewController = simpleDialogPromptViewController;
         _mapDownloadingManager = mapDownloadingManager;
         _levelStartManager = levelStartManager;
         listingManager.ListingFound += OnListingFound;
         _networkManager = networkManager;
-        _prefabManager = prefabManager;
-        _timeSyncManager = timeSyncManager;
-    }
-
-    private async Task DelayedStart(float startTime, CancellationToken token)
-    {
-        float diff = startTime - _timeSyncManager.SyncTime;
-        if (diff > 0)
-        {
-            await Task.Delay(diff.ToTimeSpan(), token);
-        }
-
-        TransitionFinished += () =>
-        {
-            token.ThrowIfCancellationRequested();
-            if (topViewController == _lobbyViewController)
-            {
-                TryStartLevel();
-            }
-            else if (topViewController == _resultsViewController)
-            {
-                DismissViewController(
-                    _resultsViewController,
-                    ViewController.AnimationDirection.Horizontal,
-                    TryStartLevel);
-            }
-        };
+        _menuPrefabManager = menuPrefabManager;
     }
 
     private void HandleLevelDidFinish(
@@ -377,6 +349,11 @@ internal class EventFlowCoordinator : FlowCoordinator
     {
         TransitionFinished += () =>
         {
+            if (topViewController == _simpleDialogPromptViewController)
+            {
+                return;
+            }
+
             _simpleDialogPromptViewController.Init(
                 "Disconnected",
                 reason,
@@ -388,6 +365,19 @@ internal class EventFlowCoordinator : FlowCoordinator
                 null,
                 ViewController.AnimationType.In,
                 ViewController.AnimationDirection.Vertical);
+        };
+    }
+
+    private void OnIntroFinished()
+    {
+        TransitionFinished += () =>
+        {
+            if (topViewController == _introViewController)
+            {
+                DismissViewController(
+                    _introViewController,
+                    ViewController.AnimationDirection.Vertical);
+            }
         };
     }
 
@@ -414,8 +404,6 @@ internal class EventFlowCoordinator : FlowCoordinator
             }
             else
             {
-                _ = _networkManager.Disconnect("Error");
-
                 _simpleDialogPromptViewController.Init(
                     "Error",
                     error,
@@ -427,40 +415,41 @@ internal class EventFlowCoordinator : FlowCoordinator
                     null,
                     ViewController.AnimationType.In,
                     ViewController.AnimationDirection.Vertical);
+
+                _ = _networkManager.Disconnect("Error");
             }
         };
     }
 
-    private void OnStartTimeUpdated(float startTime)
-    {
-        if (_networkManager.Status.Stage is PlayStatus { PlayerScore: not null } playStatus &&
-             !(playStatus.Map.Ruleset?.AllowResubmission ?? false))
-        {
-            return;
-        }
-
-        _startCancel?.Cancel();
-        _ = DelayedStart(startTime, (_startCancel = new CancellationTokenSource()).Token);
-    }
-
-    private void SubmitScore(int index, int score, float percentage)
-    {
-        ScoreSubmission scoreSubmission = new()
-        {
-            Index = index,
-            Score = score,
-            Percentage = percentage
-        };
-        string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
-        _log.Warn(scoreJson);
-        _ = _networkManager.Send(ServerOpcode.ScoreSubmission, scoreJson);
-        _leaderboardViewController.ChangeSelection(index);
-    }
-
-    private void TryStartLevel()
+    private void StartIntro()
     {
         TransitionFinished += () =>
         {
+            if (topViewController == _lobbyViewController)
+            {
+                PresentViewController(_introViewController, null, ViewController.AnimationDirection.Vertical);
+            }
+        };
+    }
+
+    private void StartLevel()
+    {
+        TransitionFinished += () =>
+        {
+            if (topViewController == _resultsViewController)
+            {
+                DismissViewController(
+                    _resultsViewController,
+                    ViewController.AnimationDirection.Horizontal,
+                    StartLevel);
+                return;
+            }
+
+            if (topViewController != _lobbyViewController)
+            {
+                return;
+            }
+
             TransitionDidStart();
             _mapDownloadingManager.MapDownloadedOnce += n =>
             {
@@ -476,6 +465,20 @@ internal class EventFlowCoordinator : FlowCoordinator
                 }
             };
         };
+    }
+
+    private void SubmitScore(int index, int score, float percentage)
+    {
+        ScoreSubmission scoreSubmission = new()
+        {
+            Index = index,
+            Score = score,
+            Percentage = percentage
+        };
+        string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
+        _log.Warn(scoreJson);
+        _ = _networkManager.Send(ServerOpcode.ScoreSubmission, scoreJson);
+        _leaderboardViewController.ChangeSelection(index);
     }
 
     internal class EventFlowCoordinatorFactory : IFactory<EventFlowCoordinator>

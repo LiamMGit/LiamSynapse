@@ -25,13 +25,13 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
     private string _connectingText = string.Empty;
     private Display _display;
     private bool _finished;
-
-    private bool _stageUpdated;
-    private bool _prefabDownloaded;
-    private bool _timeSynced;
+    private MenuPrefabManager _menuPrefabManager = null!;
 
     private NetworkManager _networkManager = null!;
-    private PrefabManager _prefabManager = null!;
+    private bool _prefabDownloaded;
+
+    private bool _stageUpdated;
+    private bool _timeSynced;
     private TimeSyncManager _timeSyncManager = null!;
 
     internal event Action<string?>? Finished;
@@ -54,7 +54,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         Refresh();
         _networkManager.Connecting += OnConnecting;
         _networkManager.StageUpdated += OnStageUpdated;
-        _prefabManager.Loaded += OnPrefabLoaded;
+        _menuPrefabManager.Loaded += OnMenuPrefabLoaded;
         _timeSyncManager.Synced += OnSynced;
     }
 
@@ -63,16 +63,19 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         base.DidDeactivate(removedFromHierarchy, screenSystemDisabling);
         _networkManager.Connecting -= OnConnecting;
         _networkManager.StageUpdated -= OnStageUpdated;
-        _prefabManager.Loaded -= OnPrefabLoaded;
+        _menuPrefabManager.Loaded -= OnMenuPrefabLoaded;
         _timeSyncManager.Synced -= OnSynced;
     }
 
     [UsedImplicitly]
     [Inject]
-    private void Construct(NetworkManager networkManager, PrefabManager prefabManager, TimeSyncManager timeSyncManager)
+    private void Construct(
+        NetworkManager networkManager,
+        MenuPrefabManager menuPrefabManager,
+        TimeSyncManager timeSyncManager)
     {
         _networkManager = networkManager;
-        _prefabManager = prefabManager;
+        _menuPrefabManager = menuPrefabManager;
         _timeSyncManager = timeSyncManager;
     }
 
@@ -113,13 +116,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         _connectingText = text;
     }
 
-    private void OnStageUpdated(IStageStatus _)
-    {
-        _stageUpdated = true;
-        Refresh();
-    }
-
-    private void OnPrefabLoaded(bool success)
+    private void OnMenuPrefabLoaded(bool success)
     {
         if (!success)
         {
@@ -128,6 +125,12 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         }
 
         _prefabDownloaded = true;
+        Refresh();
+    }
+
+    private void OnStageUpdated(IStageStatus _)
+    {
+        _stageUpdated = true;
         Refresh();
     }
 
@@ -178,7 +181,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
         {
             Display.Connecting => _connectingText,
             Display.Joining => "Joining...",
-            Display.DownloadingPrefab => $"Downloading assets... {_prefabManager.DownloadProgress:0%}",
+            Display.DownloadingPrefab => $"Downloading assets... {_menuPrefabManager.DownloadProgress:0%}",
             Display.Synchronizing => "Synchronizing...",
             _ => "ERR"
         };

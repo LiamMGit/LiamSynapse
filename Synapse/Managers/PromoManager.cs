@@ -14,7 +14,7 @@ using Object = UnityEngine.Object;
 
 namespace Synapse.Managers;
 
-internal class PromoManager : IInitializable, ITickable
+internal class PromoManager : IInitializable, ITickable, IDisposable
 {
     private static readonly Sprite _promoBack =
         MediaExtensions.GetEmbeddedResourceSprite("Synapse.Resources.promo_back.png");
@@ -52,8 +52,8 @@ internal class PromoManager : IInitializable, ITickable
         _mainMenuViewController = mainMenuViewController;
         _listingManager = listingManager;
         _tweeningManager = tweeningManager;
-        _listingManager.ListingFound += OnListingFound;
-        _listingManager.BannerImageCreated += OnBannerImageCreated;
+        listingManager.ListingFound += OnListingFound;
+        listingManager.BannerImageCreated += OnBannerImageCreated;
     }
 
     internal Button Button => _button ??= CreateButton();
@@ -63,6 +63,12 @@ internal class PromoManager : IInitializable, ITickable
     public void Initialize()
     {
         RefreshListing(_listing);
+    }
+
+    public void Dispose()
+    {
+        _listingManager.ListingFound += OnListingFound;
+        _listingManager.BannerImageCreated += OnBannerImageCreated;
     }
 
     public void Tick()

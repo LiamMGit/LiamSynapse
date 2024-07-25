@@ -26,6 +26,7 @@ using Random = UnityEngine.Random;
 namespace Synapse.Views;
 
 // oh how i wish i could have sub-viewcontrollers
+// TODO: split with a NavigationController
 ////[HotReload(RelativePathToLayout = @"../Resources/Lobby.bsml")]
 [ViewDefinition("Synapse.Resources.Lobby.bsml")]
 internal class EventLobbyViewController : BSMLAutomaticViewController
@@ -139,6 +140,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
     private FinishManager _finishManager = null!;
     private IInstantiator _instantiator = null!;
     private TimeSyncManager _timeSyncManager = null!;
+    private MenuPrefabManager _menuPrefabManager = null!;
 
     private InputFieldView _input = null!;
     private OkRelay _okRelay = null!;
@@ -154,8 +156,11 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
     private float _startTime;
     private PlayerScore? _playerScore;
     private Map _map = new();
+    private CancellationTokenSource? _startCancel;
 
     public event Action? StartLevel;
+
+    public event Action? StartIntro;
 
     [UsedImplicitly]
     [UIValue("joinChat")]
@@ -251,17 +256,38 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
             _finishManager.FinishImageCreated += OnFinishImageCreated;
             _networkManager.UserBanned += OnUserBanned;
 
-            if (_networkManager.Status.Stage is PlayStatus playStatus)
+            switch (_networkManager.Status.Stage)
             {
-                _startTime = playStatus.StartTime;
-                _playerScore = playStatus.PlayerScore;
-                RefreshMap();
+                case PlayStatus playStatus:
+                    _startTime = playStatus.StartTime;
+                    _playerScore = playStatus.PlayerScore;
+                    _map = playStatus.Map;
+                    RefreshMap();
+                    if (_config.LastSeenIntro != _menuPrefabManager.LastHash)
+                    {
+                        StartIntro?.Invoke();
+                    }
+                    else
+                    {
+                        _ = DelayedStart(_startTime);
+                    }
+
+                    break;
+
+                case IntroStatus introStatus:
+                    if (_config.LastSeenIntro != _menuPrefabManager.LastHash)
+                    {
+                        _ = DelayedIntro(introStatus.StartTime);
+                    }
+
+                    break;
             }
 
             OnStageUpdate(_networkManager.Status.Stage);
             _networkManager.StageUpdated += OnStageUpdate;
             _networkManager.PlayerScoreUpdated += OnPlayerScoreUpdate;
             _networkManager.StartTimeUpdated += OnStartTimeUpdated;
+            _networkManager.IntroStartTimeUpdated += OnIntroStartTimeUpdated;
             _networkManager.MapUpdated += OnMapUpdated;
             _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
             _mapDownloadingManager.ProgressUpdated += OnProgressUpdated;
@@ -292,6 +318,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
             _networkManager.StageUpdated -= OnStageUpdate;
             _networkManager.PlayerScoreUpdated -= OnPlayerScoreUpdate;
             _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
+            _networkManager.IntroStartTimeUpdated -= OnIntroStartTimeUpdated;
             _networkManager.MapUpdated -= OnMapUpdated;
             _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
             _mapDownloadingManager.ProgressUpdated -= OnProgressUpdated;
@@ -312,7 +339,8 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         CountdownManager countdownManager,
         FinishManager finishManager,
         IInstantiator instantiator,
-        TimeSyncManager timeSyncManager)
+        TimeSyncManager timeSyncManager,
+        MenuPrefabManager menuPrefabManager)
     {
         _log = log;
         _config = config;
@@ -324,6 +352,7 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         _finishManager = finishManager;
         _instantiator = instantiator;
         _timeSyncManager = timeSyncManager;
+        _menuPrefabManager = menuPrefabManager;
     }
 
     private void Awake()
@@ -554,6 +583,51 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         }
     }
 
+    private void OnStartTimeUpdated(float startTime)
+    {
+        _startTime = startTime;
+        UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);
+
+        _ = DelayedStart(startTime);
+    }
+
+    private void OnIntroStartTimeUpdated(float startTime)
+    {
+        _ = DelayedIntro(startTime);
+    }
+
+    private async Task DelayedStart(float startTime)
+    {
+        if (_playerScore != null &&
+            !(_map.Ruleset?.AllowResubmission ?? false))
+        {
+            return;
+        }
+
+        _startCancel?.Cancel();
+        CancellationToken token = (_startCancel = new CancellationTokenSource()).Token;
+        float diff = startTime - _timeSyncManager.SyncTime;
+        if (diff > 0)
+        {
+            await Task.Delay(diff.ToTimeSpan(), token);
+        }
+
+        StartLevel?.Invoke();
+    }
+
+    private async Task DelayedIntro(float startTime)
+    {
+        _startCancel?.Cancel();
+        CancellationToken token = (_startCancel = new CancellationTokenSource()).Token;
+        float diff = startTime - _timeSyncManager.SyncTime;
+        if (diff > 0)
+        {
+            await Task.Delay(diff.ToTimeSpan(), token);
+        }
+
+        StartIntro?.Invoke();
+    }
+
     private void OnMapDownloaded(DownloadedMap map)
     {
         _altCoverUrl = string.IsNullOrWhiteSpace(map.Map.AltCoverUrl) ? null : map.Map.AltCoverUrl;
@@ -585,12 +659,6 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
         UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);
     }
 
-    private void OnStartTimeUpdated(float startTime)
-    {
-        _startTime = startTime;
-        UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);
-    }
-
     private void OnMapUpdated(int _, Map map)
     {
         _map = map;
@@ -601,13 +669,17 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
     {
         switch (stage)
         {
+            case IntroStatus:
+                _mapInfo.SetActive(false);
+                _finish.SetActive(false);
+                break;
+
             case PlayStatus:
                 _mapInfo.SetActive(true);
                 _finish.SetActive(false);
                 break;
 
             case FinishStatus:
-                _log.Warn("_mapInfo SET TO FALSE!!!!");
                 _mapInfo.SetActive(false);
                 _finish.SetActive(true);
                 break;
@@ -670,5 +742,13 @@ internal class EventLobbyViewController : BSMLAutomaticViewController
     private void OnStartClick()
     {
         StartLevel?.Invoke();
+    }
+
+    [UsedImplicitly]
+    [UIAction("replay-intro")]
+    private void OnReplayIntroClick()
+    {
+        _startCancel?.Cancel();
+        StartIntro?.Invoke();
     }
 }

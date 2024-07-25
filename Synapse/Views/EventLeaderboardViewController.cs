@@ -33,6 +33,9 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         "Bring it on!"
     ];
 
+    [UIObject("all")]
+    private readonly GameObject _all = null!;
+
     [UIComponent("header")]
     private readonly ImageView _header = null!;
 
@@ -89,6 +92,13 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         }
     }
 
+    public override void OnDestroy()
+    {
+        base.OnDestroy();
+        _networkManager.LeaderboardReceived -= OnLeaderboardReceived;
+        _networkManager.MapUpdated -= OnMapUpdated;
+    }
+
     internal void ChangeSelection(int index)
     {
         _textSegments.SelectCellWithNumber(index);
@@ -125,6 +135,8 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
             _leaderboardScores.Clear();
             ChangeView(_maxIndex);
             _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
+            OnStageUpdated(_networkManager.Status.Stage);
+            _networkManager.StageUpdated += OnStageUpdated;
         }
 
         _motivational.text = _randomMotivationals[Random.Range(0, _randomMotivationals.Length - 1)];
@@ -138,6 +150,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         if (removedFromHierarchy)
         {
             _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
+            _networkManager.StageUpdated -= OnStageUpdated;
         }
     }
 
@@ -248,6 +261,24 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         _maxIndex = index;
         _textSegmentTexts = Enumerable.Range(1, index + 1).Select(n => n.ToString()).ToArray();
         _dirtyTextSegments = true;
+    }
+
+    private void OnStageUpdated(IStageStatus stageStatus)
+    {
+        UnityMainThreadTaskScheduler.Factory.StartNew(
+            () =>
+            {
+                switch (stageStatus)
+                {
+                    case IntroStatus:
+                        _all.SetActive(false);
+                        break;
+
+                    default:
+                        _all.SetActive(true);
+                        break;
+                }
+            });
     }
 
     private void Refresh()

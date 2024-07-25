@@ -28,6 +28,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
 
     private readonly SiraLog _log;
     private readonly CustomLevelLoader _customLevelLoader;
+    private readonly NetworkManager _networkManager;
     private readonly CancellationTokenManager _cancellationTokenManager;
     private readonly DirectoryInfo _directory;
 
@@ -54,11 +55,12 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
     {
         _log = log;
         _customLevelLoader = customLevelLoader;
+        _networkManager = networkManager;
         _cancellationTokenManager = cancellationTokenManager;
         _directory = new DirectoryInfo(_mapFolder);
         _directory.Purge();
-        networkManager.MapUpdated += Init;
-        networkManager.Closed += _ => _cancellationTokenManager.Cancel();
+        networkManager.MapUpdated += OnMapUpdated;
+        networkManager.Closed += OnClosed;
 
         if (PluginManager.GetPlugin("SongCore") != null)
         {
@@ -109,6 +111,8 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
 
     public void Dispose()
     {
+        _networkManager.MapUpdated -= OnMapUpdated;
+        _networkManager.Closed -= OnClosed;
         _directory.Purge();
     }
 
@@ -178,7 +182,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
     }
 #endif
 
-    private void Init(int index, Map? map)
+    private void OnMapUpdated(int index, Map? map)
     {
         MapDownloadedOnceBacking = null;
         _beatmapLevel = null;
@@ -207,6 +211,11 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
                     }
                 }
             });
+    }
+
+    private void OnClosed(ClosedReason _)
+    {
+        _cancellationTokenManager.Cancel();
     }
 
     private async Task Download(int index, Map map, string path)

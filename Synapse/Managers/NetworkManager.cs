@@ -61,6 +61,8 @@ internal class NetworkManager : IDisposable
         _tokenTask = GetToken();
     }
 
+    internal event Action<ChatMessage>? ChatReceived;
+
     ////internal event Action<FailReason>? ConnectionFailed;
 
     internal event Action<ClosedReason>? Closed;
@@ -69,27 +71,27 @@ internal class NetworkManager : IDisposable
 
     internal event Action<string>? Disconnected;
 
-    internal event Action<ChatMessage>? ChatReceived;
+    internal event Action<string>? FinishUrlUpdated;
+
+    internal event Action<float>? IntroStartTimeUpdated;
 
     internal event Action<LeaderboardScores>? LeaderboardReceived;
 
-    internal event Action<string>? MotdUpdated;
-
-    internal event Action<IStageStatus>? StageUpdated;
-
     internal event Action<int, Map>? MapUpdated;
+
+    internal event Action<string>? MotdUpdated;
 
     internal event Action<PlayerScore?>? PlayerScoreUpdated;
 
-    internal event Action<string>? FinishUrlUpdated;
+    internal event Action<float, float>? PongReceived;
+
+    internal event Action<IStageStatus>? StageUpdated;
 
     internal event Action<float>? StartTimeUpdated;
 
     internal event Action? StopLevelReceived;
 
     internal event Action<string>? UserBanned;
-
-    internal event Action<float, float>? PongReceived;
 
     internal Status Status { get; private set; } = new();
 
@@ -226,7 +228,8 @@ internal class NetworkManager : IDisposable
             packetBuilder.Write(token.userName);
             packetBuilder.Write((byte)token.platform);
             packetBuilder.Write(token.sessionToken);
-            packetBuilder.Write(_listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded"));
+            packetBuilder.Write(
+                _listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded"));
             await Send(packetBuilder.ToSegment());
 
             ArraySegment<byte>[] queued = _queuedPackets.ToArray();
@@ -410,6 +413,19 @@ internal class NetworkManager : IDisposable
 
                 switch (status.Stage)
                 {
+                    case IntroStatus introStatus:
+                        if (lastStatus.Stage is not IntroStatus lastIntroStatus)
+                        {
+                            lastIntroStatus = new IntroStatus();
+                        }
+
+                        if (Math.Abs(lastIntroStatus.StartTime - introStatus.StartTime) > 0.001)
+                        {
+                            IntroStartTimeUpdated?.Invoke(introStatus.StartTime);
+                        }
+
+                        break;
+
                     case PlayStatus playStatus:
                         if (lastStatus.Stage is not PlayStatus lastPlayStatus)
                         {

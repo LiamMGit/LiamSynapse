@@ -21,6 +21,7 @@ internal class SynapseMenuInstaller : Installer
         Container.BindInterfacesTo<AddMainMenuEventButton>().AsSingle();
 
         Container.Bind<EventFlowCoordinator>().FromFactory<EventFlowCoordinator.EventFlowCoordinatorFactory>();
+        Container.Bind<EventIntroViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventModsViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventModsDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventLoadingViewController>().FromNewComponentAsViewController().AsSingle();
@@ -28,11 +29,11 @@ internal class SynapseMenuInstaller : Installer
         Container.Bind<EventLeaderboardViewController>().FromNewComponentAsViewController().AsSingle();
         ////Container.Bind<EventMapDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
 
-        Container.BindInterfacesAndSelfTo<PrefabManager>().AsSingle();
+        Container.BindInterfacesAndSelfTo<MenuPrefabManager>().AsSingle();
 
         Container.BindInterfacesAndSelfTo<MapDownloadingManager>().AsSingle();
         Container.BindInterfacesAndSelfTo<CountdownManager>().AsSingle();
-        Container.Bind<LevelStartManager>().AsSingle();
+        Container.BindInterfacesAndSelfTo<LevelStartManager>().AsSingle();
 
         Container.BindInterfacesAndSelfTo<PromoManager>().AsSingle();
         Container.Bind<NotificationManager>().FromFactory<NotificationManager.NotificationManagerFactory>().NonLazy();

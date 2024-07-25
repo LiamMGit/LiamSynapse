@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
@@ -15,7 +14,7 @@ using Object = UnityEngine.Object;
 
 namespace Synapse.Managers;
 
-internal class PrefabManager
+internal class MenuPrefabManager : IDisposable
 {
     private static readonly int _death = Animator.StringToHash("death");
 
@@ -25,23 +24,24 @@ internal class PrefabManager
 
     private readonly CancellationTokenManager _cancellationTokenManager;
     private readonly IInstantiator _instantiator;
+    private readonly ListingManager _listingManager;
 
     private readonly SiraLog _log;
     private readonly MenuEnvironmentManager _menuEnvironmentManager;
     private readonly SongPreviewPlayer _songPreviewPlayer;
-    private bool _active;
-    private Animator? _animator;
 
+    private bool _active;
     private BundleInfo? _bundleInfo;
     private AnimatorDeathController? _deathController;
 
     private bool? _didLoadSucceed;
+    private ParticleSystem? _dustParticles;
     private string _filePath = string.Empty;
 
     private GameObject? _prefab;
 
     [UsedImplicitly]
-    private PrefabManager(
+    private MenuPrefabManager(
         SiraLog log,
         IInstantiator instantiator,
         ListingManager listingManager,
@@ -51,35 +51,11 @@ internal class PrefabManager
     {
         _log = log;
         _instantiator = instantiator;
+        _listingManager = listingManager;
         _menuEnvironmentManager = menuEnvironmentManager;
         _songPreviewPlayer = songPreviewPlayer;
         _cancellationTokenManager = cancellationTokenManager;
-        listingManager.ListingFound += n =>
-        {
-            if (_prefab != null)
-            {
-                Object.Destroy(_prefab);
-                _prefab = null;
-            }
-
-            _bundleInfo = n?.Bundles.FirstOrDefault(b => b.GameVersion.MatchesGameVersion());
-            string listingTitle = n == null
-                ? "undefined"
-                : new string(
-                    n
-                        .Title.Select(
-                            j =>
-                            {
-                                if (char.IsLetter(j) || char.IsNumber(j))
-                                {
-                                    return j;
-                                }
-
-                                return '_';
-                            })
-                        .ToArray());
-            _filePath = Path.Combine(_folder, listingTitle);
-        };
+        listingManager.ListingFound += OnListingFound;
     }
 
     internal event Action<bool>? Loaded
@@ -100,16 +76,27 @@ internal class PrefabManager
 
     private event Action<bool>? LoadedBacking;
 
+    internal Animator? Animator { get; private set; }
+
     internal float DownloadProgress { get; private set; }
+
+    internal uint LastHash { get; private set; }
+
+    private ParticleSystem? DustParticles => _dustParticles ??=
+        Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(n => n.name == "DustPS");
+
+    public void Dispose()
+    {
+        _listingManager.ListingFound -= OnListingFound;
+    }
 
     internal async Task Download()
     {
         if (_prefab != null)
         {
+            Invoke(true);
             return;
         }
-
-        CancellationToken token = _cancellationTokenManager.Reset();
 
         try
         {
@@ -132,7 +119,7 @@ internal class PrefabManager
 
             _log.Debug($"Downloading lobby bundle from [{url}]");
             UnityWebRequest www = UnityWebRequest.Get(url);
-            await www.SendAndVerify(n => DownloadProgress = n * 0.98f, token);
+            await www.SendAndVerify(n => DownloadProgress = n * 0.98f, _cancellationTokenManager.Reset());
             Directory.CreateDirectory(_folder);
             File.WriteAllBytes(_filePath, www.downloadHandler.data);
             DownloadProgress = 0.99f;
@@ -153,7 +140,7 @@ internal class PrefabManager
 
         void Invoke(bool success)
         {
-            _didLoadSucceed = true;
+            _didLoadSucceed = success;
             LoadedBacking?.Invoke(success);
             LoadedBacking = null;
         }
@@ -173,23 +160,19 @@ internal class PrefabManager
             return;
         }
 
-        if (_animator == null || _deathController == null)
+        DustParticles?.Play();
+        _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
+        _songPreviewPlayer.CrossfadeToDefault();
+        if (Animator == null || _deathController == null)
         {
             _prefab.SetActive(false);
-            _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
-            _songPreviewPlayer.CrossfadeToDefault();
         }
         else
         {
-            _animator.SetTrigger(_death);
+            Animator.SetTrigger(_death);
             _deathController.ContinueAfterDecay(
                 10,
-                () =>
-                {
-                    _prefab.SetActive(false);
-                    _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
-                    _songPreviewPlayer.CrossfadeToDefault();
-                });
+                () => { _prefab.SetActive(false); });
         }
     }
 
@@ -213,6 +196,7 @@ internal class PrefabManager
             _deathController.enabled = false;
         }
 
+        DustParticles?.Stop();
         _prefab.SetActive(true);
         _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.None);
         _songPreviewPlayer.FadeOut(1);
@@ -238,13 +222,32 @@ internal class PrefabManager
         }
 
         string[] prefabNames = bundle.GetAllAssetNames();
-        if (prefabNames.Length > 0)
+        if (prefabNames.Length > 1)
         {
             _log.Warn($"More than one asset found in assetbundle, using first [{prefabNames[0]}]");
         }
 
         GameObject obj = await bundle.LoadAssetAsyncTask<GameObject>(prefabNames[0]);
         _prefab = Object.Instantiate(obj);
+
+        _instantiator.InstantiateComponent<PrefabSyncController>(_prefab);
+        Animator = _prefab.GetComponent<Animator>();
+        bundle.Unload(false);
+        if (Animator == null)
+        {
+            _log.Error("No animator on prefab");
+        }
+        else if (Animator.parameters.All(n => n.nameHash != _death))
+        {
+            _log.Error("No death trigger on animator");
+        }
+        else
+        {
+            _deathController = _prefab.AddComponent<AnimatorDeathController>();
+        }
+
+        _deathController = null;
+
         if (_active)
         {
             _active = false;
@@ -254,24 +257,53 @@ internal class PrefabManager
         {
             _prefab.SetActive(false);
         }
+    }
 
-        _instantiator.InstantiateComponent<PrefabSyncController>(_prefab);
-        _animator = _prefab.GetComponent<Animator>();
-        bundle.Unload(false);
-        if (_animator == null)
+    private void OnListingFound(Listing? listing)
+    {
+        _bundleInfo = listing?.Bundles.FirstOrDefault(b => b.GameVersion.MatchesGameVersion());
+        if (_bundleInfo == null)
         {
-            _log.Error("No animator on prefab");
-        }
-        else if (_animator.parameters.All(n => n.nameHash != _death))
-        {
-            _log.Error("No death trigger on animator");
-        }
-        else
-        {
-            _deathController = _prefab.AddComponent<AnimatorDeathController>();
+            _didLoadSucceed = null;
+            if (_prefab == null)
+            {
+                return;
+            }
+
+            Object.Destroy(_prefab);
+            _prefab = null;
             return;
         }
 
-        _deathController = null;
+        if (_bundleInfo.Hash == LastHash)
+        {
+            return;
+        }
+
+        LastHash = _bundleInfo.Hash;
+
+        _didLoadSucceed = null;
+        if (_prefab != null)
+        {
+            Object.Destroy(_prefab);
+            _prefab = null;
+        }
+
+        string listingTitle = listing == null
+            ? "undefined"
+            : new string(
+                listing
+                    .Title.Select(
+                        j =>
+                        {
+                            if (char.IsLetter(j) || char.IsNumber(j))
+                            {
+                                return j;
+                            }
+
+                            return '_';
+                        })
+                    .ToArray());
+        _filePath = Path.Combine(_folder, listingTitle);
     }
 }

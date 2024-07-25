@@ -26,11 +26,18 @@ internal class QuitLevelManager : IDisposable
     public void Dispose()
     {
         _networkManager.StopLevelReceived -= OnStopLevelReceived;
+        _networkManager.Disconnected -= OnDisconnected;
     }
 
-    private void OnStopLevelReceived() => StopLevel();
+    private void OnDisconnected(string _)
+    {
+        StopLevel();
+    }
 
-    private void OnDisconnected(string _) => StopLevel();
+    private void OnStopLevelReceived()
+    {
+        StopLevel();
+    }
 
     private void StopLevel()
     {

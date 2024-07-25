@@ -13,11 +13,6 @@ public class StageStatusConverter : JsonConverter<IStageStatus>
 {
     public override bool CanWrite => false;
 
-    public override void WriteJson(JsonWriter writer, IStageStatus? value, JsonSerializer serializer)
-    {
-        throw new NotImplementedException();
-    }
-
     public override IStageStatus ReadJson(
         JsonReader reader,
         Type objectType,
@@ -29,6 +24,7 @@ public class StageStatusConverter : JsonConverter<IStageStatus>
         string type = (string?)obj["name"] ?? throw new InvalidOperationException("No stage name.");
         IStageStatus result = type switch
         {
+            "intro" => new IntroStatus(),
             "play" => new PlayStatus(),
             "finish" => new FinishStatus(),
             _ => throw new ArgumentOutOfRangeException($"{type} out of range.")
@@ -37,6 +33,11 @@ public class StageStatusConverter : JsonConverter<IStageStatus>
         serializer.Populate(obj.CreateReader(), result);
 
         return result;
+    }
+
+    public override void WriteJson(JsonWriter writer, IStageStatus? value, JsonSerializer serializer)
+    {
+        throw new NotImplementedException();
     }
 }
 
@@ -49,6 +50,12 @@ public record Status
 }
 
 public record InvalidStatus : IStageStatus;
+
+[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+public record IntroStatus : IStageStatus
+{
+    public float StartTime { get; init; } = float.MinValue;
+}
 
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]
 public record PlayStatus : IStageStatus

@@ -35,10 +35,11 @@ internal class EventModsViewController : BSMLAutomaticViewController
     [UIComponent("header")]
     private readonly TMP_Text _header = null!;
 
-    private Listing? _listing;
-
     private SiraLog _log = null!;
     private NotificationManager _notificationManager = null!;
+    private ListingManager _listingManager = null!;
+
+    private Listing? _listing;
 
     internal event Action? Finished;
 
@@ -59,6 +60,12 @@ internal class EventModsViewController : BSMLAutomaticViewController
 
             return _contentBsml;
         }
+    }
+
+    public override void OnDestroy()
+    {
+        base.OnDestroy();
+        _listingManager.ListingFound -= OnListingFound;
     }
 
     internal List<ModInfo>? Init(List<ModInfo> modInfos)
@@ -126,7 +133,8 @@ internal class EventModsViewController : BSMLAutomaticViewController
     private void Construct(SiraLog log, ListingManager listingManager, NotificationManager notificationManager)
     {
         _log = log;
-        listingManager.ListingFound += n => _listing = n;
+        _listingManager = listingManager;
+        listingManager.ListingFound += OnListingFound;
         _notificationManager = notificationManager;
     }
 
@@ -135,6 +143,11 @@ internal class EventModsViewController : BSMLAutomaticViewController
     private void OnAcceptClick()
     {
         Finished?.Invoke();
+    }
+
+    private void OnListingFound(Listing? listing)
+    {
+        _listing = listing;
     }
 
     private readonly struct ListObject

@@ -1,4 +1,4 @@
-<bg>
+<bg id='all'>
   <vertical id='vertical' vertical-fit='PreferredSize' child-expand-height='false' child-control-height='false'>
     <horizontal preferred-width='120' horizontal-fit='PreferredSize' pad-bottom='3'>
       <horizontal id='header' bg='panel-fade-gradient' preferred-width='90' preferred-height='8'

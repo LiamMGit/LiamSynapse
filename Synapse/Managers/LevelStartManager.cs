@@ -10,7 +10,7 @@ using Zenject;
 
 namespace Synapse.Managers;
 
-internal class LevelStartManager
+internal class LevelStartManager : IDisposable
 {
     private static readonly Action<string>? _nextLevelIsIsolated = GetNextLevelIsIsolated();
 
@@ -19,6 +19,7 @@ internal class LevelStartManager
     private readonly GameplaySetupViewController _gameplaySetupViewController;
     private readonly LazyInject<HeckIntegrationManager>? _heckIntegrationManager;
     private readonly MenuTransitionsHelper _menuTransitionsHelper;
+    private readonly NetworkManager _networkManager;
     private readonly NoEnergyModifier _noEnergyModifier;
 
     private Ruleset? _ruleset;
@@ -35,6 +36,7 @@ internal class LevelStartManager
     {
         _gameplaySetupViewController = gameplaySetupViewController;
         _menuTransitionsHelper = menuTransitionsHelper;
+        _networkManager = networkManager;
         _noEnergyModifier = noEnergyModifier;
         _heckIntegrationManager = heckIntegrationManager;
         networkManager.MapUpdated += OnMapUpdated;
@@ -109,6 +111,11 @@ internal class LevelStartManager
         noEnergy // custom modifier
     }
 #pragma warning restore SA1300
+
+    public void Dispose()
+    {
+        _networkManager.MapUpdated -= OnMapUpdated;
+    }
 
     // WARNING: ruleset has lower priority than heck map settings
     public void StartLevel(

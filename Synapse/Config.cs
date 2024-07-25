@@ -11,6 +11,8 @@ public class Config
 {
     public bool? JoinChat { get; set; }
 
+    public uint LastSeenIntro { get; set; }
+
     public bool MuteMusic { get; set; }
 
     public bool ProfanityFilter { get; set; } = true;
