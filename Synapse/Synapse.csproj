@@ -75,9 +75,10 @@
     <EmbeddedResource Include="Resources\Intro.bsml"/>
     <EmbeddedResource Include="Resources\Leaderboard.bsml"/>
     <EmbeddedResource Include="Resources\Loading.bsml"/>
+    <EmbeddedResource Include="Resources\LobbyChat.bsml"/>
+    <EmbeddedResource Include="Resources\LobbySongInfo.bsml"/>
     <EmbeddedResource Include="Resources\promo_back.png"/>
     <EmbeddedResource Include="Resources\promo_placeholder.png"/>
-    <EmbeddedResource Include="Resources\Lobby.bsml"/>
     <EmbeddedResource Include="Resources\Mods.bsml"/>
     <EmbeddedResource Include="Resources\ModsContent.bsml"/>
     <EmbeddedResource Include="Resources\ModsDownloading.bsml"/>

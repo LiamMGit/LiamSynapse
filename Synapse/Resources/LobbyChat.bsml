@@ -1,0 +1,22 @@
+<bg>
+  <vertical id='chat' preferred-width='110' child-expand-width='true'>
+    <vertical bg='round-rect-panel' preferred-height='60' horizontal-fit='Unconstrained'>
+      <scroll-view id='scrollview' child-expand-height='true' child-control-height='true'>
+        <vertical id='textbox' preferred-width='94' vertical-fit='PreferredSize'>
+        </vertical>
+      </scroll-view>
+    </vertical>
+  </vertical>
+  <icon-button id='toend' on-click='toend-click' icon='#ArrowIcon' anchor-pos-x='60' anchor-pos-y='-60'
+               vertical-fit='Unconstrained' size-delta-y='7'/>
+  <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='50' anchor-pos-y='35'
+                   size-delta-x='4' size-delta-y='4'/>
+  <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='36'>
+    <vertical horizontal-fit='PreferredSize' pref-width='78'>
+      <checkbox-setting text='Join chat' value='joinChat' apply-on-change='true' bind-value='true'/>
+      <checkbox-setting text='Profanity filter' value='profanityFilter' apply-on-change='true' bind-value='true'/>
+      <checkbox-setting text='Mute music' value='muteMusic' apply-on-change='true' bind-value='true'/>
+      <button text='Replay Intro' on-click='replay-intro'/>
+    </vertical>
+  </modal>
+</bg>

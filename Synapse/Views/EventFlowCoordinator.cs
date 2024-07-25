@@ -25,7 +25,7 @@ internal class EventFlowCoordinator : FlowCoordinator
     private LevelStartManager _levelStartManager = null!;
     private Listing? _listing;
     private EventLoadingViewController _loadingViewController = null!;
-    private EventLobbyViewController _lobbyViewController = null!;
+    private EventLobbyNavigationViewController _lobbyNavigationViewController = null!;
     private SiraLog _log = null!;
     private MapDownloadingManager _mapDownloadingManager = null!;
     private MenuPrefabManager _menuPrefabManager = null!;
@@ -131,8 +131,8 @@ internal class EventFlowCoordinator : FlowCoordinator
 
                 _dirtyListing = false;
                 _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
-                _lobbyViewController.StartLevel += StartLevel;
-                _lobbyViewController.StartIntro += StartIntro;
+                _lobbyNavigationViewController.StartLevel += StartLevel;
+                _lobbyNavigationViewController.StartIntro += StartIntro;
                 _loadingViewController.Finished += OnLoadingFinished;
                 _introViewController.Finished += OnIntroFinished;
                 _networkManager.Disconnected += OnDisconnected;
@@ -181,8 +181,8 @@ internal class EventFlowCoordinator : FlowCoordinator
             IsActive = false;
             _resultsViewController.continueButtonPressedEvent -= HandleResultsViewControllerContinueButtonPressed;
             _modsViewController.Finished -= OnAcceptModsDownload;
-            _lobbyViewController.StartLevel -= StartLevel;
-            _lobbyViewController.StartIntro -= StartIntro;
+            _lobbyNavigationViewController.StartLevel -= StartLevel;
+            _lobbyNavigationViewController.StartIntro -= StartIntro;
             _loadingViewController.Finished -= OnLoadingFinished;
             _networkManager.Disconnected -= OnDisconnected;
             _ = _networkManager.Disconnect("Leaving");
@@ -197,7 +197,7 @@ internal class EventFlowCoordinator : FlowCoordinator
     {
         switch (newViewController)
         {
-            case EventLobbyViewController:
+            case EventLobbyNavigationViewController:
                 SetLeftScreenViewController(_gameplaySetupViewController, animationType);
                 SetRightScreenViewController(_leaderboardViewController, animationType);
                 break;
@@ -210,7 +210,7 @@ internal class EventFlowCoordinator : FlowCoordinator
 
         switch (newViewController)
         {
-            case EventLobbyViewController:
+            case EventLobbyNavigationViewController:
                 SetTitle(_listing?.Title ?? "N/A", animationType);
                 showBackButton = true;
                 break;
@@ -249,7 +249,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         EventIntroViewController introViewController,
         EventLeaderboardViewController leaderboardViewController,
         EventLoadingViewController loadingViewController,
-        EventLobbyViewController lobbyViewController,
+        EventLobbyNavigationViewController lobbyNavigationViewController,
         EventModsDownloadingViewController modsDownloadingViewController,
         EventModsViewController modsViewController,
         SimpleDialogPromptViewController simpleDialogPromptViewController,
@@ -266,7 +266,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         _introViewController = introViewController;
         _leaderboardViewController = leaderboardViewController;
         _loadingViewController = loadingViewController;
-        _lobbyViewController = lobbyViewController;
+        _lobbyNavigationViewController = lobbyNavigationViewController;
         _modsDownloadingViewController = modsDownloadingViewController;
         _modsViewController = modsViewController;
         _simpleDialogPromptViewController = simpleDialogPromptViewController;
@@ -396,7 +396,7 @@ internal class EventFlowCoordinator : FlowCoordinator
                 if (topViewController == _loadingViewController)
                 {
                     ReplaceTopViewController(
-                        _lobbyViewController,
+                        _lobbyNavigationViewController,
                         null,
                         ViewController.AnimationType.In,
                         ViewController.AnimationDirection.Vertical);
@@ -425,7 +425,7 @@ internal class EventFlowCoordinator : FlowCoordinator
     {
         TransitionFinished += () =>
         {
-            if (topViewController == _lobbyViewController)
+            if (topViewController == _lobbyNavigationViewController)
             {
                 PresentViewController(_introViewController, null, ViewController.AnimationDirection.Vertical);
             }
@@ -445,7 +445,7 @@ internal class EventFlowCoordinator : FlowCoordinator
                 return;
             }
 
-            if (topViewController != _lobbyViewController)
+            if (topViewController != _lobbyNavigationViewController)
             {
                 return;
             }

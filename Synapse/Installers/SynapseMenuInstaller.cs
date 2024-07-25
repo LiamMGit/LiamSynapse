@@ -25,7 +25,9 @@ internal class SynapseMenuInstaller : Installer
         Container.Bind<EventModsViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventModsDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventLoadingViewController>().FromNewComponentAsViewController().AsSingle();
-        Container.Bind<EventLobbyViewController>().FromNewComponentAsViewController().AsSingle();
+        Container.Bind<EventLobbyNavigationViewController>().FromNewComponentAsViewController().AsSingle();
+        Container.Bind<EventLobbyChatViewController>().FromNewComponentAsViewController().AsSingle();
+        Container.Bind<EventLobbySongInfoViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventLeaderboardViewController>().FromNewComponentAsViewController().AsSingle();
         ////Container.Bind<EventMapDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
 
