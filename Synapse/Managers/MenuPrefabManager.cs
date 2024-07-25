@@ -16,8 +16,6 @@ namespace Synapse.Managers;
 
 internal class MenuPrefabManager : IDisposable
 {
-    private static readonly int _death = Animator.StringToHash("death");
-
     private static readonly string _folder =
         (Path.GetDirectoryName(Application.streamingAssetsPath) ?? throw new InvalidOperationException()) +
         $"{Path.DirectorySeparatorChar}Synapse{Path.DirectorySeparatorChar}Bundles";
@@ -32,7 +30,6 @@ internal class MenuPrefabManager : IDisposable
 
     private bool _active;
     private BundleInfo? _bundleInfo;
-    private AnimatorDeathController? _deathController;
 
     private bool? _didLoadSucceed;
     private ParticleSystem? _dustParticles;
@@ -163,17 +160,7 @@ internal class MenuPrefabManager : IDisposable
         DustParticles?.Play();
         _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
         _songPreviewPlayer.CrossfadeToDefault();
-        if (Animator == null || _deathController == null)
-        {
-            _prefab.SetActive(false);
-        }
-        else
-        {
-            Animator.SetTrigger(_death);
-            _deathController.ContinueAfterDecay(
-                10,
-                () => { _prefab.SetActive(false); });
-        }
+        _prefab.SetActive(false);
     }
 
     internal void Show()
@@ -190,12 +177,7 @@ internal class MenuPrefabManager : IDisposable
             return;
         }
 
-        if (_deathController != null && _deathController.enabled)
-        {
-            _prefab.SetActive(false);
-            _deathController.enabled = false;
-        }
-
+        _prefab.SetActive(false);
         DustParticles?.Stop();
         _prefab.SetActive(true);
         _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.None);
@@ -237,16 +219,6 @@ internal class MenuPrefabManager : IDisposable
         {
             _log.Error("No animator on prefab");
         }
-        else if (Animator.parameters.All(n => n.nameHash != _death))
-        {
-            _log.Error("No death trigger on animator");
-        }
-        else
-        {
-            _deathController = _prefab.AddComponent<AnimatorDeathController>();
-        }
-
-        _deathController = null;
 
         if (_active)
         {
