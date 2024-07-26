@@ -187,6 +187,12 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         _messageManager.SendMessage(text);
     }
 
+    private void OnUserBanned(string id)
+    {
+        _messageQueue.RemoveAll(n => n.Id == id);
+        _messages.Where(n => n.Item1.Id == id).Do(n => n.Item2.text = "<deleted>");
+    }
+
     [UsedImplicitly]
     [UIAction("replay-intro")]
     private void OnReplayIntroClick()
@@ -199,12 +205,6 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private void OnToEndClick()
     {
         _scrollView.ScrollToEnd(true);
-    }
-
-    private void OnUserBanned(string id)
-    {
-        _messageQueue.RemoveAll(n => n.Id == id);
-        _messages.Where(n => n.Item1.Id == id).Do(n => n.Item2.text = "<deleted>");
     }
 
     [UsedImplicitly]
