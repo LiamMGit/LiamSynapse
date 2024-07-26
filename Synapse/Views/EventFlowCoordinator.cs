@@ -125,11 +125,10 @@ internal class EventFlowCoordinator : FlowCoordinator
                         ProvideInitialViewControllers(_modsViewController);
                         return;
                     }
-
-                    _ = _menuPrefabManager.Download();
                 }
 
                 _dirtyListing = false;
+                _ = _menuPrefabManager.Download();
                 _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
                 _lobbyNavigationViewController.StartLevel += StartLevel;
                 _lobbyNavigationViewController.StartIntro += StartIntro;
@@ -404,6 +403,11 @@ internal class EventFlowCoordinator : FlowCoordinator
             }
             else
             {
+                if (topViewController == _simpleDialogPromptViewController)
+                {
+                    return;
+                }
+
                 _simpleDialogPromptViewController.Init(
                     "Error",
                     error,

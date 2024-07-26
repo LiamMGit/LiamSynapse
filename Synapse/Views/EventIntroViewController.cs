@@ -105,6 +105,8 @@ internal class EventIntroViewController : BSMLAutomaticViewController
         _doMute = _config.MuteMusic;
         _config.MuteMusic = false;
 
+        // not super elegant but should catch any edge cases
+        yield return new WaitForSeconds(0.1f);
         yield return new WaitWhile(() => animator.GetCurrentAnimatorStateInfo(0).normalizedTime <= 1.0f);
 
         Finish();

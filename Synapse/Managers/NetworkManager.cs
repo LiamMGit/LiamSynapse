@@ -11,6 +11,9 @@ using SiraUtil.Logging;
 using Synapse.Extras;
 using Synapse.Models;
 using Unclassified.Net;
+#if !V1_29_1
+using System.Threading;
+#endif
 
 namespace Synapse.Managers;
 
@@ -148,7 +151,18 @@ internal class NetworkManager : IDisposable
         client.ConnectedCallback += OnConnected;
         client.ReceivedCallback += OnReceived;
         _client = client;
-        await client.RunAsync();
+        try
+        {
+            await client.RunAsync();
+        }
+        catch (TaskCanceledException)
+        {
+        }
+        catch (Exception e)
+        {
+            _log.Critical($"An unexpected exception has occurred: {e}");
+        }
+
         client.Message -= OnMessageReceived;
         client.ConnectedCallback -= OnConnected;
         client.ReceivedCallback -= OnReceived;

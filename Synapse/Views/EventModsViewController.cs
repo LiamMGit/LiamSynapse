@@ -62,7 +62,11 @@ internal class EventModsViewController : BSMLAutomaticViewController
         }
     }
 
+#if !V1_29_1
+    protected override void OnDestroy()
+#else
     public override void OnDestroy()
+#endif
     {
         base.OnDestroy();
         _listingManager.ListingFound -= OnListingFound;

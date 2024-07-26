@@ -9,7 +9,7 @@
   </vertical>
   <icon-button id='toend' on-click='toend-click' icon='#ArrowIcon' anchor-pos-x='60' anchor-pos-y='-60'
                vertical-fit='Unconstrained' size-delta-y='7'/>
-  <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='-51' anchor-pos-y='36'
+  <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='-58' anchor-pos-y='37'
                    size-delta-x='4' size-delta-y='4'/>
   <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='36'>
     <vertical horizontal-fit='PreferredSize' pref-width='78'>
