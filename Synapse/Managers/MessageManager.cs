@@ -57,13 +57,14 @@ internal sealed class MessageManager : IDisposable
                 message = message.Substring(1);
                 if (message == "ping")
                 {
-                    float latency = _timeSyncManager.Latency;
-                    MessageReceived?.Invoke(new ChatMessage(
-                        string.Empty,
-                        string.Empty,
-                        "yellow",
-                        MessageType.System,
-                        $"{(latency > 999 ? "999+" : latency.ToString("F0"))} ms"));
+                    float latency = _timeSyncManager.Latency * 1000;
+                    MessageReceived?.Invoke(
+                        new ChatMessage(
+                            string.Empty,
+                            string.Empty,
+                            "yellow",
+                            MessageType.System,
+                            $"{(latency > 999 ? "999+" : latency.ToString("F0"))} ms"));
                 }
                 else
                 {

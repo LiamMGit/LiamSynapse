@@ -36,7 +36,7 @@ internal class HeckIntegrationManager
         PlayerSpecificSettings playerSpecificSettings,
         PracticeSettings? practiceSettings,
 #if LATEST
-        EnvironmentsListModel? environmentsListModel,
+        EnvironmentsListModel environmentsListModel,
 #endif
         string backButtonText,
         bool useTestNoteCutSoundEffects,

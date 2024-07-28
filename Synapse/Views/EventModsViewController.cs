@@ -13,6 +13,7 @@ using Synapse.Managers;
 using Synapse.Models;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using Zenject;
 
 namespace Synapse.Views;
@@ -35,11 +36,15 @@ internal class EventModsViewController : BSMLAutomaticViewController
     [UIComponent("header")]
     private readonly TMP_Text _header = null!;
 
-    private SiraLog _log = null!;
-    private NotificationManager _notificationManager = null!;
-    private ListingManager _listingManager = null!;
+    [UsedImplicitly]
+    [UIComponent("topvertical")]
+    private readonly VerticalLayoutGroup _topVertical = null!;
 
     private Listing? _listing;
+    private ListingManager _listingManager = null!;
+
+    private SiraLog _log = null!;
+    private NotificationManager _notificationManager = null!;
 
     internal event Action? Finished;
 
@@ -72,7 +77,9 @@ internal class EventModsViewController : BSMLAutomaticViewController
         _listingManager.ListingFound -= OnListingFound;
     }
 
+#pragma warning disable SA1202
     internal List<ModInfo>? Init(List<ModInfo> modInfos)
+#pragma warning restore SA1202
     {
         if (_listing == null)
         {

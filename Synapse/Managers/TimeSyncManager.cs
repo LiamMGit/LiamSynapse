@@ -11,6 +11,8 @@ namespace Synapse.Managers;
 [UsedImplicitly]
 internal class TimeSyncManager : IDisposable
 {
+    private const int MAX_TIMEOUT = 10000;
+
     private readonly RollingAverage _latency = new(30);
     private readonly NetworkManager _networkManager;
     private readonly RollingAverage _serverOffset = new(30);
@@ -20,7 +22,6 @@ internal class TimeSyncManager : IDisposable
 
     private bool? _didSyncSucceed;
     private TaskCompletionSource<object?>? _pingTask;
-    private TaskCompletionSource<bool>? _synced;
 
     private TimeSyncManager(NetworkManager networkManager)
     {
@@ -79,7 +80,6 @@ internal class TimeSyncManager : IDisposable
         _pingTask?.TrySetCanceled();
         _pingTask = null;
         _didSyncSucceed = null;
-        _synced = null;
     }
 
     internal async Task Ping()
@@ -90,7 +90,7 @@ internal class TimeSyncManager : IDisposable
         _cancelPingTimeout = new CancellationTokenSource();
         _pingTask = new TaskCompletionSource<object?>();
         _ = _networkManager.Send(packetBuilder.ToSegment());
-        _ = Timeout(_cancelPingTimeout.Token, 1000);
+        _ = Timeout(_cancelPingTimeout.Token, MAX_TIMEOUT);
         await _pingTask.Task;
     }
 
@@ -99,13 +99,11 @@ internal class TimeSyncManager : IDisposable
         _latency.Reset();
         _serverOffset.Reset();
         _stopwatch.Restart();
-        _synced ??= new TaskCompletionSource<bool>();
 
         await Ping();
-        _didSyncSucceed = Latency < 1000;
+        _didSyncSucceed = Latency < MAX_TIMEOUT;
         SyncedBacking?.Invoke(_didSyncSucceed.Value);
         SyncedBacking = null;
-        _synced.SetResult(_didSyncSucceed.Value);
 
         if (_didSyncSucceed.Value)
         {
@@ -113,12 +111,6 @@ internal class TimeSyncManager : IDisposable
             _cancelPingLoop = new CancellationTokenSource();
             _ = PingLoop(_cancelPingLoop.Token, 10000);
         }
-    }
-
-    internal Task<bool> WaitForSync()
-    {
-        _synced ??= new TaskCompletionSource<bool>();
-        return _synced.Task;
     }
 
     private async Task PingLoop(CancellationToken cancellationToken, int millisecondLoop)

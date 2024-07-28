@@ -176,7 +176,7 @@ internal class EventIntroViewController : BSMLAutomaticViewController
 
         private void Update()
         {
-            HeldDuration = currentSelectionState == SelectionState.Pressed
+            HeldDuration = currentSelectionState == SelectionState.Pressed || Input.GetKey(KeyCode.Return)
                 ? Mathf.Min(HeldDuration + Time.unscaledDeltaTime, 1)
                 : Mathf.Lerp(HeldDuration, 0, Time.unscaledDeltaTime * 4f);
         }

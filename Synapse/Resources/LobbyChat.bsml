@@ -16,7 +16,7 @@
       <checkbox-setting text='Join chat' value='joinChat' apply-on-change='true' bind-value='true'/>
       <checkbox-setting text='Profanity filter' value='profanityFilter' apply-on-change='true' bind-value='true'/>
       <checkbox-setting text='Mute music' value='muteMusic' apply-on-change='true' bind-value='true'/>
-      <button text='Replay Intro' on-click='replay-intro'/>
+      <button id='replay-intro-button' text='Replay Intro' on-click='replay-intro'/>
     </vertical>
   </modal>
 </bg>

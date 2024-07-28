@@ -1,5 +1,5 @@
 ﻿<bg id='contentObject'>
-  <vertical anchor-max-y='0.9' bg='round-rect-panel' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'>
+  <vertical bg='round-rect-panel' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'>
     <scroll-view preferred-height='52' preferred-width='64'>
       <macro.for-each hosts='contents'>
         <horizontal preferred-width='48'>

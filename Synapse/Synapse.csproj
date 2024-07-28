@@ -12,7 +12,7 @@
     <PluginId>Synapse</PluginId>
     <PluginName>Synapse</PluginName>
     <Author>Aeroluna</Author>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Description>Connect with other players for live events with chatting, leaderboards, and synchronized play.</Description>
   </PropertyGroup>
   <ItemGroup>
@@ -49,7 +49,7 @@
     <Reference Include="PlatformUserModel" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\PlatformUserModel.dll"/>
     <Reference Include="Rendering" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\Rendering.dll" Publicize="true"/>
     <Reference Include="SiraUtil" HintPath="$(BeatSaberDir)\Plugins\SiraUtil.dll"/>
-    <Reference Include="SongCore" HintPath="$(BeatSaberDir)\Plugins\SongCore.dll"/>
+    <Reference Include="SongCore" HintPath="$(BeatSaberDir)\Plugins\SongCore.dll" Publicize="true"/>
     <Reference Include="Tweening" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\Tweening.dll"/>
     <Reference Include="Unity.TextMeshPro" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\Unity.TextMeshPro.dll"/>
     <Reference Include="UnityEngine.AnimationModule" HintPath="$(BeatSaberDir)\Beat Saber_Data\Managed\UnityEngine.AnimationModule.dll"/>

@@ -34,6 +34,9 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIComponent("modal")]
     private readonly ModalView _modal = null!;
 
+    [UIObject("replay-intro-button")]
+    private readonly GameObject _replayIntroObject = null!;
+
     [UIComponent("scrollview")]
     private readonly ScrollView _scrollView = null!;
 
@@ -90,8 +93,6 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
         if (firstActivation)
         {
-            rectTransform.sizeDelta = new Vector2(-40, 0);
-
             InputFieldView original =
                 Resources.FindObjectsOfTypeAll<InputFieldView>().First(n => n.name == "SearchInputField");
             _input = Instantiate(original, _chatObject.transform);
@@ -130,9 +131,13 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         // ReSharper disable once InvertIf
         if (addedToHierarchy)
         {
+            rectTransform.sizeDelta = new Vector2(-40, 0);
+
             _messageManager.MessageReceived += OnMessageReceived;
             _messageManager.RefreshMotd();
             _networkManager.UserBanned += OnUserBanned;
+            OnStageUpdated(_networkManager.Status.Stage);
+            _networkManager.StageUpdated += OnStageUpdated;
 
             _countdownManager.Refresh();
         }
@@ -154,6 +159,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
             _messageManager.MessageReceived -= OnMessageReceived;
             _networkManager.UserBanned -= OnUserBanned;
+            _networkManager.StageUpdated -= OnStageUpdated;
         }
     }
 
@@ -187,12 +193,6 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         _messageManager.SendMessage(text);
     }
 
-    private void OnUserBanned(string id)
-    {
-        _messageQueue.RemoveAll(n => n.Id == id);
-        _messages.Where(n => n.Item1.Id == id).Do(n => n.Item2.text = "<deleted>");
-    }
-
     [UsedImplicitly]
     [UIAction("replay-intro")]
     private void OnReplayIntroClick()
@@ -200,11 +200,22 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         StartIntro?.Invoke();
     }
 
+    private void OnStageUpdated(IStageStatus stageStatus)
+    {
+        _replayIntroObject.SetActive(stageStatus is not IntroStatus);
+    }
+
     [UsedImplicitly]
     [UIAction("toend-click")]
     private void OnToEndClick()
     {
         _scrollView.ScrollToEnd(true);
+    }
+
+    private void OnUserBanned(string id)
+    {
+        _messageQueue.RemoveAll(n => n.Id == id);
+        _messages.Where(n => n.Item1.Id == id).Do(n => n.Item2.text = "<deleted>");
     }
 
     [UsedImplicitly]

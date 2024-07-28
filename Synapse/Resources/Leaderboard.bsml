@@ -14,7 +14,7 @@
       </horizontal>
       <vertical preferred-width='90' child-expand-height='false'>
         <horizontal id='titlelayout' preferred-height='5'>
-          <text id='titlemap' italics='true' font-size='6' align='Center'/>
+          <text id='titlemap' text='' italics='true' font-size='6' align='Center'/>
         </horizontal>
         <horizontal preferred-height='72' id='noscore'>
           <leaderboard id='leaderboard'/>

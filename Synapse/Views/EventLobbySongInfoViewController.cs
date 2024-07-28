@@ -129,8 +129,6 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
 
         if (firstActivation)
         {
-            rectTransform.sizeDelta = new Vector2(-120, 0);
-
             _coverImage.material = Resources.FindObjectsOfTypeAll<Material>().First(n => n.name == "UINoGlowRoundEdge");
             _coverPlaceholder = _coverImage.sprite;
 
@@ -153,6 +151,8 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
 
         if (addedToHierarchy)
         {
+            rectTransform.sizeDelta = new Vector2(-120, 0);
+
             _finishManager.FinishImageCreated += OnFinishImageCreated;
 
             if (_networkManager.Status.Stage is PlayStatus playStatus)

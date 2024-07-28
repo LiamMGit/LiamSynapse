@@ -1,8 +1,11 @@
 ﻿<bg>
-  <vertical anchor-max-y='1.17' child-control-height='false'>
-    <text id='header' text='' align='Center' font-size='4'/>
+  <vertical vertical-fit='PreferredSize' preferred-height='110'>
+    <vertical>
+      <text id='header' text='' align='Center' font-size='4'/>
+    </vertical>
+    <vertical/>
+    <horizontal anchor-max-y='0.1' horizontal-fit='PreferredSize' vertical-fit='PreferredSize' spacing='2'>
+      <primary-button text='download' on-click='accept-click' preferred-height='10' preferred-width='32'/>
+    </horizontal>
   </vertical>
-  <horizontal anchor-max-y='0.1' horizontal-fit='PreferredSize' vertical-fit='PreferredSize' spacing='2'>
-    <primary-button text='download' on-click='accept-click' preferred-height='10' preferred-width='32'/>
-  </horizontal>
 </bg>

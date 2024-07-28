@@ -179,6 +179,7 @@ internal static class MediaExtensions
             await Task.Delay(100, CancellationToken.None);
         }
 
+#pragma warning disable CS0618 // Type or member is obsolete
         if (www.isHttpError)
         {
             throw new InvalidOperationException(
@@ -189,5 +190,6 @@ internal static class MediaExtensions
         {
             throw new InvalidOperationException($"Failed to connect to [{www.url}], network error ({www.error}).");
         }
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 }

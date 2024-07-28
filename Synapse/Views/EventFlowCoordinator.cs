@@ -94,7 +94,7 @@ internal class EventFlowCoordinator : FlowCoordinator
                     _ => { Finished?.Invoke(this); });
                 ProvideInitialViewControllers(_simpleDialogPromptViewController);
             }
-            else if (!_dirtyListing && _modsDownloadingViewController.DownloadFinished)
+            else if (_modsDownloadingViewController.DownloadFinished)
             {
                 ProvideInitialViewControllers(_modsDownloadingViewController);
             }
@@ -282,6 +282,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         LevelCompletionResults levelCompletionResults)
     {
         TransitionDidFinish();
+        _menuPrefabManager.HideParticles();
 #if LATEST
         BeatmapKey beatmapKey = standardLevelScenesTransitionSetupData.beatmapKey;
         BeatmapLevel beatmapLevel = standardLevelScenesTransitionSetupData.beatmapLevel;
@@ -336,7 +337,6 @@ internal class EventFlowCoordinator : FlowCoordinator
 
     private void OnAcceptModsDownload()
     {
-        _dirtyListing = false;
         ReplaceTopViewController(
             _modsDownloadingViewController,
             null,

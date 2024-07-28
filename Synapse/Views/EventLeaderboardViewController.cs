@@ -103,7 +103,9 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         _networkManager.MapUpdated -= OnMapUpdated;
     }
 
+#pragma warning disable SA1202
     internal void ChangeSelection(int index)
+#pragma warning restore SA1202
     {
         _textSegments.SelectCellWithNumber(index);
         ChangeView(index);

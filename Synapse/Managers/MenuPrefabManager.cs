@@ -163,6 +163,11 @@ internal class MenuPrefabManager : IDisposable
         _prefab.SetActive(false);
     }
 
+    internal void HideParticles()
+    {
+        DustParticles?.Stop();
+    }
+
     internal void Show()
     {
         if (_active)

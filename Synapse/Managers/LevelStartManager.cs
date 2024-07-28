@@ -15,6 +15,9 @@ internal class LevelStartManager : IDisposable
     private static readonly Action<string>? _nextLevelIsIsolated = GetNextLevelIsIsolated();
 
     private readonly Action? _disableCustomPlatform;
+#if LATEST
+    private readonly EnvironmentsListModel _environmentsListModel;
+#endif
 
     private readonly GameplaySetupViewController _gameplaySetupViewController;
     private readonly LazyInject<HeckIntegrationManager>? _heckIntegrationManager;
@@ -30,12 +33,18 @@ internal class LevelStartManager : IDisposable
         DiContainer container,
         GameplaySetupViewController gameplaySetupViewController,
         MenuTransitionsHelper menuTransitionsHelper,
+#if LATEST
+        EnvironmentsListModel environmentsListModel,
+#endif
         NetworkManager networkManager,
         NoEnergyModifier noEnergyModifier,
         [InjectOptional] LazyInject<HeckIntegrationManager>? heckIntegrationManager)
     {
         _gameplaySetupViewController = gameplaySetupViewController;
         _menuTransitionsHelper = menuTransitionsHelper;
+#if LATEST
+        _environmentsListModel = environmentsListModel;
+#endif
         _networkManager = networkManager;
         _noEnergyModifier = noEnergyModifier;
         _heckIntegrationManager = heckIntegrationManager;
@@ -256,7 +265,7 @@ internal class LevelStartManager : IDisposable
             playerSpecificSettings,
             null,
 #if LATEST
-            null,
+            _environmentsListModel,
 #endif
             string.Empty, // doesnt matter, gets reset by animation anyways
             false,
@@ -323,7 +332,7 @@ internal class LevelStartManager : IDisposable
         PlayerSpecificSettings playerSpecificSettings,
         PracticeSettings? practiceSettings,
 #if LATEST
-        EnvironmentsListModel? environmentsListModel,
+        EnvironmentsListModel environmentsListModel,
 #endif
         string backButtonText,
         bool useTestNoteCutSoundEffects,

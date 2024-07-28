@@ -334,7 +334,7 @@ internal class NetworkManager : IDisposable
                         return;
                     }
 
-                    await ProcessPacket(client, await client.ByteBuffer.DequeueAsync(_dequeueAmount));
+                    _ = ProcessPacket(client, await client.ByteBuffer.DequeueAsync(_dequeueAmount));
                     _dequeueAmount = 0;
                     continue;
                 }
@@ -348,7 +348,7 @@ internal class NetworkManager : IDisposable
                 int length = BitConverter.ToUInt16(lengthBytes, 0);
                 if (length <= count)
                 {
-                    await ProcessPacket(client, await client.ByteBuffer.DequeueAsync(length));
+                    _ = ProcessPacket(client, await client.ByteBuffer.DequeueAsync(length));
                 }
                 else
                 {

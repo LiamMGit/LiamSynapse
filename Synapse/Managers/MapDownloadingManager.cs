@@ -29,6 +29,9 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
     private readonly SiraLog _log;
     private readonly CustomLevelLoader _customLevelLoader;
     private readonly NetworkManager _networkManager;
+#if LATEST
+    private readonly BeatmapLevelsModel _beatmapLevelsModel;
+#endif
     private readonly CancellationTokenManager _cancellationTokenManager;
     private readonly DirectoryInfo _directory;
 
@@ -51,11 +54,17 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
         SiraLog log,
         CustomLevelLoader customLevelLoader,
         NetworkManager networkManager,
+#if LATEST
+        BeatmapLevelsModel beatmapLevelsModel,
+#endif
         CancellationTokenManager cancellationTokenManager)
     {
         _log = log;
         _customLevelLoader = customLevelLoader;
         _networkManager = networkManager;
+#if LATEST
+        _beatmapLevelsModel = beatmapLevelsModel;
+#endif
         _cancellationTokenManager = cancellationTokenManager;
         _directory = new DirectoryInfo(_mapFolder);
         _directory.Purge();
@@ -144,15 +153,20 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
     }
 
 #if LATEST
-    private static BeatmapLevel SongCoreLoad(string songPath)
+    private BeatmapLevel SongCoreLoad(string songPath)
     {
-        (string, BeatmapLevel)? customLevel = Loader.LoadCustomLevel(songPath);
-        if (customLevel == null)
+        (string, BeatmapLevel) customLevel = Loader.LoadCustomLevel(songPath) ??
+                                             throw new InvalidOperationException("SongCore error: failed to load.");
+        string levelId = customLevel.Item2.levelID;
+        if (!Loader.LoadedBeatmapSaveData.TryGetValue(
+                levelId,
+                out CustomLevelLoader.LoadedSaveData loadedSaveData))
         {
-            throw new InvalidOperationException("SongCore error: failed to load.");
+            throw new InvalidOperationException("SongCore error: failed to get loadedSaveData.");
         }
 
-        return customLevel.Value.Item2;
+        _customLevelLoader._loadedBeatmapSaveData[levelId] = loadedSaveData;
+        return customLevel.Item2;
     }
 #else
     // idk why its private
@@ -257,24 +271,29 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
             else
             {
                 CustomLevelFolderInfo? customLevelFolderInfo =
-                    await FileSystemCustomLevelProvider.LoadCustomLevelFolderInfoAsync(path, token);
-                if (customLevelFolderInfo == null)
-                {
+                    await FileSystemCustomLevelProvider.LoadCustomLevelFolderInfoAsync(path, token) ??
                     throw new InvalidOperationException("Failed to get CustomLevelFolderInfo.");
-                }
 
-                (BeatmapLevel, CustomLevelLoader.LoadedSaveData)? tuple =
-                    await _customLevelLoader.LoadBeatmapLevelAsync(customLevelFolderInfo.Value, token);
-                if (tuple == null)
-                {
+                (BeatmapLevel, CustomLevelLoader.LoadedSaveData) tuple =
+                    await _customLevelLoader.LoadBeatmapLevelAsync(customLevelFolderInfo.Value, token) ??
                     throw new InvalidOperationException("Failed to get BeatmapLevel.");
-                }
 
-                beatmapLevel = tuple.Value.Item1;
+                beatmapLevel = tuple.Item1;
+                _customLevelLoader._loadedBeatmapSaveData[beatmapLevel.levelID] = tuple.Item2;
             }
 
+            // just throw that shit into the first pack we find, who cares
+            // it just needs a pack for some reason
+            BeatmapLevelsRepository repository = _beatmapLevelsModel._allLoadedBeatmapLevelsRepository ??
+                                                 throw new InvalidOperationException(
+                                                     "No repository found.");
+            BeatmapLevelPack beatmapLevelPack = repository.beatmapLevelPacks.First();
+            repository._idToBeatmapLevel[beatmapLevel.levelID] = beatmapLevel;
+            repository._beatmapLevelIdToBeatmapLevelPackId[beatmapLevel.levelID] = beatmapLevelPack.packID;
+
             BeatmapCharacteristicSO characteristic =
-                _customLevelLoader._beatmapCharacteristicCollection.GetBeatmapCharacteristicBySerializedName(path);
+                _customLevelLoader._beatmapCharacteristicCollection.GetBeatmapCharacteristicBySerializedName(
+                    map.Characteristic);
             BeatmapKey beatmapKey = new(beatmapLevel.levelID, characteristic, (BeatmapDifficulty)map.Difficulty);
 #else
             CustomPreviewBeatmapLevel beatmapLevel;
@@ -298,7 +317,8 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
             IDifficultyBeatmapSet set =
                 customBeatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(map.Characteristic);
             IDifficultyBeatmap difficultyBeatmap =
-                set.difficultyBeatmaps.First(n => (int)n.difficulty == map.Difficulty);
+                set.difficultyBeatmaps.FirstOrDefault(n => (int)n.difficulty == map.Difficulty) ??
+                throw new InvalidOperationException($"Failed to find difficulty: [{map.Difficulty}].");
 #endif
 
             _log.Debug($"Successfully downloaded [{map.Name}] as [{beatmapLevel.levelID}]");
