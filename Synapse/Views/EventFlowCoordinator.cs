@@ -128,12 +128,14 @@ internal class EventFlowCoordinator : FlowCoordinator
                 }
 
                 _dirtyListing = false;
+                _menuPrefabManager.Reset(false);
                 _ = _menuPrefabManager.Download();
                 _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
                 _lobbyNavigationViewController.StartLevel += StartLevel;
                 _lobbyNavigationViewController.StartIntro += StartIntro;
                 _loadingViewController.Finished += OnLoadingFinished;
                 _introViewController.Finished += OnIntroFinished;
+                _networkManager.Connecting += OnConnecting;
                 _networkManager.Disconnected += OnDisconnected;
                 _menuPrefabManager.Show();
                 if (_config.JoinChat == null)
@@ -183,6 +185,7 @@ internal class EventFlowCoordinator : FlowCoordinator
             _lobbyNavigationViewController.StartLevel -= StartLevel;
             _lobbyNavigationViewController.StartIntro -= StartIntro;
             _loadingViewController.Finished -= OnLoadingFinished;
+            _networkManager.Connecting -= OnConnecting;
             _networkManager.Disconnected -= OnDisconnected;
             _ = _networkManager.Disconnect("Leaving");
             _menuPrefabManager.Hide();
@@ -283,6 +286,13 @@ internal class EventFlowCoordinator : FlowCoordinator
     {
         TransitionDidFinish();
         _menuPrefabManager.HideParticles();
+
+        if (levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Incomplete &&
+            levelCompletionResults.levelEndAction != LevelCompletionResults.LevelEndAction.Quit)
+        {
+            return;
+        }
+
 #if LATEST
         BeatmapKey beatmapKey = standardLevelScenesTransitionSetupData.beatmapKey;
         BeatmapLevel beatmapLevel = standardLevelScenesTransitionSetupData.beatmapLevel;
@@ -290,41 +300,27 @@ internal class EventFlowCoordinator : FlowCoordinator
         IDifficultyBeatmap difficultyBeatmap = standardLevelScenesTransitionSetupData.difficultyBeatmap;
 #endif
         IReadonlyBeatmapData transformedBeatmapData = standardLevelScenesTransitionSetupData.transformedBeatmapData;
-        switch (levelCompletionResults.levelEndStateType)
-        {
-            case LevelCompletionResults.LevelEndStateType.Incomplete:
-                if (levelCompletionResults.levelEndAction is LevelCompletionResults.LevelEndAction.Quit)
-                {
-                    SubmitScore(map.Index, 0, 0);
-                }
-
-                return;
-
-            case LevelCompletionResults.LevelEndStateType.Cleared
-                or LevelCompletionResults.LevelEndStateType.Failed:
-                ////this._menuLightsManager.SetColorPreset((levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared) ? this._resultsClearedLightsPreset : this._resultsFailedLightsPreset, true);
-                ////levelCompletionResults.SetField(nameof(levelCompletionResults.levelEndStateType), LevelCompletionResults.LevelEndStateType.Failed);
-                _resultsViewController.Init(
-                    levelCompletionResults,
-                    transformedBeatmapData,
+        ////this._menuLightsManager.SetColorPreset((levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared) ? this._resultsClearedLightsPreset : this._resultsFailedLightsPreset, true);
+        ////levelCompletionResults.SetField(nameof(levelCompletionResults.levelEndStateType), LevelCompletionResults.LevelEndStateType.Failed);
+        _resultsViewController.Init(
+            levelCompletionResults,
+            transformedBeatmapData,
 #if LATEST
-                    beatmapKey,
-                    beatmapLevel,
+            beatmapKey,
+            beatmapLevel,
 #else
-                    difficultyBeatmap,
+            difficultyBeatmap,
 #endif
-                    false,
-                    false);
-                _resultsViewController._restartButton.gameObject.SetActive(false);
-                TransitionFinished += () => PresentViewController(
-                    _resultsViewController,
-                    null,
-                    ViewController.AnimationDirection.Horizontal,
-                    true);
+            false,
+            false);
+        _resultsViewController._restartButton.gameObject.SetActive(false);
+        TransitionFinished += () => PresentViewController(
+            _resultsViewController,
+            null,
+            ViewController.AnimationDirection.Horizontal,
+            true);
 
-                SubmitScore(map.Index, levelCompletionResults.modifiedScore, ScorePercentageHelper.ScorePercentage);
-                break;
-        }
+        SubmitScore(map.Index, levelCompletionResults.modifiedScore, ScorePercentageHelper.ScorePercentage);
     }
 
     private void HandleResultsViewControllerContinueButtonPressed(ResultsViewController viewController)
@@ -342,6 +338,32 @@ internal class EventFlowCoordinator : FlowCoordinator
             null,
             ViewController.AnimationType.In,
             ViewController.AnimationDirection.Vertical);
+    }
+
+    private void OnConnecting(ConnectingStage connectingStage, int retries)
+    {
+        if (connectingStage == ConnectingStage.Failed)
+        {
+            TransitionFinished += () =>
+            {
+                if (topViewController == _simpleDialogPromptViewController)
+                {
+                    return;
+                }
+
+                _simpleDialogPromptViewController.Init(
+                    "Error",
+                    $"Connection failed after {retries} tries",
+                    "Ok",
+                    _ => { Finished?.Invoke(this); });
+
+                ReplaceTopViewController(
+                    _simpleDialogPromptViewController,
+                    null,
+                    ViewController.AnimationType.In,
+                    ViewController.AnimationDirection.Vertical);
+            };
+        }
     }
 
     private void OnDisconnected(string reason)

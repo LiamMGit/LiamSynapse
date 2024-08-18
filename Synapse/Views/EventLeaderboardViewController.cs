@@ -256,13 +256,8 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         _altCover = !string.IsNullOrWhiteSpace(map.Map.AltCoverUrl);
     }
 
-    private void OnMapUpdated(int index, Map? map)
+    private void OnMapUpdated(int index, Map map)
     {
-        if (map == null)
-        {
-            return;
-        }
-
         _altCover = true;
         _maxIndex = index;
         _textSegmentTexts = Enumerable.Range(1, index + 1).Select(n => n.ToString()).ToArray();
@@ -278,6 +273,14 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
                 {
                     case IntroStatus:
                         _all.SetActive(false);
+                        break;
+
+                    case FinishStatus finishStatus:
+                        _all.SetActive(true);
+                        _altCover = false;
+                        _maxIndex = finishStatus.MapCount - 1;
+                        _textSegmentTexts = Enumerable.Range(1, finishStatus.MapCount).Select(n => n.ToString()).ToArray();
+                        _dirtyTextSegments = true;
                         break;
 
                     default:

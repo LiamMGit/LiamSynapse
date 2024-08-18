@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -13,6 +14,8 @@ namespace Synapse.Extras;
 
 internal static class MediaExtensions
 {
+    private static readonly ConcurrentDictionary<string, Sprite> _spriteCache = new();
+
     internal static async Task DownloadAndSave(
         string url,
         string hash,
@@ -147,10 +150,16 @@ internal static class MediaExtensions
 
     internal static async Task<Sprite> RequestSprite(string url, CancellationToken token)
     {
-        UnityWebRequest www = UnityWebRequestTexture.GetTexture(url);
-        await www.SendAndVerify(token);
-        Texture2D tex = DownloadHandlerTexture.GetContent(www);
-        return tex.GetSprite();
+        // ReSharper disable once InvertIf
+        if (!_spriteCache.TryGetValue(url, out Sprite result))
+        {
+            UnityWebRequest www = UnityWebRequestTexture.GetTexture(url);
+            await www.SendAndVerify(token);
+            Texture2D tex = DownloadHandlerTexture.GetContent(www);
+            _spriteCache[url] = result = tex.GetSprite();
+        }
+
+        return result;
     }
 
     internal static Task SendAndVerify(

@@ -89,7 +89,7 @@ internal class EventModsViewController : BSMLAutomaticViewController
         List<ModInfo> modsToDownload = [];
         _contents.Clear();
         PluginMetadata[] plugins =
-            PluginManager.EnabledPlugins.Concat(PluginManager.IgnoredPlugins.Select(n => n.Key)).ToArray();
+            PluginManager.EnabledPlugins.ToArray();
         foreach (ModInfo mod in modInfos)
         {
             try

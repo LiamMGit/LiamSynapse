@@ -308,9 +308,9 @@ internal class LevelStartManager : IDisposable
         return null;
     }
 
-    private void OnMapUpdated(int _, Map? map)
+    private void OnMapUpdated(int _, Map map)
     {
-        _ruleset = map?.Ruleset;
+        _ruleset = map.Ruleset;
     }
 
     // i wish i could use my StartStandardLevelParameters here

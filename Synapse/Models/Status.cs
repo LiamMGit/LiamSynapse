@@ -73,6 +73,8 @@ public record PlayStatus : IStageStatus
 public record FinishStatus : IStageStatus
 {
     public string Url { get; init; } = string.Empty;
+
+    public int MapCount { get; init; }
 }
 
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]

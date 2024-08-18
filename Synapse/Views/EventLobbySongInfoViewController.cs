@@ -110,7 +110,6 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
 
     private Sprite _coverPlaceholder = null!;
 
-    private string? _altCoverUrl;
     private float _angle;
 #if LATEST
     private BeatmapLevel? _beatmapLevel;
@@ -237,9 +236,10 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     private void RefreshSongInfo()
     {
         CancellationToken token = _cancellationTokenManager.Reset();
-        if (_altCoverUrl != null && _playerScore == null)
+        string? altCoverUrl = string.IsNullOrWhiteSpace(_map.AltCoverUrl) ? null : _map.AltCoverUrl;
+        if (altCoverUrl != null && _playerScore == null)
         {
-            _ = SetCoverImage(MediaExtensions.RequestSprite(_altCoverUrl, token));
+            _ = SetCoverImage(MediaExtensions.RequestSprite(altCoverUrl, token));
             _songText.text = "???";
             _authorText.text = "??? [???]";
         }
@@ -308,7 +308,6 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
 
     private void OnMapDownloaded(DownloadedMap map)
     {
-        _altCoverUrl = string.IsNullOrWhiteSpace(map.Map.AltCoverUrl) ? null : map.Map.AltCoverUrl;
         _beatmapLevel = map.BeatmapLevel;
         _songInfo.SetActive(true);
         _loadingGroup.SetActive(false);
@@ -356,7 +355,6 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     private void RefreshMap()
     {
         _progress.text = "Loading...";
-        _altCoverUrl = null;
         _beatmapLevel = null;
         _songInfo.SetActive(false);
         _loadingGroup.SetActive(true);

@@ -196,15 +196,10 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
     }
 #endif
 
-    private void OnMapUpdated(int index, Map? map)
+    private void OnMapUpdated(int index, Map map)
     {
         MapDownloadedOnceBacking = null;
         _beatmapLevel = null;
-
-        if (map == null)
-        {
-            return;
-        }
 
         string mapName = Path.GetInvalidFileNameChars().Aggregate(map.Name, (current, c) => current.Replace(c, '_'));
         string path = $"{_mapFolder}{Path.DirectorySeparatorChar}{mapName}";
@@ -284,12 +279,17 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
 
             // just throw that shit into the first pack we find, who cares
             // it just needs a pack for some reason
-            BeatmapLevelsRepository repository = _beatmapLevelsModel._allLoadedBeatmapLevelsRepository ??
+            BeatmapLevelsRepository allLoadedRepository = _beatmapLevelsModel._allLoadedBeatmapLevelsRepository ??
                                                  throw new InvalidOperationException(
                                                      "No repository found.");
-            BeatmapLevelPack beatmapLevelPack = repository.beatmapLevelPacks.First();
-            repository._idToBeatmapLevel[beatmapLevel.levelID] = beatmapLevel;
-            repository._beatmapLevelIdToBeatmapLevelPackId[beatmapLevel.levelID] = beatmapLevelPack.packID;
+            BeatmapLevelsRepository allExistingRepository = _beatmapLevelsModel._allExistingBeatmapLevelsRepository ??
+                                                            throw new InvalidOperationException(
+                                                                "No repository found.");
+            BeatmapLevelPack beatmapLevelPack = allLoadedRepository.beatmapLevelPacks.First();
+            allLoadedRepository._idToBeatmapLevel[beatmapLevel.levelID] = beatmapLevel;
+            allLoadedRepository._beatmapLevelIdToBeatmapLevelPackId[beatmapLevel.levelID] = beatmapLevelPack.packID;
+            allExistingRepository._idToBeatmapLevel[beatmapLevel.levelID] = beatmapLevel;
+            allExistingRepository._beatmapLevelIdToBeatmapLevelPackId[beatmapLevel.levelID] = beatmapLevelPack.packID;
 
             BeatmapCharacteristicSO characteristic =
                 _customLevelLoader._beatmapCharacteristicCollection.GetBeatmapCharacteristicBySerializedName(

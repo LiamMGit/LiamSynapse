@@ -87,6 +87,18 @@ internal class MenuPrefabManager : IDisposable
         _listingManager.ListingFound -= OnListingFound;
     }
 
+    internal void Reset(bool clearPrefab)
+    {
+        _didLoadSucceed = null;
+
+        // ReSharper disable once InvertIf
+        if (clearPrefab && _prefab != null)
+        {
+            Object.Destroy(_prefab);
+            _prefab = null;
+        }
+    }
+
     internal async Task Download()
     {
         if (_prefab != null)
@@ -152,15 +164,7 @@ internal class MenuPrefabManager : IDisposable
 
         _active = false;
 
-        if (_prefab == null)
-        {
-            return;
-        }
-
-        DustParticles?.Play();
-        _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
-        _songPreviewPlayer.CrossfadeToDefault();
-        _prefab.SetActive(false);
+        Refresh();
     }
 
     internal void HideParticles()
@@ -177,16 +181,7 @@ internal class MenuPrefabManager : IDisposable
 
         _active = true;
 
-        if (_prefab == null)
-        {
-            return;
-        }
-
-        _prefab.SetActive(false);
-        DustParticles?.Stop();
-        _prefab.SetActive(true);
-        _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.None);
-        _songPreviewPlayer.FadeOut(1);
+        Refresh();
     }
 
     private async Task LoadBundle()
@@ -225,13 +220,29 @@ internal class MenuPrefabManager : IDisposable
             _log.Error("No animator on prefab");
         }
 
+        Refresh();
+    }
+
+    private void Refresh()
+    {
+        if (_prefab == null)
+        {
+            return;
+        }
+
         if (_active)
         {
-            _active = false;
-            Show();
+            _prefab.SetActive(false);
+            DustParticles?.Stop();
+            _prefab.SetActive(true);
+            _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.None);
+            _songPreviewPlayer.FadeOut(1);
         }
         else
         {
+            DustParticles?.Play();
+            _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
+            _songPreviewPlayer.CrossfadeToDefault();
             _prefab.SetActive(false);
         }
     }
@@ -241,14 +252,7 @@ internal class MenuPrefabManager : IDisposable
         _bundleInfo = listing?.Bundles.FirstOrDefault(b => b.GameVersion.MatchesGameVersion());
         if (_bundleInfo == null)
         {
-            _didLoadSucceed = null;
-            if (_prefab == null)
-            {
-                return;
-            }
-
-            Object.Destroy(_prefab);
-            _prefab = null;
+            Reset(true);
             return;
         }
 
@@ -259,12 +263,7 @@ internal class MenuPrefabManager : IDisposable
 
         LastHash = _bundleInfo.Hash;
 
-        _didLoadSucceed = null;
-        if (_prefab != null)
-        {
-            Object.Destroy(_prefab);
-            _prefab = null;
-        }
+        Reset(true);
 
         string listingTitle = listing == null
             ? "undefined"
