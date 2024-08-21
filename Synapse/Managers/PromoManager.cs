@@ -26,6 +26,8 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
         _tweeningAccessor =
             FieldAccessor<SelectableStateController, TimeTweeningManager>.GetAccessor("_tweeningManager");
 
+    private readonly IInstantiator _instantiator;
+
     private readonly ListingManager _listingManager;
 
     private readonly MainMenuViewController _mainMenuViewController;
@@ -47,8 +49,10 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
     private PromoManager(
         MainMenuViewController mainMenuViewController,
         ListingManager listingManager,
-        TimeTweeningManager tweeningManager)
+        TimeTweeningManager tweeningManager,
+        IInstantiator instantiator)
     {
+        _instantiator = instantiator;
         _mainMenuViewController = mainMenuViewController;
         _listingManager = listingManager;
         _tweeningManager = tweeningManager;
@@ -60,15 +64,15 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
 
     internal bool Active { get; private set; }
 
-    public void Initialize()
-    {
-        RefreshListing(_listing);
-    }
-
     public void Dispose()
     {
         _listingManager.ListingFound += OnListingFound;
         _listingManager.BannerImageCreated += OnBannerImageCreated;
+    }
+
+    public void Initialize()
+    {
+        RefreshListing(_listing);
     }
 
     public void Tick()
@@ -138,7 +142,7 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
         originalImage.transform.localScale = new Vector3(0.96f, 0.99f, 1);
         newImage.transform.SetSiblingIndex(0);
         newImage.GetComponent<ImageView>().sprite = _promoBack;
-        _rainbow = newImage.AddComponent<ImageViewRainbowController>();
+        _rainbow = _instantiator.InstantiateComponent<ImageViewRainbowController>(newImage);
         ////newButton.transform.localScale = new Vector3(1.00f, 1.0f, 1);
 
         // its on PromoText in 1.29 and on a child object in 1.34

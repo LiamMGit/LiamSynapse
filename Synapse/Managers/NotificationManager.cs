@@ -1,7 +1,7 @@
-﻿using System.Text;
-using BeatSaberMarkupLanguage;
+﻿using BeatSaberMarkupLanguage;
 using HMUI;
 using JetBrains.Annotations;
+using Synapse.Extras;
 using Synapse.Models;
 using TMPro;
 using UnityEngine;
@@ -14,12 +14,11 @@ internal class NotificationManager : MonoBehaviour
     private bool _active;
     private Color? _color;
 
-    private float _hue;
     private Listing? _listing;
     private ListingManager _listingManager = null!;
     private NetworkManager _networkManager = null!;
+    private RainbowString _rainbowString = null!;
     private string _text = string.Empty;
-
     private TextMeshProUGUI _textMesh = null!;
     private float _timer;
 
@@ -29,12 +28,22 @@ internal class NotificationManager : MonoBehaviour
         gameObject.SetActive(true);
         _text = text;
         _color = color;
+
+        if (color == null)
+        {
+            _rainbowString.SetString(text);
+        }
     }
 
     [UsedImplicitly]
     [Inject]
-    private void Construct(ListingManager listingManager, NetworkManager networkManager, TextMeshProUGUI textMesh)
+    private void Construct(
+        RainbowString rainbowString,
+        ListingManager listingManager,
+        NetworkManager networkManager,
+        TextMeshProUGUI textMesh)
     {
+        _rainbowString = rainbowString;
         _textMesh = textMesh;
         _listingManager = listingManager;
         listingManager.ListingFound += OnListingFound;
@@ -103,23 +112,7 @@ internal class NotificationManager : MonoBehaviour
 
         if (_color == null)
         {
-            _hue = Mathf.Repeat(_hue + (0.5f * Time.deltaTime), 1);
-
-            StringBuilder builder = new(_text.Length);
-            for (int i = 0; i < _text.Length; i++)
-            {
-                char c = _text[i];
-                if (char.IsWhiteSpace(c))
-                {
-                    builder.Append(c);
-                    continue;
-                }
-
-                Color col = Color.HSVToRGB(Mathf.Repeat(_hue + (0.02f * i), 1), 0.8f, 1);
-                builder.Append($"<color=#{ColorUtility.ToHtmlStringRGB(col)}>{c}");
-            }
-
-            _textMesh.SetText(builder);
+            _textMesh.SetCharArray(_rainbowString.ToCharArray());
         }
         else
         {

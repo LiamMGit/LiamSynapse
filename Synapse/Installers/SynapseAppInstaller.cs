@@ -1,4 +1,5 @@
 ﻿using JetBrains.Annotations;
+using Synapse.Extras;
 using Synapse.HarmonyPatches;
 using Synapse.Managers;
 using Zenject;
@@ -17,8 +18,16 @@ internal class SynapseAppInstaller : Installer
 
     public override void InstallBindings()
     {
+        Container.BindInterfacesAndSelfTo<DynamicDisposableManager>().AsSingle();
+        Container
+            .Bind<CancellationTokenManager>()
+            .AsTransient()
+            .OnInstantiated<CancellationTokenManager>(
+                (context, obj) => context.Container.Resolve<DynamicDisposableManager>().Add(obj));
+
         Container.BindInstance(_config);
-        Container.BindInterfacesAndSelfTo<CancellationTokenManager>().AsTransient();
+        Container.BindInterfacesAndSelfTo<RainbowTicker>().AsSingle();
+        Container.Bind<RainbowString>().AsTransient();
         Container.BindInterfacesAndSelfTo<NetworkManager>().AsSingle();
         Container.BindInterfacesAndSelfTo<ListingManager>().AsSingle();
         Container.BindInterfacesAndSelfTo<MessageManager>().AsSingle();

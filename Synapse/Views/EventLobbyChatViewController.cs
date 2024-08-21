@@ -47,7 +47,6 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private readonly GameObject _toEndObject = null!;
 
     private Config _config = null!;
-    private CountdownManager _countdownManager = null!;
 
     private InputFieldView _input = null!;
     private IInstantiator _instantiator = null!;
@@ -57,7 +56,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private NetworkManager _networkManager = null!;
     private OkRelay _okRelay = null!;
 
-    internal event Action? StartIntro;
+    internal event Action? IntroStarted;
 
     [UsedImplicitly]
     [UIValue("joinChat")]
@@ -138,8 +137,6 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _networkManager.UserBanned += OnUserBanned;
             OnStageUpdated(_networkManager.Status.Stage);
             _networkManager.StageUpdated += OnStageUpdated;
-
-            _countdownManager.Refresh();
         }
     }
 
@@ -170,14 +167,12 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         Config config,
         MessageManager messageManager,
         NetworkManager networkManager,
-        CountdownManager countdownManager,
         IInstantiator instantiator)
     {
         _log = log;
         _config = config;
         _messageManager = messageManager;
         _networkManager = networkManager;
-        _countdownManager = countdownManager;
         _instantiator = instantiator;
     }
 
@@ -197,7 +192,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIAction("replay-intro")]
     private void OnReplayIntroClick()
     {
-        StartIntro?.Invoke();
+        IntroStarted?.Invoke();
     }
 
     private void OnStageUpdated(IStageStatus stageStatus)

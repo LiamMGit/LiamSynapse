@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using SiraUtil.Logging;
 using Synapse.Extras;
+using Synapse.Models;
 using UnityEngine;
 using UnityEngine.Audio;
 using Zenject;
@@ -22,17 +23,18 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
 
     private readonly SiraLog _log;
     private readonly NetworkManager _networkManager;
-    private readonly TimeSyncManager _timeSyncManager;
+    private readonly RainbowString _rainbowString;
     private readonly SongPreviewPlayer _songPreviewPlayer;
+    private readonly TimeSyncManager _timeSyncManager;
     private AudioClip[] _audioClips = null!;
     private AudioSource _countAudioSource = null!;
-
     private AudioSource _gongAudioSource = null!;
+
     private bool _gongPlayed;
-    private float _hue;
 
     private int _lastPlayed;
     private string _lastSent = string.Empty;
+    private bool _levelStarted;
 
     // in local time
     private float _startTime;
@@ -42,12 +44,14 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
         NetworkManager networkManager,
         TimeSyncManager timeSyncManager,
         AudioClipAsyncLoader audioClipAsyncLoader,
-        SongPreviewPlayer songPreviewPlayer)
+        SongPreviewPlayer songPreviewPlayer,
+        RainbowString rainbowString)
     {
         _log = log;
         _networkManager = networkManager;
         _timeSyncManager = timeSyncManager;
         _songPreviewPlayer = songPreviewPlayer;
+        _rainbowString = rainbowString;
         networkManager.StartTimeUpdated += OnStartTimeUpdated;
         networkManager.Closed += OnClosed;
 
@@ -55,6 +59,26 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
     }
 
     internal event Action<string>? CountdownUpdated;
+
+    internal event Action? LevelStarted;
+
+    private float StartTime
+    {
+        get => _startTime;
+        set
+        {
+            _gongPlayed = false;
+            _lastPlayed = -1;
+            _startTime = value;
+            _levelStarted = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
+        _networkManager.Closed -= OnClosed;
+    }
 
     public void Initialize()
     {
@@ -76,15 +100,14 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
         _countAudioSource = count;
     }
 
-    public void Dispose()
-    {
-        _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
-        _networkManager.Closed -= OnClosed;
-    }
-
     public void Tick()
     {
-        TimeSpan diff = (_startTime - _timeSyncManager.ElapsedSeconds).ToTimeSpan();
+        if (_networkManager.Status.Stage is not PlayStatus playStatus)
+        {
+            return;
+        }
+
+        TimeSpan diff = (StartTime - _timeSyncManager.ElapsedSeconds).ToTimeSpan();
         TimeSpan alteredDiff = diff + TimeSpan.FromSeconds(1);
         if ((int)alteredDiff.TotalHours > 0)
         {
@@ -114,18 +137,30 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
                 _countAudioSource.Play();
             }
 
-            _hue = Mathf.Repeat(_hue + (0.6f * Time.deltaTime), 1);
-            Color col = Color.HSVToRGB(Mathf.Repeat(_hue, 1), 0.8f, 1);
-
-            Send($"<size=160%><color=#{ColorUtility.ToHtmlStringRGB(col)}>{alteredDiff.Seconds}");
+            _rainbowString.SetString(alteredDiff.Seconds.ToString());
+            Send($"<size=160%>{_rainbowString}");
         }
         else
         {
-            _hue = Mathf.Repeat(_hue + (0.6f * Time.deltaTime), 1);
-            Color col = Color.HSVToRGB(Mathf.Repeat(_hue, 1), 0.8f, 1);
+            if (!_levelStarted)
+            {
+                _levelStarted = true;
+                if (playStatus.PlayerScore == null ||
+                    (playStatus.Map.Ruleset?.AllowResubmission ?? false))
+                {
+                    LevelStarted?.Invoke();
+                }
+            }
 
-            Send($"<size=160%><color=#{ColorUtility.ToHtmlStringRGB(col)}>Now");
+            _rainbowString.SetString("Now");
+            Send($"<size=160%>{_rainbowString}");
         }
+    }
+
+    internal void ManualStart()
+    {
+        _levelStarted = true;
+        LevelStarted?.Invoke();
     }
 
     internal void Refresh()
@@ -164,6 +199,16 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
         }
     }
 
+    private void OnClosed(ClosedReason reason)
+    {
+        StartTime = float.MaxValue;
+    }
+
+    private void OnStartTimeUpdated(float startTime)
+    {
+        StartTime = startTime - _timeSyncManager.Offset;
+    }
+
     private void Send(string text)
     {
         if (text == _lastSent)
@@ -173,18 +218,5 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
 
         _lastSent = text;
         CountdownUpdated?.Invoke(text);
-    }
-
-    private void OnStartTimeUpdated(float startTime)
-    {
-        _gongPlayed = false;
-        _startTime = startTime - _timeSyncManager.Offset;
-    }
-
-    private void OnClosed(ClosedReason reason)
-    {
-        _startTime = float.MaxValue;
-        _gongPlayed = false;
-        _lastPlayed = -1;
     }
 }

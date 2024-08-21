@@ -21,9 +21,7 @@ internal class EventLobbyNavigationViewController : NavigationController
     private CancellationTokenSource? _startCancel;
     private TimeSyncManager _timeSyncManager = null!;
 
-    public event Action? StartIntro;
-
-    public event Action? StartLevel;
+    public event Action? IntroStarted;
 
     public override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
@@ -32,33 +30,22 @@ internal class EventLobbyNavigationViewController : NavigationController
         // ReSharper disable once InvertIf
         if (addedToHierarchy)
         {
-            switch (_networkManager.Status.Stage)
+            if (_config.LastSeenIntro != _menuPrefabManager.LastHash)
             {
-                case PlayStatus playStatus:
-                    if (_config.LastSeenIntro != _menuPrefabManager.LastHash)
-                    {
-                        StartIntro?.Invoke();
-                    }
-                    else
-                    {
-                        _ = DelayedStart(playStatus.StartTime);
-                    }
+                switch (_networkManager.Status.Stage)
+                {
+                    case PlayStatus:
+                        IntroStarted?.Invoke();
+                        break;
 
-                    break;
-
-                case IntroStatus introStatus:
-                    if (_config.LastSeenIntro != _menuPrefabManager.LastHash)
-                    {
+                    case IntroStatus introStatus:
                         _ = DelayedIntro(introStatus.StartTime);
-                    }
-
-                    break;
+                        break;
+                }
             }
 
-            _networkManager.StartTimeUpdated += OnStartTimeUpdated;
             _networkManager.IntroStartTimeUpdated += OnIntroStartTimeUpdated;
-            _chatViewController.StartIntro += OnStartIntro;
-            _songInfoViewController.StartLevel += OnStartLevel;
+            _chatViewController.IntroStarted += OnIntroStarted;
             SetChildViewControllers(
             [
                 _chatViewController,
@@ -74,10 +61,8 @@ internal class EventLobbyNavigationViewController : NavigationController
         // ReSharper disable once InvertIf
         if (removedFromHierarchy)
         {
-            _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
             _networkManager.IntroStartTimeUpdated -= OnIntroStartTimeUpdated;
-            _chatViewController.StartIntro -= OnStartIntro;
-            _songInfoViewController.StartLevel -= OnStartLevel;
+            _chatViewController.IntroStarted -= OnIntroStarted;
             ClearChildViewControllers();
         }
     }
@@ -110,46 +95,17 @@ internal class EventLobbyNavigationViewController : NavigationController
             await Task.Delay(diff.ToTimeSpan(), token);
         }
 
-        StartIntro?.Invoke();
+        IntroStarted?.Invoke();
     }
 
-    private async Task DelayedStart(float startTime)
+    private void OnIntroStarted()
     {
-        if (_networkManager.Status.Stage is PlayStatus { PlayerScore: not null } playStatus &&
-            !(playStatus.Map.Ruleset?.AllowResubmission ?? false))
-        {
-            return;
-        }
-
         _startCancel?.Cancel();
-        CancellationToken token = (_startCancel = new CancellationTokenSource()).Token;
-        float diff = startTime - _timeSyncManager.SyncTime;
-        if (diff > 0)
-        {
-            await Task.Delay(diff.ToTimeSpan(), token);
-        }
-
-        StartLevel?.Invoke();
+        IntroStarted?.Invoke();
     }
 
     private void OnIntroStartTimeUpdated(float startTime)
     {
         _ = DelayedIntro(startTime);
-    }
-
-    private void OnStartIntro()
-    {
-        _startCancel?.Cancel();
-        StartIntro?.Invoke();
-    }
-
-    private void OnStartLevel()
-    {
-        StartLevel?.Invoke();
-    }
-
-    private void OnStartTimeUpdated(float startTime)
-    {
-        _ = DelayedStart(startTime);
     }
 }

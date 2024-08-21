@@ -46,11 +46,12 @@
             <text id='percentagetext' align='Center' font-size='4' size-delta-y='4' italics='true'/>
           </vertical>
         </horizontal>
-        <horizontal id='startobject' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'
-                    pad-top='4'>
+        <vertical id='startobject' horizontal-fit='PreferredSize' vertical-fit='PreferredSize'
+                  pad-top='2'>
+          <text id='starttext' text='NOW PLAYING' align='Center' font-size='4' size-delta-y='2' italics='true'/>
           <primary-button id='startbutton' on-click='start-click' preferred-height='10'
-                          preferred-width='24'/>
-        </horizontal>
+                          preferred-width='24' hover-hint='Play now before the map ends!'/>
+        </vertical>
       </vertical>
     </vertical>
   </vertical>

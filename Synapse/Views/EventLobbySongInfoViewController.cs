@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using BeatSaberMarkupLanguage.Attributes;
@@ -89,6 +88,9 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     [UIObject("startobject")]
     private readonly GameObject _startObject = null!;
 
+    [UIComponent("starttext")]
+    private readonly TextMeshProUGUI _startText = null!;
+
     [UIComponent("startbutton")]
     private readonly TextMeshProUGUI _startButton = null!;
 
@@ -107,6 +109,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     private CancellationTokenManager _cancellationTokenManager = null!;
     private FinishManager _finishManager = null!;
     private TimeSyncManager _timeSyncManager = null!;
+    private RainbowString _rainbowString = null!;
 
     private Sprite _coverPlaceholder = null!;
 
@@ -119,8 +122,6 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     private float _startTime;
     private PlayerScore? _playerScore;
     private Map _map = new();
-
-    internal event Action? StartLevel;
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
@@ -146,6 +147,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
             LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_songInfo.transform);
 
             _startObject.SetActive(false);
+            _rainbowString.SetString(_startText.text);
         }
 
         if (addedToHierarchy)
@@ -203,7 +205,8 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         CancellationTokenManager cancellationTokenManager,
         CountdownManager countdownManager,
         FinishManager finishManager,
-        TimeSyncManager timeSyncManager)
+        TimeSyncManager timeSyncManager,
+        RainbowString rainbowString)
     {
         _networkManager = networkManager;
         _mapDownloadingManager = mapDownloadingManager;
@@ -211,6 +214,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         _countdownManager = countdownManager;
         _finishManager = finishManager;
         _timeSyncManager = timeSyncManager;
+        _rainbowString = rainbowString;
     }
 
     private void Awake()
@@ -224,13 +228,15 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
 
     private void Update()
     {
-        if (!_loadingGroup.activeInHierarchy)
+        if (_loadingGroup.activeInHierarchy)
         {
-            return;
+            _angle += Time.deltaTime * 200;
+            _loading.transform.localEulerAngles = new Vector3(0, 0, _angle);
         }
-
-        _angle += Time.deltaTime * 200;
-        _loading.transform.localEulerAngles = new Vector3(0, 0, _angle);
+        else if (_startObject.activeInHierarchy)
+        {
+            _startText.SetCharArray(_rainbowString.ToCharArray());
+        }
     }
 
     private void RefreshSongInfo()
@@ -391,6 +397,6 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     [UIAction("start-click")]
     private void OnStartClick()
     {
-        StartLevel?.Invoke();
+        _countdownManager.ManualStart();
     }
 }

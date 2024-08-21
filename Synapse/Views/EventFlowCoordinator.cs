@@ -18,6 +18,7 @@ namespace Synapse.Views;
 internal class EventFlowCoordinator : FlowCoordinator
 {
     private Config _config = null!;
+    private CountdownManager _countdownManager = null!;
     private bool _dirtyListing;
     private GameplaySetupViewController _gameplaySetupViewController = null!;
     private EventIntroViewController _introViewController = null!;
@@ -131,8 +132,8 @@ internal class EventFlowCoordinator : FlowCoordinator
                 _menuPrefabManager.Reset(false);
                 _ = _menuPrefabManager.Download();
                 _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
-                _lobbyNavigationViewController.StartLevel += StartLevel;
-                _lobbyNavigationViewController.StartIntro += StartIntro;
+                _countdownManager.LevelStarted += OnLevelStarted;
+                _lobbyNavigationViewController.IntroStarted += OnIntroStarted;
                 _loadingViewController.Finished += OnLoadingFinished;
                 _introViewController.Finished += OnIntroFinished;
                 _networkManager.Connecting += OnConnecting;
@@ -182,8 +183,8 @@ internal class EventFlowCoordinator : FlowCoordinator
             IsActive = false;
             _resultsViewController.continueButtonPressedEvent -= HandleResultsViewControllerContinueButtonPressed;
             _modsViewController.Finished -= OnAcceptModsDownload;
-            _lobbyNavigationViewController.StartLevel -= StartLevel;
-            _lobbyNavigationViewController.StartIntro -= StartIntro;
+            _countdownManager.LevelStarted -= OnLevelStarted;
+            _lobbyNavigationViewController.IntroStarted -= OnIntroStarted;
             _loadingViewController.Finished -= OnLoadingFinished;
             _networkManager.Connecting -= OnConnecting;
             _networkManager.Disconnected -= OnDisconnected;
@@ -255,6 +256,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         EventModsDownloadingViewController modsDownloadingViewController,
         EventModsViewController modsViewController,
         SimpleDialogPromptViewController simpleDialogPromptViewController,
+        CountdownManager countdownManager,
         MapDownloadingManager mapDownloadingManager,
         LevelStartManager levelStartManager,
         ListingManager listingManager,
@@ -272,6 +274,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         _modsDownloadingViewController = modsDownloadingViewController;
         _modsViewController = modsViewController;
         _simpleDialogPromptViewController = simpleDialogPromptViewController;
+        _countdownManager = countdownManager;
         _mapDownloadingManager = mapDownloadingManager;
         _levelStartManager = levelStartManager;
         listingManager.ListingFound += OnListingFound;
@@ -402,6 +405,52 @@ internal class EventFlowCoordinator : FlowCoordinator
         };
     }
 
+    private void OnIntroStarted()
+    {
+        TransitionFinished += () =>
+        {
+            if (topViewController == _lobbyNavigationViewController)
+            {
+                PresentViewController(_introViewController, null, ViewController.AnimationDirection.Vertical);
+            }
+        };
+    }
+
+    private void OnLevelStarted()
+    {
+        TransitionFinished += () =>
+        {
+            if (topViewController == _resultsViewController)
+            {
+                DismissViewController(
+                    _resultsViewController,
+                    ViewController.AnimationDirection.Horizontal,
+                    OnLevelStarted);
+                return;
+            }
+
+            if (topViewController != _lobbyNavigationViewController)
+            {
+                return;
+            }
+
+            TransitionDidStart();
+            _mapDownloadingManager.MapDownloadedOnce += n =>
+            {
+                _transitionFinished.Clear();
+                try
+                {
+                    _levelStartManager.StartLevel(n, HandleLevelDidFinish);
+                }
+                catch (Exception e)
+                {
+                    _log.Error($"Failed to start level\n{e}");
+                    TransitionDidFinish();
+                }
+            };
+        };
+    }
+
     private void OnListingFound(Listing? listing)
     {
         _dirtyListing = true;
@@ -444,52 +493,6 @@ internal class EventFlowCoordinator : FlowCoordinator
 
                 _ = _networkManager.Disconnect("Error");
             }
-        };
-    }
-
-    private void StartIntro()
-    {
-        TransitionFinished += () =>
-        {
-            if (topViewController == _lobbyNavigationViewController)
-            {
-                PresentViewController(_introViewController, null, ViewController.AnimationDirection.Vertical);
-            }
-        };
-    }
-
-    private void StartLevel()
-    {
-        TransitionFinished += () =>
-        {
-            if (topViewController == _resultsViewController)
-            {
-                DismissViewController(
-                    _resultsViewController,
-                    ViewController.AnimationDirection.Horizontal,
-                    StartLevel);
-                return;
-            }
-
-            if (topViewController != _lobbyNavigationViewController)
-            {
-                return;
-            }
-
-            TransitionDidStart();
-            _mapDownloadingManager.MapDownloadedOnce += n =>
-            {
-                _transitionFinished.Clear();
-                try
-                {
-                    _levelStartManager.StartLevel(n, HandleLevelDidFinish);
-                }
-                catch (Exception e)
-                {
-                    _log.Error($"Failed to start level\n{e}");
-                    TransitionDidFinish();
-                }
-            };
         };
     }
 

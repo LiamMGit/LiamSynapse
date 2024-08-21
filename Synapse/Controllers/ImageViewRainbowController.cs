@@ -1,17 +1,27 @@
 ﻿using HMUI;
+using JetBrains.Annotations;
+using Synapse.Extras;
 using UnityEngine;
+using Zenject;
 
 namespace Synapse.Controllers;
 
 [RequireComponent(typeof(ImageView))]
 public class ImageViewRainbowController : MonoBehaviour
 {
-    private float _hue;
     private ImageView _imageView = null!;
+    private RainbowTicker _rainbowTicker = null!;
 
     private void Awake()
     {
         _imageView = GetComponent<ImageView>();
+    }
+
+    [Inject]
+    [UsedImplicitly]
+    private void Construct(RainbowTicker rainbowTicker)
+    {
+        _rainbowTicker = rainbowTicker;
     }
 
     private void OnDisable()
@@ -21,10 +31,9 @@ public class ImageViewRainbowController : MonoBehaviour
 
     private void Update()
     {
-        _hue = Mathf.Repeat(_hue + (0.5f * Time.deltaTime), 1);
         _imageView._gradientDirection = ImageView.GradientDirection.Vertical;
         _imageView.gradient = true;
-        _imageView.color0 = Color.HSVToRGB(_hue, 0.6f, 1);
-        _imageView.color1 = Color.HSVToRGB(Mathf.Repeat(_hue + 0.2f, 1), 0.6f, 1);
+        _imageView.color0 = _rainbowTicker.ToColor();
+        _imageView.color1 = _rainbowTicker.ToColor(0.2f);
     }
 }
