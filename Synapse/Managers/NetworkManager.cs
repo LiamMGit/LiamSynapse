@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
@@ -161,16 +162,20 @@ internal class NetworkManager : IDisposable
         catch (Exception e)
         {
             _log.Critical($"An unexpected exception has occurred: {e}");
+            await Disconnect("An unexpected error has occured");
         }
 
         client.Message -= OnMessageReceived;
         client.ConnectedCallback -= OnConnected;
         client.ReceivedCallback -= OnReceived;
         client.Dispose();
-        _client = null;
+        if (_client == client)
+        {
+            _client = null;
+        }
     }
 
-    internal async Task Send(ArraySegment<byte> data)
+    internal async Task Send(ArraySegment<byte> data, CancellationToken cancellationToken = default)
     {
         if (_client is not { IsConnected: true })
         {
@@ -180,7 +185,7 @@ internal class NetworkManager : IDisposable
             return;
         }
 
-        await _client.Send(data);
+        await _client.Send(data, cancellationToken);
     }
 
     internal async Task Send(ServerOpcode opcode)
@@ -226,7 +231,7 @@ internal class NetworkManager : IDisposable
         return await provider.GetAuthenticationToken();
     }
 
-    private async Task OnConnected(AsyncTcpClient client, bool isReconnected)
+    private async Task OnConnected(AsyncTcpClient client, bool isReconnected, CancellationToken cancelToken)
     {
         try
         {
@@ -244,13 +249,13 @@ internal class NetworkManager : IDisposable
             packetBuilder.Write(token.sessionToken);
             packetBuilder.Write(
                 _listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded"));
-            await Send(packetBuilder.ToSegment());
+            await Send(packetBuilder.ToSegment(), cancelToken);
 
             ArraySegment<byte>[] queued = _queuedPackets.ToArray();
             _queuedPackets.Clear();
             foreach (ArraySegment<byte> packet in queued)
             {
-                await client.Send(packet);
+                await client.Send(packet, cancelToken);
             }
         }
         catch (Exception e)
@@ -321,7 +326,7 @@ internal class NetworkManager : IDisposable
         }
     }
 
-    private async Task OnReceived(AsyncTcpClient client, int count)
+    private async Task OnReceived(AsyncTcpClient client, int count, CancellationToken cancelToken)
     {
         try
         {
@@ -334,7 +339,7 @@ internal class NetworkManager : IDisposable
                         return;
                     }
 
-                    _ = ProcessPacket(client, await client.ByteBuffer.DequeueAsync(_dequeueAmount));
+                    _ = ProcessPacket(client, await client.ByteBuffer.DequeueAsync(_dequeueAmount, cancelToken));
                     _dequeueAmount = 0;
                     continue;
                 }
@@ -348,7 +353,7 @@ internal class NetworkManager : IDisposable
                 int length = BitConverter.ToUInt16(lengthBytes, 0);
                 if (length <= count)
                 {
-                    _ = ProcessPacket(client, await client.ByteBuffer.DequeueAsync(length));
+                    _ = ProcessPacket(client, await client.ByteBuffer.DequeueAsync(length, cancelToken));
                 }
                 else
                 {

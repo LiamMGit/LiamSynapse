@@ -36,7 +36,6 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
     private string _lastSent = string.Empty;
     private bool _levelStarted;
 
-    // in local time
     private float _startTime;
 
     private CountdownManager(
@@ -107,7 +106,13 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
             return;
         }
 
-        TimeSpan diff = (StartTime - _timeSyncManager.ElapsedSeconds).ToTimeSpan();
+        if (_levelStarted)
+        {
+            Send($"<size=160%>{_rainbowString}");
+            return;
+        }
+
+        TimeSpan diff = (StartTime - _timeSyncManager.SyncTime).ToTimeSpan();
         TimeSpan alteredDiff = diff + TimeSpan.FromSeconds(1);
         if ((int)alteredDiff.TotalHours > 0)
         {
@@ -142,14 +147,11 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
         }
         else
         {
-            if (!_levelStarted)
+            _levelStarted = true;
+            if (playStatus.PlayerScore == null ||
+                (playStatus.Map.Ruleset?.AllowResubmission ?? false))
             {
-                _levelStarted = true;
-                if (playStatus.PlayerScore == null ||
-                    (playStatus.Map.Ruleset?.AllowResubmission ?? false))
-                {
-                    LevelStarted?.Invoke();
-                }
+                LevelStarted?.Invoke();
             }
 
             _rainbowString.SetString("Now");
@@ -206,7 +208,7 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
 
     private void OnStartTimeUpdated(float startTime)
     {
-        StartTime = startTime - _timeSyncManager.Offset;
+        StartTime = startTime;
     }
 
     private void Send(string text)

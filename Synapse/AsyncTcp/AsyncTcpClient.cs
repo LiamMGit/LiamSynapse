@@ -151,7 +151,7 @@ namespace Unclassified.Net
         /// This callback method may not be called when the <see cref="OnConnectedAsync"/> method
         /// is overridden by a derived class.
         /// </remarks>
-        public Func<AsyncTcpClient, bool, Task> ConnectedCallback { get; set; }
+        public Func<AsyncTcpClient, bool, CancellationToken, Task> ConnectedCallback { get; set; }
 
         /// <summary>
         /// Called when the connection was closed. The parameter specifies whether the connection
@@ -161,7 +161,7 @@ namespace Unclassified.Net
         /// This callback method may not be called when the <see cref="OnClosed"/> method is
         /// overridden by a derived class.
         /// </remarks>
-        public Action<AsyncTcpClient, bool> ClosedCallback { get; set; }
+        public Action<AsyncTcpClient, bool, CancellationToken> ClosedCallback { get; set; }
 
         /// <summary>
         /// Called when data was received from the remote host. The parameter specifies the number
@@ -173,7 +173,7 @@ namespace Unclassified.Net
         /// This callback method may not be called when the <see cref="OnReceivedAsync"/> method
         /// is overridden by a derived class.
         /// </remarks>
-        public Func<AsyncTcpClient, int, Task> ReceivedCallback { get; set; }
+        public Func<AsyncTcpClient, int, CancellationToken, Task> ReceivedCallback { get; set; }
 
         #endregion Properties
 
@@ -284,17 +284,17 @@ namespace Unclassified.Net
                                 Message?.Invoke(this, new AsyncTcpEventArgs(Net.Message.ConnectionClosedRemotely));
                             }
                             closedTcs.TrySetResult(true);
-                            OnClosed(readLength != -1);
+                            OnClosed(readLength != -1, token);
                             return;
                         }
                         var segment = new ArraySegment<byte>(buffer, 0, readLength);
                         ByteBuffer.Enqueue(segment);
-                        await OnReceivedAsync(readLength);
+                        await OnReceivedAsync(readLength, token);
                     }
                 });
 
                 closedTcs = new TaskCompletionSource<bool>();
-                await OnConnectedAsync(isReconnected);
+                await OnConnectedAsync(isReconnected, token);
 
                 // Wait for closed connection
                 await networkReadTask;
@@ -364,11 +364,11 @@ namespace Unclassified.Net
         /// <param name="isReconnected">true, if the connection was closed and automatically reopened;
         ///   false, if this is the first established connection for this client instance.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
-        protected virtual Task OnConnectedAsync(bool isReconnected)
+        protected virtual Task OnConnectedAsync(bool isReconnected, CancellationToken token)
         {
             if (ConnectedCallback != null)
             {
-                return ConnectedCallback(this, isReconnected);
+                return ConnectedCallback(this, isReconnected, token);
             }
             return Task.CompletedTask;
         }
@@ -378,9 +378,9 @@ namespace Unclassified.Net
         /// </summary>
         /// <param name="remote">true, if the connection was closed by the remote host; false, if
         ///   the connection was closed locally.</param>
-        protected virtual void OnClosed(bool remote)
+        protected virtual void OnClosed(bool remote, CancellationToken token)
         {
-            ClosedCallback?.Invoke(this, remote);
+            ClosedCallback?.Invoke(this, remote, token);
         }
 
         /// <summary>
@@ -391,11 +391,11 @@ namespace Unclassified.Net
         /// <param name="count">The number of bytes that were received. The actual data is available
         ///   through the <see cref="ByteBuffer"/>.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
-        protected virtual Task OnReceivedAsync(int count)
+        protected virtual Task OnReceivedAsync(int count, CancellationToken token)
         {
             if (ReceivedCallback != null)
             {
-                return ReceivedCallback(this, count);
+                return ReceivedCallback(this, count, token);
             }
             return Task.CompletedTask;
         }
