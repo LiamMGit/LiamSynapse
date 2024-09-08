@@ -10,6 +10,7 @@ using SiraUtil.Logging;
 using SongCore;
 using Synapse.Extras;
 using Synapse.Models;
+using Synapse.Networking.Models;
 using UnityEngine;
 using Zenject;
 #if !LATEST
@@ -222,7 +223,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
             });
     }
 
-    private void OnClosed(ClosedReason _)
+    private void OnClosed()
     {
         _cancellationTokenManager.Cancel();
     }

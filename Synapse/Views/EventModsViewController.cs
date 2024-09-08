@@ -10,10 +10,9 @@ using IPA.Loader;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
 using Synapse.Managers;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using Zenject;
 
 namespace Synapse.Views;
@@ -35,10 +34,6 @@ internal class EventModsViewController : BSMLAutomaticViewController
     [UsedImplicitly]
     [UIComponent("header")]
     private readonly TMP_Text _header = null!;
-
-    [UsedImplicitly]
-    [UIComponent("topvertical")]
-    private readonly VerticalLayoutGroup _topVertical = null!;
 
     private Listing? _listing;
     private ListingManager _listingManager = null!;

@@ -72,28 +72,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Intro.bsml"/>
-    <EmbeddedResource Include="Resources\Leaderboard.bsml"/>
-    <EmbeddedResource Include="Resources\Loading.bsml"/>
-    <EmbeddedResource Include="Resources\LobbyChat.bsml"/>
-    <EmbeddedResource Include="Resources\LobbySongInfo.bsml"/>
-    <EmbeddedResource Include="Resources\promo_back.png"/>
-    <EmbeddedResource Include="Resources\promo_placeholder.png"/>
-    <EmbeddedResource Include="Resources\Mods.bsml"/>
-    <EmbeddedResource Include="Resources\ModsContent.bsml"/>
-    <EmbeddedResource Include="Resources\ModsDownloading.bsml"/>
-    <EmbeddedResource Include="Resources\Countdown\1.ogg"/>
-    <EmbeddedResource Include="Resources\Countdown\2.ogg"/>
-    <EmbeddedResource Include="Resources\Countdown\3.ogg"/>
-    <EmbeddedResource Include="Resources\Countdown\5.ogg"/>
-    <EmbeddedResource Include="Resources\Countdown\4.ogg"/>
-    <EmbeddedResource Include="Resources\settings.png"/>
-    <EmbeddedResource Include="Resources\finish_placeholder.png"/>
+    <ProjectReference Include="..\Synapse.Networking\Synapse.Networking.csproj">
+      <Private>true</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*.*" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BeatSaberModdingTools.Tasks.Luna" Version="2.1.0"/>
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.*"/>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.34.2"/>
     <PackageReference Include="LunaBSMod.Tasks" Version="1.0.0"/>
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556"/>
   </ItemGroup>

@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using SiraUtil.Logging;
 using Synapse.Controllers;
 using Synapse.Extras;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using UnityEngine;
 using UnityEngine.Networking;
 using Zenject;

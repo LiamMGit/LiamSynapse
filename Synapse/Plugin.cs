@@ -32,7 +32,6 @@ internal class Plugin
 
     internal static string GameVersion { get; private set; } = string.Empty;
 
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global
     internal static Logger Log { get; private set; } = null!;
 
 #pragma warning disable CA1822

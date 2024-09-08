@@ -1,4 +1,6 @@
-﻿namespace Synapse.Models;
+﻿using Synapse.Networking.Models;
+
+namespace Synapse.Models;
 
 public readonly struct DownloadedMap
 {

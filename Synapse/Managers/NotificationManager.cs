@@ -1,8 +1,9 @@
-﻿using BeatSaberMarkupLanguage;
+﻿using System;
+using BeatSaberMarkupLanguage;
 using HMUI;
 using JetBrains.Annotations;
 using Synapse.Extras;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using TMPro;
 using UnityEngine;
 using Zenject;
@@ -72,11 +73,12 @@ internal class NotificationManager : MonoBehaviour
             return;
         }
 
-        if (_listing.TimeSpan.Ticks < 0)
+        TimeSpan timeSpan = _listing.Time.ToTimeSpan();
+        if (timeSpan.Ticks < 0)
         {
             OnStarted();
         }
-        else if (_listing.TimeSpan.TotalMinutes < 30)
+        else if (timeSpan.TotalMinutes < 30)
         {
             Notify($"{_listing.Title} is starting soon!");
         }
@@ -90,7 +92,7 @@ internal class NotificationManager : MonoBehaviour
 
     private void Update()
     {
-        if (!_active && _listing is { TimeSpan.Ticks: < 0 })
+        if (!_active && _listing != null && _listing.Time.ToTimeSpan().Ticks < 0)
         {
             OnStarted();
         }

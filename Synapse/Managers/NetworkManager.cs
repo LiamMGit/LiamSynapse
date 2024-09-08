@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
 using SiraUtil.Logging;
 using Synapse.Extras;
-using Synapse.Models;
-using Unclassified.Net;
+using Synapse.Networking;
+using Synapse.Networking.Models;
 #if !V1_29_1
 using System.Threading;
 #endif
@@ -24,16 +22,7 @@ internal enum ConnectingStage
     Authenticating,
     ReceivingData,
     Timeout,
-    Refused,
-    Failed
-}
-
-internal enum ClosedReason
-{
-    ClosedLocally,
-    Aborted,
-    ResetRemotely,
-    ClosedRemotely
+    Refused
 }
 
 internal class NetworkManager : IDisposable
@@ -43,13 +32,11 @@ internal class NetworkManager : IDisposable
     private readonly SiraLog _log;
     private readonly IPlatformUserModel _platformUserModel;
 
-    private readonly List<ArraySegment<byte>> _queuedPackets = [];
+    private readonly List<byte[]> _queuedPackets = [];
     private readonly Task<AuthenticationToken> _tokenTask;
     private string _address = string.Empty;
 
     private AsyncTcpClient? _client;
-
-    private int _dequeueAmount;
 
     [UsedImplicitly]
     private NetworkManager(
@@ -69,7 +56,7 @@ internal class NetworkManager : IDisposable
 
     ////internal event Action<FailReason>? ConnectionFailed;
 
-    internal event Action<ClosedReason>? Closed;
+    internal event Action? Closed;
 
     internal event Action<ConnectingStage, int>? Connecting;
 
@@ -104,6 +91,46 @@ internal class NetworkManager : IDisposable
         _ = Disconnect("Disposed");
     }
 
+    public async Task Send(byte[] data, CancellationToken cancellationToken = default)
+    {
+        if (_client is not { IsConnected: true })
+        {
+            _log.Warn("Client not connected! Delaying sending packet");
+            _queuedPackets.Add(data);
+            return;
+        }
+
+        await _client.Send(data, cancellationToken);
+    }
+
+    public async Task Send(ServerOpcode opcode, bool value)
+    {
+        using PacketBuilder packetBuilder = new((byte)opcode);
+        packetBuilder.Write(value);
+        await Send(packetBuilder.ToArray());
+    }
+
+    public async Task Send(ServerOpcode opcode, int value)
+    {
+        using PacketBuilder packetBuilder = new((byte)opcode);
+        packetBuilder.Write(value);
+        await Send(packetBuilder.ToArray());
+    }
+
+    public async Task Send(ServerOpcode opcode, float value)
+    {
+        using PacketBuilder packetBuilder = new((byte)opcode);
+        packetBuilder.Write(value);
+        await Send(packetBuilder.ToArray());
+    }
+
+    public async Task Send(ServerOpcode opcode, string value)
+    {
+        using PacketBuilder packetBuilder = new((byte)opcode);
+        packetBuilder.Write(value);
+        await Send(packetBuilder.ToArray());
+    }
+
     internal async Task Disconnect(string reason, bool local = true)
     {
         if (_client == null)
@@ -111,23 +138,28 @@ internal class NetworkManager : IDisposable
             return;
         }
 
-        _log.Warn($"Disconnected from {_address} ({reason})");
-        if (local && _client.IsConnected)
+        AsyncTcpClient client = _client;
+        _client = null;
+        Disconnected?.Invoke(reason);
+
+        if (local && client.IsConnected)
         {
-            await Send(ServerOpcode.Disconnect);
+            using PacketBuilder packetBuilder = new((byte)ServerOpcode.Disconnect);
+            CancellationTokenSource cts = new();
+            Task notify = client.Send(packetBuilder.ToArray(), cts.Token);
+            await Task.WhenAny(notify, Task.Delay(2000, cts.Token));
+            cts.Cancel();
         }
 
-        _client.Disconnect();
-
-        Disconnected?.Invoke(reason);
+        client.Dispose();
     }
 
     internal async Task RunAsync()
     {
         if (_client != null)
         {
-            _log.Error("Client still running, disconnecting");
-            await Disconnect("Joining from another client");
+            _log.Error("Client still running, disposing");
+            _client.Dispose();
         }
 
         string? stringAddress = _listingManager.Listing?.IpAddress;
@@ -138,81 +170,42 @@ internal class NetworkManager : IDisposable
         }
 
         Status = new Status();
-        AsyncTcpClient client = new();
         int portIdx = stringAddress.LastIndexOf(':');
         IPAddress address = IPAddress.Parse(stringAddress.Substring(0, portIdx));
         int port = int.Parse(stringAddress.Substring(portIdx + 1));
         _address = $"{address}:{port}";
+        using AsyncTcpLocalClient client = new(address, port, 3);
         _log.Info($"Connecting to {_address}");
-        client.IPAddress = address;
-        client.Port = port;
-        client.AutoReconnect = true;
-        client.AutoReconnectTries = 2;
         client.Message += OnMessageReceived;
-        client.ConnectedCallback += OnConnected;
-        client.ReceivedCallback += OnReceived;
+        client.ConnectedCallback = OnConnected;
+        client.ReceivedCallback = OnReceived;
         _client = client;
         try
         {
             await client.RunAsync();
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
+        }
+        catch (AsyncTcpFailedAfterRetriesException e)
+        {
+            _log.Error($"Connection failed after {e.ReconnectTries} tries: {e.InnerException}");
+            await Disconnect($"Connection failed after {e.ReconnectTries} tries", false);
+        }
+        catch (AsyncTcpSocketException e)
+        {
+            _log.Error($"Connection closed unexpectedly: {e}");
+            await Disconnect("Connection closed unexpectedly", false);
         }
         catch (Exception e)
         {
             _log.Critical($"An unexpected exception has occurred: {e}");
-            await Disconnect("An unexpected error has occured");
+            await Disconnect("An unexpected error has occured", false);
         }
 
         client.Message -= OnMessageReceived;
-        client.ConnectedCallback -= OnConnected;
-        client.ReceivedCallback -= OnReceived;
-        client.Dispose();
-        if (_client == client)
-        {
-            _client = null;
-        }
-    }
-
-    internal async Task Send(ArraySegment<byte> data, CancellationToken cancellationToken = default)
-    {
-        if (_client is not { IsConnected: true })
-        {
-            _log.Error("Client not connected! Delaying sending packet");
-            _log.Error(new StackTrace());
-            _queuedPackets.Add(data);
-            return;
-        }
-
-        await _client.Send(data, cancellationToken);
-    }
-
-    internal async Task Send(ServerOpcode opcode)
-    {
-        using PacketBuilder packetBuilder = new(opcode);
-        await Send(packetBuilder.ToSegment());
-    }
-
-    internal async Task Send(ServerOpcode opcode, bool value)
-    {
-        using PacketBuilder packetBuilder = new(opcode);
-        packetBuilder.Write(value);
-        await Send(packetBuilder.ToSegment());
-    }
-
-    internal async Task Send(ServerOpcode opcode, int value)
-    {
-        using PacketBuilder packetBuilder = new(opcode);
-        packetBuilder.Write(value);
-        await Send(packetBuilder.ToSegment());
-    }
-
-    internal async Task Send(ServerOpcode opcode, string value)
-    {
-        using PacketBuilder packetBuilder = new(opcode);
-        packetBuilder.Write(value);
-        await Send(packetBuilder.ToSegment());
+        client.ConnectedCallback = null;
+        client.ReceivedCallback = null;
     }
 
     private async Task<AuthenticationToken> GetToken()
@@ -231,41 +224,43 @@ internal class NetworkManager : IDisposable
         return await provider.GetAuthenticationToken();
     }
 
-    private async Task OnConnected(AsyncTcpClient client, bool isReconnected, CancellationToken cancelToken)
+    private async Task OnConnected(CancellationToken cancelToken)
     {
         try
         {
-            _log.Debug(
-                isReconnected
-                    ? $"Successfully reconnected to {_address}"
-                    : $"Successfully connected to {_address}");
+            if (_client is not { IsConnected: true })
+            {
+                throw new InvalidOperationException("Client not connected.");
+            }
+
+            _log.Debug($"Successfully connected to {_address}");
             Connecting?.Invoke(ConnectingStage.Authenticating, -1);
 
-            AuthenticationToken token = await _tokenTask;
-            using PacketBuilder packetBuilder = new(ServerOpcode.Authentication);
-            packetBuilder.Write(token.userId);
-            packetBuilder.Write(token.userName);
-            packetBuilder.Write((byte)token.platform);
-            packetBuilder.Write(token.sessionToken);
+            AuthenticationToken authToken = await _tokenTask;
+            using PacketBuilder packetBuilder = new((byte)ServerOpcode.Authentication);
+            packetBuilder.Write(authToken.userId);
+            packetBuilder.Write(authToken.userName);
+            packetBuilder.Write((byte)authToken.platform);
+            packetBuilder.Write(authToken.sessionToken);
             packetBuilder.Write(
-                _listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded"));
-            await Send(packetBuilder.ToSegment(), cancelToken);
+                _listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded."));
+            await _client.Send(packetBuilder.ToArray(), cancelToken);
 
-            ArraySegment<byte>[] queued = _queuedPackets.ToArray();
+            byte[][] queued = _queuedPackets.ToArray();
             _queuedPackets.Clear();
-            foreach (ArraySegment<byte> packet in queued)
+            foreach (byte[] data in queued)
             {
-                await client.Send(packet, cancelToken);
+                _ = _client.Send(data, cancelToken);
             }
         }
         catch (Exception e)
         {
-            _log.Error($"Exception while connecting\n{e}");
-            await Disconnect("Exception while connecting");
+            _log.Error($"Exception while authenticating\n{e}");
+            await Disconnect("Exception while authenticating");
         }
     }
 
-    private void OnMessageReceived(object _, AsyncTcpEventArgs args)
+    private void OnMessageReceived(object _, AsyncTcpMessageEventArgs args)
     {
         if (args.Exception != null)
         {
@@ -279,104 +274,46 @@ internal class NetworkManager : IDisposable
 
         switch (args.Message)
         {
-            case Message.FailedAfterRetries:
-                Connecting?.Invoke(ConnectingStage.Failed, args.ReconnectTries);
-                break;
-
             case Message.Connecting:
                 Connecting?.Invoke(ConnectingStage.Connecting, args.ReconnectTries);
                 break;
 
-            case Message.Timeout:
-                Connecting?.Invoke(ConnectingStage.Timeout, args.ReconnectTries);
-                break;
-
-            case Message.ConnectionAborted:
-                Closed?.Invoke(ClosedReason.Aborted);
-                break;
-
             case Message.ConnectionFailed:
-                SocketError error = ((SocketException?)args.Exception)?.SocketErrorCode ??
-                                    throw new InvalidOperationException();
-                switch (error)
+                switch (args.Exception)
                 {
-                    case SocketError.ConnectionRefused:
+                    case AsyncTcpConnectTimeoutException:
+                        Connecting?.Invoke(ConnectingStage.Timeout, args.ReconnectTries);
+                        break;
+
+                    case AsyncTcpConnectFailedException:
                         Connecting?.Invoke(ConnectingStage.Refused, args.ReconnectTries);
                         break;
-
-                    default:
-                        _log.Warn($"Unhandled socket error: {error}");
-                        Connecting?.Invoke((ConnectingStage)error, args.ReconnectTries);
-                        break;
                 }
 
                 break;
 
-            case Message.ConnectionClosedLocally:
-                Closed?.Invoke(ClosedReason.ClosedLocally);
+            case Message.ConnectionClosed:
+                Closed?.Invoke();
                 break;
 
-            case Message.ConnectionClosedRemotely:
-                Closed?.Invoke(ClosedReason.ClosedRemotely);
+            case Message.PacketDelayed:
+                _log.Error("Client not connected! Delaying sending packet");
                 break;
 
-            case Message.ConnectionResetRemotely:
-                Closed?.Invoke(ClosedReason.ResetRemotely);
+            case Message.PacketException:
+                _log.Error("Received invalid packet");
+                if (args.Exception != null)
+                {
+                    _log.Error(args.Exception.ToString());
+                }
+
                 break;
         }
     }
 
-    private async Task OnReceived(AsyncTcpClient client, int count, CancellationToken cancelToken)
+    private async Task OnReceived(byte opcode, BinaryReader reader, CancellationToken cancelToken)
     {
-        try
-        {
-            while (true)
-            {
-                if (_dequeueAmount > 0)
-                {
-                    if (client.ByteBuffer.Count < _dequeueAmount)
-                    {
-                        return;
-                    }
-
-                    _ = ProcessPacket(client, await client.ByteBuffer.DequeueAsync(_dequeueAmount, cancelToken));
-                    _dequeueAmount = 0;
-                    continue;
-                }
-
-                byte[] lengthBytes = client.ByteBuffer.Peek(2);
-                if (lengthBytes.Length != 2)
-                {
-                    break;
-                }
-
-                int length = BitConverter.ToUInt16(lengthBytes, 0);
-                if (length <= count)
-                {
-                    _ = ProcessPacket(client, await client.ByteBuffer.DequeueAsync(length, cancelToken));
-                }
-                else
-                {
-                    _dequeueAmount = length;
-                    return;
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            _log.Error($"Received invalid packet\n{e}");
-            client.ByteBuffer.Clear();
-            _dequeueAmount = 0;
-        }
-    }
-
-    private async Task ProcessPacket(AsyncTcpClient client, byte[] bytes)
-    {
-        using MemoryStream stream = new(bytes);
-        using BinaryReader reader = new(stream);
-        reader.ReadUInt16();
-        ClientOpcode opcode = (ClientOpcode)reader.ReadByte();
-        switch (opcode)
+        switch ((ClientOpcode)opcode)
         {
             case ClientOpcode.Authenticated:
             {
@@ -517,7 +454,6 @@ internal class NetworkManager : IDisposable
 
             default:
                 _log.Warn($"Unhandled opcode: ({opcode})");
-                client.ByteBuffer.Clear();
                 return;
         }
     }

@@ -3,8 +3,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
-using Synapse.Extras;
-using Synapse.Models;
+using Synapse.Networking.Models;
 
 namespace Synapse.Managers;
 
@@ -84,12 +83,10 @@ internal class TimeSyncManager : IDisposable
 
     internal async Task Ping()
     {
-        using PacketBuilder packetBuilder = new(ServerOpcode.Ping);
-        packetBuilder.Write(ElapsedSeconds);
         _cancelPingTimeout.Cancel();
         _cancelPingTimeout = new CancellationTokenSource();
         _pingTask = new TaskCompletionSource<object?>();
-        _ = _networkManager.Send(packetBuilder.ToSegment());
+        _ = _networkManager.Send(ServerOpcode.Ping, ElapsedSeconds);
         _ = Timeout(_cancelPingTimeout.Token, MAX_TIMEOUT);
         await _pingTask.Task;
     }

@@ -12,4 +12,9 @@ internal static class TimeSpanExtensions
     {
         return seconds < MAX_SECONDS ? TimeSpan.FromSeconds(seconds) : _maxTimeSpan;
     }
+
+    internal static TimeSpan ToTimeSpan(this DateTime dateTime)
+    {
+        return dateTime - DateTime.UtcNow;
+    }
 }

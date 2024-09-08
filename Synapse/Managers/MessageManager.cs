@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
-using Synapse.Models;
+using Synapse.Networking.Models;
 
 namespace Synapse.Managers;
 
@@ -83,28 +82,21 @@ internal sealed class MessageManager : IDisposable
         MessageReceived?.Invoke(messages);
     }
 
-    private void OnClosed(ClosedReason closedReason)
+    private void OnClosed()
     {
         RelaySystemMessage("Connection closed unexpectedly, reconnecting...");
     }
 
     private void OnConnecting(ConnectingStage connectingStage, int retries)
     {
-        switch (connectingStage)
-        {
-            case ConnectingStage.Failed:
-            case ConnectingStage.Connecting:
-                return;
-        }
-
         string text = connectingStage switch
         {
-            ////Stage.Connecting => "Connecting...",
+            ConnectingStage.Connecting => "Connecting...",
             ConnectingStage.Authenticating => "Authenticating...",
             ConnectingStage.ReceivingData => "Receiving data...",
             ConnectingStage.Timeout => "Connection timed out, retrying...",
             ConnectingStage.Refused => "Connection refused, retrying...",
-            _ => $"{(SocketError)connectingStage}, retrying..."
+            _ => throw new InvalidOperationException()
         };
 
         if (retries > 0)

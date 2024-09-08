@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using SiraUtil.Logging;
 using Synapse.Extras;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using UnityEngine;
 using UnityEngine.Audio;
 using Zenject;
@@ -201,7 +201,7 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
         }
     }
 
-    private void OnClosed(ClosedReason reason)
+    private void OnClosed()
     {
         StartTime = float.MaxValue;
     }

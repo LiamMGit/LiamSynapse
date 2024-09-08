@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using SiraUtil.Logging;
 using Synapse.HarmonyPatches;
 using Synapse.Models;
+using Synapse.Networking.Models;
 using Zenject;
 
 namespace Synapse.Managers;

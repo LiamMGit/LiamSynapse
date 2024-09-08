@@ -10,6 +10,7 @@ using Synapse.Extras;
 using Synapse.HarmonyPatches;
 using Synapse.Managers;
 using Synapse.Models;
+using Synapse.Networking.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -164,9 +165,9 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
                 RefreshMap();
             }
 
-            OnStageUpdate(_networkManager.Status.Stage);
-            _networkManager.StageUpdated += OnStageUpdate;
-            _networkManager.PlayerScoreUpdated += OnPlayerScoreUpdate;
+            OnStageUpdated(_networkManager.Status.Stage);
+            _networkManager.StageUpdated += OnStageUpdated;
+            _networkManager.PlayerScoreUpdated += OnPlayerScoreUpdated;
             _networkManager.StartTimeUpdated += OnStartTimeUpdated;
             _networkManager.MapUpdated += OnMapUpdated;
             _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
@@ -186,8 +187,8 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         if (removedFromHierarchy)
         {
             _finishManager.FinishImageCreated -= OnFinishImageCreated;
-            _networkManager.StageUpdated -= OnStageUpdate;
-            _networkManager.PlayerScoreUpdated -= OnPlayerScoreUpdate;
+            _networkManager.StageUpdated -= OnStageUpdated;
+            _networkManager.PlayerScoreUpdated -= OnPlayerScoreUpdated;
             _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
             _networkManager.MapUpdated -= OnMapUpdated;
             _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
@@ -320,12 +321,12 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         RefreshSongInfo();
     }
 
-    private void OnStageUpdate(IStageStatus stage)
+    private void OnStageUpdated(IStageStatus stage)
     {
         UnityMainThreadTaskScheduler.Factory.StartNew(() => RefreshStage(stage));
     }
 
-    private void OnPlayerScoreUpdate(PlayerScore? playerScore)
+    private void OnPlayerScoreUpdated(PlayerScore? playerScore)
     {
         _playerScore = playerScore;
         UnityMainThreadTaskScheduler.Factory.StartNew(RefreshSongInfo);

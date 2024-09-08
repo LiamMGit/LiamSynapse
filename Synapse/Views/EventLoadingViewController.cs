@@ -4,7 +4,7 @@ using BeatSaberMarkupLanguage.Attributes;
 using BeatSaberMarkupLanguage.ViewControllers;
 using JetBrains.Annotations;
 using Synapse.Managers;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using TMPro;
 using UnityEngine;
 using Zenject;
@@ -92,19 +92,13 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
 
     private void OnConnecting(ConnectingStage connectingStage, int retries)
     {
-        if (connectingStage == ConnectingStage.Failed)
-        {
-            Finish($"Connection failed after {retries} tries");
-            return;
-        }
-
         string text = connectingStage switch
         {
             ConnectingStage.Connecting => "Connecting...",
             ConnectingStage.Authenticating => "Authenticating...",
             ConnectingStage.ReceivingData => "Receiving data...",
             ConnectingStage.Timeout => "Connection timed out, retrying...",
-            ConnectingStage.Refused => "Connection refused, retrying...",
+            ConnectingStage.Refused => "Connection failed, retrying...",
             _ => $"{(SocketError)connectingStage}, retrying..."
         };
 
@@ -138,7 +132,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
     {
         if (!success)
         {
-            Finish("Time sync timed out");
+            Finish("Error occurred while syncing time");
             return;
         }
 

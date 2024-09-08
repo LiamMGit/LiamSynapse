@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using Newtonsoft.Json;
 using SiraUtil.Logging;
 using Synapse.Extras;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using UnityEngine;
 using UnityEngine.Networking;
 using Zenject;

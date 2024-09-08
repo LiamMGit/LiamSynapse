@@ -4,7 +4,7 @@ using IPA.Utilities;
 using JetBrains.Annotations;
 using Synapse.Controllers;
 using Synapse.Extras;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using TMPro;
 using Tweening;
 using UnityEngine;
@@ -82,7 +82,7 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
             return;
         }
 
-        TimeSpan span = _listing.TimeSpan;
+        TimeSpan span = _listing.Time.ToTimeSpan();
 
         if (span.Ticks < 0)
         {

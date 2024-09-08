@@ -7,12 +7,13 @@ using BeatSaberMarkupLanguage.Attributes;
 using BeatSaberMarkupLanguage.ViewControllers;
 using HarmonyLib;
 using HMUI;
+using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
 using Synapse.Controllers;
 using Synapse.HarmonyPatches;
 using Synapse.Managers;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -197,7 +198,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
     private void OnStageUpdated(IStageStatus stageStatus)
     {
-        _replayIntroObject.SetActive(stageStatus is not IntroStatus);
+        UnityMainThreadTaskScheduler.Factory.StartNew(() => _replayIntroObject.SetActive(stageStatus is not IntroStatus));
     }
 
     [UsedImplicitly]

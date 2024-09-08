@@ -10,6 +10,7 @@ using Synapse.Extras;
 using Synapse.HarmonyPatches;
 using Synapse.Managers;
 using Synapse.Models;
+using Synapse.Networking.Models;
 using UnityEngine;
 using Zenject;
 
@@ -136,7 +137,6 @@ internal class EventFlowCoordinator : FlowCoordinator
                 _lobbyNavigationViewController.IntroStarted += OnIntroStarted;
                 _loadingViewController.Finished += OnLoadingFinished;
                 _introViewController.Finished += OnIntroFinished;
-                _networkManager.Connecting += OnConnecting;
                 _networkManager.Disconnected += OnDisconnected;
                 _menuPrefabManager.Show();
                 if (_config.JoinChat == null)
@@ -186,7 +186,6 @@ internal class EventFlowCoordinator : FlowCoordinator
             _countdownManager.LevelStarted -= OnLevelStarted;
             _lobbyNavigationViewController.IntroStarted -= OnIntroStarted;
             _loadingViewController.Finished -= OnLoadingFinished;
-            _networkManager.Connecting -= OnConnecting;
             _networkManager.Disconnected -= OnDisconnected;
             _ = _networkManager.Disconnect("Leaving");
             _menuPrefabManager.Hide();
@@ -343,32 +342,6 @@ internal class EventFlowCoordinator : FlowCoordinator
             ViewController.AnimationDirection.Vertical);
     }
 
-    private void OnConnecting(ConnectingStage connectingStage, int retries)
-    {
-        if (connectingStage == ConnectingStage.Failed)
-        {
-            TransitionFinished += () =>
-            {
-                if (topViewController == _simpleDialogPromptViewController)
-                {
-                    return;
-                }
-
-                _simpleDialogPromptViewController.Init(
-                    "Error",
-                    $"Connection failed after {retries} tries",
-                    "Ok",
-                    _ => { Finished?.Invoke(this); });
-
-                ReplaceTopViewController(
-                    _simpleDialogPromptViewController,
-                    null,
-                    ViewController.AnimationType.In,
-                    ViewController.AnimationDirection.Vertical);
-            };
-        }
-    }
-
     private void OnDisconnected(string reason)
     {
         TransitionFinished += () =>
@@ -444,7 +417,7 @@ internal class EventFlowCoordinator : FlowCoordinator
                 }
                 catch (Exception e)
                 {
-                    _log.Error($"Failed to start level\n{e}");
+                    _log.Error($"Failed to start level:\n{e}");
                     TransitionDidFinish();
                 }
             };
@@ -459,39 +432,21 @@ internal class EventFlowCoordinator : FlowCoordinator
 
     private void OnLoadingFinished(string? error)
     {
+        if (error != null)
+        {
+            OnDisconnected(error);
+            return;
+        }
+
         TransitionFinished += () =>
         {
-            if (error == null)
+            if (topViewController == _loadingViewController)
             {
-                if (topViewController == _loadingViewController)
-                {
-                    ReplaceTopViewController(
-                        _lobbyNavigationViewController,
-                        null,
-                        ViewController.AnimationType.In,
-                        ViewController.AnimationDirection.Vertical);
-                }
-            }
-            else
-            {
-                if (topViewController == _simpleDialogPromptViewController)
-                {
-                    return;
-                }
-
-                _simpleDialogPromptViewController.Init(
-                    "Error",
-                    error,
-                    "Ok",
-                    _ => { Finished?.Invoke(this); });
-
                 ReplaceTopViewController(
-                    _simpleDialogPromptViewController,
+                    _lobbyNavigationViewController,
                     null,
                     ViewController.AnimationType.In,
                     ViewController.AnimationDirection.Vertical);
-
-                _ = _networkManager.Disconnect("Error");
             }
         };
     }

@@ -5,7 +5,7 @@ using HMUI;
 using JetBrains.Annotations;
 using Synapse.Extras;
 using Synapse.Managers;
-using Synapse.Models;
+using Synapse.Networking.Models;
 using Zenject;
 
 namespace Synapse.Views;

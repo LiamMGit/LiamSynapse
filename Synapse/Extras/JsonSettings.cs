@@ -1,6 +1,8 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Synapse.Models;
 
 namespace Synapse.Extras;
 
@@ -8,6 +10,10 @@ internal static class JsonSettings
 {
     internal static JsonSerializerSettings Settings { get; } = new()
     {
+        Converters = new List<JsonConverter>
+        {
+            new StageStatusConverter()
+        },
         ContractResolver = new PrivateResolver
         {
             NamingStrategy = new CamelCaseNamingStrategy()

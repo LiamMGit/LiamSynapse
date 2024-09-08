@@ -8,6 +8,7 @@ using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using Synapse.Managers;
 using Synapse.Models;
+using Synapse.Networking.Models;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -167,7 +168,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
                       scores.Index >= playStatus.Index &&
                       playStatus.PlayerScore == null;
         _titleMapText.text = useAlt ? "???" : scores.Title;
-        List<LeaderboardCell> cells = ShowEliminated ? scores.ElimScores : scores.Scores;
+        IReadOnlyList<LeaderboardCell> cells = ShowEliminated ? scores.ElimScores : scores.Scores;
         if (cells.Count > 0)
         {
             List<LeaderboardTableView.ScoreData> data = cells
