@@ -22,94 +22,96 @@ public class ScoresCommand(
         switch (subCommand)
         {
             case "test":
-                if (string.IsNullOrWhiteSpace(subArguments))
-                {
-                    leaderboardService.GenerateTestScores();
-                    client.SendServerMessage("Generated test scores");
-                }
-                else
-                {
-                    client.SendServerMessage("Invalid message");
-                }
+                subArguments.TooMany();
+                leaderboardService.GenerateTestScores();
+                client.SendServerMessage("Generated test scores");
 
                 break;
 
             case "refresh":
             {
+                subArguments.SplitCommand(out string mapIndex);
                 int mapIndexInt;
-                if (string.IsNullOrWhiteSpace(subArguments))
+                if (string.IsNullOrWhiteSpace(mapIndex))
                 {
                     mapIndexInt = mapService.Index;
                 }
-                else if (!int.TryParse(subArguments, out mapIndexInt) ||
-                         mapIndexInt < 0 ||
-                         mapIndexInt >= mapService.MapCount)
+                else if (!int.TryParse(mapIndex, out mapIndexInt))
                 {
-                    client.SendServerMessage("Invalid map index");
-                    return;
+                    throw new CommandParseException(mapIndex);
+                }
+
+                if (mapIndexInt < 0 ||
+                    mapIndexInt >= mapService.MapCount)
+                {
+                    throw new CommandInvalidMapIndexException(mapIndexInt, mapService.MapCount);
                 }
 
                 leaderboardService.BroadcastLeaderboard(mapIndexInt);
                 client.SendServerMessage("Refreshed leaderboards for ({Index})", mapIndexInt);
-            }
 
                 break;
+            }
 
             case "remove":
             {
                 int mapIndexInt;
                 string flags = subArguments.GetFlags(out string extra);
-                extra.SplitCommand(out string mapIndex, out string id);
+                extra.SplitCommand(out string mapIndex, out string subSubArguments);
+                string id = subSubArguments.Unwrap();
                 if (string.IsNullOrWhiteSpace(id))
                 {
                     id = mapIndex;
                     mapIndexInt = mapService.Index;
                 }
-                else if (!int.TryParse(mapIndex, out mapIndexInt) ||
-                         mapIndexInt < 0 ||
-                         mapIndexInt >= mapService.MapCount)
+                else if (!int.TryParse(subArguments, out mapIndexInt))
                 {
-                    client.SendServerMessage("Invalid map index");
-                    return;
+                    throw new CommandParseException(subArguments);
                 }
 
-                if (leaderboardService
-                    .AllScores[mapIndexInt]
-                    .TryScanQuery(
-                        client,
-                        id,
-                        flags.Contains('i') ? n => n.Id : n => n.Username,
-                        out SavedScore score))
+                if (mapIndexInt < 0 ||
+                    mapIndexInt >= mapService.MapCount)
                 {
-                    client.LogAndSend(
-                        log,
-                        "Removed score [{Score}] from map [{Map}]",
-                        score,
-                        mapService.Maps[mapIndexInt].Name);
-                    leaderboardService.RemoveScore(mapIndexInt, score);
-                    if (listenerService.Clients.TryGetValue(score.Id, out IClient? target))
-                    {
-                        eventService.SendStatus(target);
-                    }
+                    throw new CommandInvalidMapIndexException(mapIndexInt, mapService.MapCount);
                 }
-            }
+
+                SavedScore score = leaderboardService
+                    .AllScores[mapIndexInt]
+                    .ScanQuery(
+                        id,
+                        flags.Contains('i') ? n => n.Id : n => n.Username);
+                client.LogAndSend(
+                    log,
+                    "Removed score [{Score}] from map [{Map}]",
+                    score,
+                    mapService.Maps[mapIndexInt].Name);
+                leaderboardService.RemoveScore(mapIndexInt, score);
+                if (listenerService.Clients.TryGetValue(score.Id, out IClient? target))
+                {
+                    eventService.SendStatus(target);
+                }
 
                 break;
+            }
 
             // TODO: add a "are you sure" prompt
             case "drop":
             {
+                subArguments.SplitCommand(out string mapIndex);
                 int mapIndexInt;
-                if (string.IsNullOrWhiteSpace(subArguments))
+                if (string.IsNullOrWhiteSpace(mapIndex))
                 {
                     mapIndexInt = mapService.Index;
                 }
-                else if (!int.TryParse(subArguments, out mapIndexInt) ||
-                         mapIndexInt < 0 ||
-                         mapIndexInt >= mapService.MapCount)
+                else if (!int.TryParse(mapIndex, out mapIndexInt))
                 {
-                    client.SendServerMessage("Invalid map index");
-                    return;
+                    throw new CommandParseException(mapIndex);
+                }
+
+                if (mapIndexInt < 0 ||
+                    mapIndexInt >= mapService.MapCount)
+                {
+                    throw new CommandInvalidMapIndexException(mapIndexInt, mapService.MapCount);
                 }
 
                 int scoresCount = leaderboardService.AllScores[mapIndexInt].Count;
@@ -120,19 +122,24 @@ public class ScoresCommand(
                     scoresCount,
                     mapService.Maps[mapIndexInt].Name);
                 eventService.UpdateStatus(false);
-            }
 
                 break;
+            }
 
             case "resubmit":
             {
+                subArguments.SplitCommand(out string mapIndex);
+                mapIndex.TooMany();
                 if (string.IsNullOrWhiteSpace(subArguments) ||
-                    !int.TryParse(subArguments, out int mapIndexInt) ||
-                    mapIndexInt < 0 ||
-                    mapIndexInt >= mapService.Index)
+                    !int.TryParse(subArguments, out int mapIndexInt))
                 {
-                    client.SendServerMessage("Invalid map index");
-                    return;
+                    throw new CommandParseException(subArguments);
+                }
+
+                if (mapIndexInt < 0 ||
+                    mapIndexInt >= mapService.MapCount)
+                {
+                    throw new CommandInvalidMapIndexException(mapIndexInt, mapService.MapCount);
                 }
 
                 _ = ResubmitScores(client, mapIndexInt, mapService.Index);
@@ -144,16 +151,20 @@ public class ScoresCommand(
             {
                 int mapIndexInt;
                 string flags = subArguments.GetFlags(out string extra);
-                if (string.IsNullOrWhiteSpace(extra))
+                extra.SplitCommand(out string mapIndex);
+                if (string.IsNullOrWhiteSpace(mapIndex))
                 {
                     mapIndexInt = mapService.Index;
                 }
-                else if (!int.TryParse(extra, out mapIndexInt) ||
-                         mapIndexInt < 0 ||
-                         mapIndexInt >= mapService.MapCount)
+                else if (!int.TryParse(mapIndex, out mapIndexInt))
                 {
-                    client.SendServerMessage("Invalid map index");
-                    return;
+                    throw new CommandParseException(mapIndex);
+                }
+
+                if (mapIndexInt < 0 ||
+                    mapIndexInt >= mapService.MapCount)
+                {
+                    throw new CommandInvalidMapIndexException(mapIndexInt, mapService.MapCount);
                 }
 
                 string map = mapService.Maps[mapIndexInt].Name;
@@ -177,9 +188,9 @@ public class ScoresCommand(
 
                     client.SendServerMessage(scoresMessage);
                 }
-            }
 
                 break;
+            }
 
             case "backup":
                 Backup(subArguments);
@@ -187,14 +198,13 @@ public class ScoresCommand(
                 break;
 
             default:
-                client.SendServerMessage("Did not recognize scores subcommand [{Message}]", subCommand);
-                break;
+                throw new CommandUnrecognizedSubcommandException("scores", subCommand);
         }
     }
 
     private void Backup(string arguments)
     {
-        arguments.SplitCommand(out string subCommand, out _);
+        arguments.SplitCommand(out string subCommand);
         switch (subCommand)
         {
             case "reload":
@@ -203,8 +213,7 @@ public class ScoresCommand(
                 break;
 
             default:
-                log.LogWarning("Did not recognize command [{Message}]", subCommand);
-                break;
+                throw new CommandUnrecognizedSubcommandException("backup", subCommand);
         }
     }
 

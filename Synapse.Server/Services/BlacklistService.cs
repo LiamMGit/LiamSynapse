@@ -9,13 +9,13 @@ public interface IBlacklistService
 {
     public IReadOnlyDictionary<string, byte> BannedIps { get; }
 
-    public IReadOnlyDictionary<string, SerializedUser> Blacklist { get; }
+    public IReadOnlyDictionary<string, SerializedBannedUser> Blacklist { get; }
 
     public IReadOnlyDictionary<string, SerializedUser>? Whitelist { get; }
 
     public bool AddBannedIp(string ip);
 
-    public bool AddBlacklist(string id, string username);
+    public bool AddBlacklist(string id, string username, string? reason, DateTime? banTime);
 
     public bool AddWhitelist(string id, string username);
 
@@ -41,7 +41,7 @@ public class BlacklistService : IBlacklistService
     private readonly string _whitelistPath;
     private ConcurrentDictionary<string, byte> _bannedIps = new(); // wouldve preferred ConcurrentHashset
 
-    private ConcurrentDictionary<string, SerializedUser> _blacklist = new();
+    private ConcurrentDictionary<string, SerializedBannedUser> _blacklist = new();
     private ConcurrentDictionary<string, SerializedUser>? _whitelist;
 
     public BlacklistService(
@@ -65,7 +65,7 @@ public class BlacklistService : IBlacklistService
 
     public IReadOnlyDictionary<string, byte> BannedIps => _bannedIps;
 
-    public IReadOnlyDictionary<string, SerializedUser> Blacklist => _blacklist;
+    public IReadOnlyDictionary<string, SerializedBannedUser> Blacklist => _blacklist;
 
     public IReadOnlyDictionary<string, SerializedUser>? Whitelist => _whitelist;
 
@@ -76,14 +76,16 @@ public class BlacklistService : IBlacklistService
         return result;
     }
 
-    public bool AddBlacklist(string id, string username)
+    public bool AddBlacklist(string id, string username, string? reason, DateTime? banTime)
     {
         bool result = _blacklist.TryAdd(
             id,
-            new SerializedUser
+            new SerializedBannedUser
             {
                 Id = id,
-                Username = username
+                Username = username,
+                Reason = reason ?? string.Empty,
+                BanTime = banTime
             });
         SaveBlacklist(result);
         return result;
@@ -121,18 +123,18 @@ public class BlacklistService : IBlacklistService
 
     public async Task LoadBlacklist(bool verbatim)
     {
-        ConcurrentDictionary<string, SerializedUser>? users =
-            await JsonUtils.LoadJson<List<SerializedUser>, ConcurrentDictionary<string, SerializedUser>>(
+        ConcurrentDictionary<string, SerializedBannedUser>? users =
+            await JsonUtils.LoadJson<List<SerializedBannedUser>, ConcurrentDictionary<string, SerializedBannedUser>>(
                 _log,
                 _blacklistPath,
-                n => new ConcurrentDictionary<string, SerializedUser>(n.ToDictionary(j => j.Id, j => j)),
+                n => new ConcurrentDictionary<string, SerializedBannedUser>(n.ToDictionary(j => j.Id, j => j)),
                 verbatim);
         if (verbatim && users != null)
         {
             _log.LogInformation("Successfully loaded blacklist [{Path}]", _blacklistPath);
         }
 
-        _blacklist = users ?? new ConcurrentDictionary<string, SerializedUser>();
+        _blacklist = users ?? new ConcurrentDictionary<string, SerializedBannedUser>();
     }
 
     public async Task LoadWhitelist(bool verbatim)

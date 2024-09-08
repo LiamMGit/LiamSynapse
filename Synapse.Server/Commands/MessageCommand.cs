@@ -11,13 +11,9 @@ public class MessageCommand(
     [Command("say", Permission.Coordinator)]
     public void Say(IClient client, string arguments)
     {
-        if (string.IsNullOrWhiteSpace(arguments))
-        {
-            client.SendServerMessage("Invalid message");
-            return;
-        }
+        string message = arguments.Unwrap();
 
-        listenerService.BroadcastServerMessage("[Server] {Say}", arguments);
+        listenerService.BroadcastServerMessage("[Server] {Say}", message);
         ////_log.LogInformation("[Server] {Say}", arguments);
     }
 }

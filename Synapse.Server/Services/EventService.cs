@@ -15,7 +15,7 @@ public interface IEventService
 
     public Stage[] Stages { get; }
 
-    public string MotdOverride { get; set; }
+    public string Motd { get; set; }
 
     public void PrintStage(IClient client);
 
@@ -76,9 +76,9 @@ public class EventService : IEventService
 
     public Stage[] Stages { get; }
 
-    public string MotdOverride
+    public string Motd
     {
-        get => _motdOverride ?? "N/A";
+        get => GetStatus().Motd;
         set
         {
             _motdOverride = value;

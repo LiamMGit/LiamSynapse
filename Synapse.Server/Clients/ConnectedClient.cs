@@ -152,7 +152,7 @@ public class ConnectedClient(
 
     public override string ToString()
     {
-        return $"({Id}) {Username}";
+        return $"{Username} ({Id})";
     }
 
     public Task Disconnect(DisconnectCode code)
@@ -160,7 +160,7 @@ public class ConnectedClient(
         return Disconnect(code, null, true);
     }
 
-    public Task Disconnect(DisconnectCode code, Exception? exception, bool notify)
+    private Task Disconnect(DisconnectCode code, Exception? exception, bool notify)
     {
         return Disconnect($"Disconnected by server: {code.ToReason()}", exception, notify ? code : null);
     }
@@ -182,7 +182,7 @@ public class ConnectedClient(
                 ChatLeft?.Invoke(this);
             }
 
-            log.LogInformation(exception, "{Username} ({Address}) disconnected ({Reason})", Username, Address, reason);
+            log.LogInformation(exception, "{Client} ({Address}) disconnected ({Reason})", this, Address, reason);
         }
         else
         {
@@ -264,14 +264,12 @@ public class ConnectedClient(
 
                 if (!blacklistService.Whitelist?.ContainsKey(Id) ?? false)
                 {
-                    log.LogInformation("[({Id}) {Username}] was not whitelisted", Id, username);
                     await Disconnect(DisconnectCode.NotWhitelisted);
                     break;
                 }
 
                 if (blacklistService.Blacklist.ContainsKey(Id))
                 {
-                    log.LogInformation("[({Id}) {Username}] was blacklisted", Id, username);
                     await Disconnect(DisconnectCode.Banned);
                     break;
                 }

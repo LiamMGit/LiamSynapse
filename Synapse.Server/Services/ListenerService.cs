@@ -28,7 +28,7 @@ public interface IListenerService
 
     public void BanIp(IClient client);
 
-    public void Blacklist(IClient client);
+    public void Blacklist(IClient client, string? reason, DateTime? banTime);
 
     public void BroadcastChatMessage(string id, string username, string? color, string message);
 
@@ -117,7 +117,7 @@ public class ListenerService : IListenerService
         _blacklistService.AddBannedIp(ip);
     }
 
-    public void Blacklist(IClient client)
+    public void Blacklist(IClient client, string? reason, DateTime? banTime)
     {
         string id = client.Id;
         if (!Clients.TryRemove(id, out _))
@@ -126,8 +126,8 @@ public class ListenerService : IListenerService
         }
 
         string username = client.Username;
-        _blacklistService.AddBlacklist(id, username);
-        _ = client.Disconnect(DisconnectCode.Banned);
+        _blacklistService.AddBlacklist(id, username, reason, banTime);
+        _ = client.Disconnect(DisconnectCode.Banned); // TODO: pass reason / bantime to this
         BroadcastString(ClientOpcode.UserBanned, id);
     }
 
@@ -259,7 +259,7 @@ public class ListenerService : IListenerService
         }
 
         Clients.TryAdd(client.Id, client);
-        _log.LogInformation("{Username} ({Address}) connected", client.Username, client.Address);
+        _log.LogInformation("{Client} connected", client);
 
         ClientConnected?.Invoke(client);
     }

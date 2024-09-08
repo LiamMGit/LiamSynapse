@@ -80,14 +80,21 @@ public class CommandService : ICommandService
 
         if (_commands.TryGetValue(message, out CommandInfo command))
         {
-            Permission? permission = command.Attribute.Permission;
-            if (permission == null || client.HasPermission(permission.Value))
+            try
             {
-                command.MethodInfo.Invoke(command.Instance, [client, arguments]);
+                Permission? permission = command.Attribute.Permission;
+                if (permission == null || client.HasPermission(permission.Value))
+                {
+                        command.MethodInfo.Invoke(command.Instance, [client, arguments]);
+                }
+                else
+                {
+                    throw new CommandPermissionException();
+                }
             }
-            else
+            catch (Exception e)
             {
-                client.SendServerMessage("You do not have permission to do that");
+                client.SendServerMessage("{ExceptionMessage}", e.InnerException?.Message ?? e.Message);
             }
         }
         else

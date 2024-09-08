@@ -33,7 +33,9 @@ public class EventCommand
         switch (subCommand)
         {
             case "start":
-                if (string.IsNullOrWhiteSpace(subArguments))
+            {
+                subArguments.SplitCommand(out string time);
+                if (string.IsNullOrWhiteSpace(time))
                 {
                     switch (_eventService.CurrentStage)
                     {
@@ -49,10 +51,9 @@ public class EventCommand
                     return;
                 }
 
-                if (!int.TryParse(subArguments, out int startTimer))
+                if (!int.TryParse(time, out int startTimer))
                 {
-                    client.SendServerMessage("Invalid time");
-                    return;
+                    throw new CommandParseException(time);
                 }
 
                 TimeSpan startDur = TimeSpan.FromSeconds(startTimer);
@@ -64,9 +65,12 @@ public class EventCommand
                 };
 
                 break;
+            }
 
             case "play":
-                if (string.IsNullOrWhiteSpace(subArguments))
+            {
+                subArguments.SplitCommand(out string time);
+                if (string.IsNullOrWhiteSpace(time))
                 {
                     switch (_eventService.CurrentStage)
                     {
@@ -82,10 +86,9 @@ public class EventCommand
                     return;
                 }
 
-                if (!int.TryParse(subArguments, out int nextTimer))
+                if (!int.TryParse(time, out int nextTimer))
                 {
-                    client.SendServerMessage("Invalid time");
-                    return;
+                    throw new CommandParseException(time);
                 }
 
                 TimeSpan nextDur = TimeSpan.FromSeconds(nextTimer);
@@ -97,13 +100,10 @@ public class EventCommand
                 };
 
                 break;
+            }
 
             case "stop":
-                if (!string.IsNullOrWhiteSpace(subArguments))
-                {
-                    client.SendServerMessage("Invalid arguments");
-                    return;
-                }
+                subArguments.TooMany();
 
                 switch (_eventService.CurrentStage)
                 {
@@ -121,13 +121,8 @@ public class EventCommand
 
             case "index":
             {
-                if (string.IsNullOrWhiteSpace(subArguments))
-                {
-                    client.SendServerMessage("Invalid arguments");
-                    return;
-                }
-
                 subArguments.SplitCommand(out string indexLine, out string flags);
+                indexLine.NotEnough();
                 int index;
                 switch (indexLine)
                 {
@@ -141,8 +136,7 @@ public class EventCommand
                     {
                         if (!int.TryParse(indexLine, out index))
                         {
-                            client.SendServerMessage("Could not parse map index [{Index}]", indexLine);
-                            return;
+                            throw new CommandParseException(indexLine);
                         }
 
                         break;
@@ -166,18 +160,14 @@ public class EventCommand
             }
 
             case "status":
-                if (!string.IsNullOrWhiteSpace(subArguments))
-                {
-                    client.SendServerMessage("Invalid arguments");
-                    return;
-                }
-
+                subArguments.TooMany();
                 _eventService.PrintStatus(client);
 
                 break;
 
             case "stage":
             {
+                subArguments = subArguments.Unwrap();
                 if (string.IsNullOrWhiteSpace(subArguments))
                 {
                     _eventService.PrintStage(client);
@@ -197,8 +187,7 @@ public class EventCommand
                     {
                         if (!int.TryParse(subArguments, out index))
                         {
-                            client.SendServerMessage("Could not parse stage index [{Index}]", subArguments);
-                            return;
+                            throw new CommandParseException(subArguments);
                         }
 
                         break;
@@ -220,8 +209,7 @@ public class EventCommand
             }
 
             default:
-                client.SendServerMessage("Did not recognize event subcommand [{Message}]", subCommand);
-                break;
+                throw new CommandUnrecognizedSubcommandException("event", subCommand);
         }
     }
 }

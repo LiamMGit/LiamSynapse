@@ -11,6 +11,6 @@ public record SerializedUser
 
     public override string ToString()
     {
-        return $"({Id}) {Username}";
+        return $"{Username} ({Id})";
     }
 }

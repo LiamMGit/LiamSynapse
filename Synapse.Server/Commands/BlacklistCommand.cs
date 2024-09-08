@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Synapse.Networking.Models;
 using Synapse.Server.Clients;
 using Synapse.Server.Extras;
@@ -23,11 +22,7 @@ public class BlacklistCommand(
     public void Allow(IClient client, string arguments)
     {
         string flags = arguments.GetFlags(out string extra);
-        if (!TryGetClient(client, extra, flags.IdFlag(), out IClient? target))
-        {
-            return;
-        }
-
+        IClient target = GetClient(client, extra.Unwrap(), flags.IdFlag());
         listenerService.Whitelist(target);
         client.LogAndSend(log, "Whitelisted [{Client}]", target);
     }
@@ -36,24 +31,30 @@ public class BlacklistCommand(
     public void Ban(IClient client, string arguments)
     {
         string flags = arguments.GetFlags(out string extra);
-        if (!TryGetClient(client, extra, flags.IdFlag(), out IClient? target))
+        extra.SplitCommand(out string subCommand, out string subArguments);
+        subArguments.SplitCommand(out string subSubCommand, out string subSubArguments);
+
+        TimeSpan? timeSpan = null;
+        if (!string.IsNullOrWhiteSpace(subSubArguments))
         {
-            return;
+            timeSpan = TimeSpan.Parse(subSubArguments); // TODO: spruce up this parsing
         }
 
-        listenerService.Blacklist(target);
-        client.LogAndSend(log, "Banned [{Client}]", target);
+        IClient target = GetClient(client, subCommand.Unwrap(), flags.IdFlag());
+        listenerService.Blacklist(target, subSubCommand, timeSpan != null ? DateTime.UtcNow + timeSpan : null);
+        client.LogAndSend(
+            log,
+            "Banned [{Client}] for [{TimeSpan}] with reason: [{Reason}]",
+            target,
+            timeSpan != null ? timeSpan.Value : "permanently",
+            subSubCommand);
     }
 
     [Command("banip", Permission.Moderator)]
     public void BanIp(IClient client, string arguments)
     {
         string flags = arguments.GetFlags(out string extra);
-        if (!TryGetClient(client, extra, flags.IdFlag(), out IClient? target))
-        {
-            return;
-        }
-
+        IClient target = GetClient(client, extra.Unwrap(), flags.IdFlag());
         listenerService.BanIp(target);
         client.LogAndSend(log, "Ip banned [{Client}]", target);
     }
@@ -62,6 +63,7 @@ public class BlacklistCommand(
     public void BannedIps(IClient client, string arguments)
     {
         arguments.SplitCommand(out string subCommand, out string subArguments);
+        subArguments = subArguments.Unwrap();
         switch (subCommand)
         {
             case "reload":
@@ -72,7 +74,7 @@ public class BlacklistCommand(
             case "list":
                 if (blacklistService.BannedIps.Count > 0)
                 {
-                    client.SendServerMessage("{Bannedips}", string.Join(", ", blacklistService.BannedIps.Values));
+                    client.SendServerMessage("{BannedIps}", string.Join(", ", blacklistService.BannedIps.Values));
                 }
                 else
                 {
@@ -85,27 +87,24 @@ public class BlacklistCommand(
                 client.LogAndSend(
                     log,
                     blacklistService.AddBannedIp(subArguments)
-                        ? "Added [({Ip}] to bannedips"
-                        : "Failed to add [({Ip}] to bannedips, ip already exists",
+                        ? "Added [{Ip}] to bannedips"
+                        : "Failed to add [{Ip}] to bannedips, ip already exists",
                     subArguments);
                 break;
 
             case "remove":
-                if (blacklistService.BannedIps.Keys.TryScanQuery(client, subArguments, n => n, out string? ip))
-                {
-                    client.LogAndSend(
-                        log,
-                        blacklistService.RemoveBannedIp(ip)
-                            ? "Removed [({Ip}] from bannedips"
-                            : "Failed to remove [({Ip}] from bannedips, id not found",
-                        ip);
-                }
+                string ip = blacklistService.BannedIps.Keys.ScanQuery(subArguments, n => n);
+                client.LogAndSend(
+                    log,
+                    blacklistService.RemoveBannedIp(ip)
+                        ? "Removed [{Ip}] from bannedips"
+                        : "Failed to remove [{Ip}] from bannedips, id not found",
+                    ip);
 
                 break;
 
             default:
-                client.SendServerMessage("Did not recognize bannedips subcommand [{Message}]", subCommand);
-                break;
+                throw new CommandUnrecognizedSubcommandException("bannedips", subCommand);
         }
     }
 
@@ -134,11 +133,12 @@ public class BlacklistCommand(
 
             case "add":
                 subArguments.SplitCommand(out string id, out string username);
+                username = username.Unwrap();
                 client.LogAndSend(
                     log,
-                    blacklistService.AddBlacklist(id, username)
-                        ? "Added [({Id}) {Username}] to blacklist"
-                        : "Failed to add [({Id}) {Username}] to blacklist, id already exists",
+                    blacklistService.AddBlacklist(id, username, null, null)
+                        ? "Added {Username} ({Id}) to blacklist"
+                        : "Failed to add {Username} ({Id}) to blacklist, id already exists",
                     id,
                     username);
 
@@ -146,44 +146,39 @@ public class BlacklistCommand(
 
             case "remove":
                 string flags = subArguments.GetFlags(out string subSubArguments);
-                if (TryGetSerializedUser(
-                        client,
-                        subSubArguments,
-                        SerializedUserIdFlag(flags),
-                        blacklistService.Blacklist.Values,
-                        out SerializedUser? user))
-                {
-                    client.LogAndSend(
-                        log,
-                        blacklistService.RemoveBlacklist(user)
-                            ? "Removed [{User}] from blacklist"
-                            : "Failed to remove [{User}] from blacklist, id not found",
-                        user);
-                }
+                subSubArguments = subSubArguments.Unwrap();
+                SerializedUser user = GetSerializedUser(
+                    subSubArguments,
+                    SerializedUserIdFlag(flags),
+                    blacklistService.Blacklist.Values);
+                client.LogAndSend(
+                    log,
+                    blacklistService.RemoveBlacklist(user)
+                        ? "Removed [{User}] from blacklist"
+                        : "Failed to remove [{User}] from blacklist, id not found",
+                    user);
 
                 break;
 
             default:
-                client.SendServerMessage("Did not recognize blacklist subcommand [{Message}]", subCommand);
-                break;
+                throw new CommandUnrecognizedSubcommandException("blacklist", subCommand);
         }
     }
 
     [Command("kick", Permission.Moderator)]
     public void Kick(IClient client, string arguments)
     {
-        arguments.SplitCommand(out string id, out string extra);
-        string flags = extra.GetFlags(out string reason);
-        if (!TryGetClient(client, id, flags.IdFlag(), out IClient? target))
-        {
-            return;
-        }
+        string flags = arguments.GetFlags(out string extra);
+        extra.SplitCommand(out string id, out string reason);
+        reason = reason.Unwrap();
+        IClient target = GetClient(client, id, flags.IdFlag());
 
         if (string.IsNullOrWhiteSpace(reason))
         {
             reason = "Kicked";
         }
 
+        // TODO: implement reason
         _ = target.Disconnect(DisconnectCode.Banned);
         client.LogAndSend(log, "Kicked [{Client}] ({Reason})", target, reason);
     }
@@ -265,8 +260,7 @@ public class BlacklistCommand(
                 break;
 
             default:
-                client.SendServerMessage("Did not recognize roles subcommand [{Message}]", subCommand);
-                break;
+                throw new CommandUnrecognizedSubcommandException("roles", subCommand);
         }
 
         return;
@@ -288,15 +282,14 @@ public class BlacklistCommand(
         void FindByClient(Func<IClient, string> func, Func<IClient, Role, string> action)
         {
             extra.SplitCommand(out string username, out string roleName);
-            if (roleService.Roles.Values.TryScanQuery(client, roleName, n => n.Name, out Role? role) &&
-                TryGetClient(client, username, func, out IClient? target))
-            {
-                client.LogAndSend(
-                    log,
-                    action(target, role),
-                    role.Name,
-                    target);
-            }
+            roleName = roleName.Unwrap();
+            Role role = roleService.Roles.Values.ScanQuery(roleName, n => n.Name);
+            IClient target = GetClient(client, username, func);
+            client.LogAndSend(
+                log,
+                action(target, role),
+                role.Name,
+                target);
             /*else if (_blacklistService.Roles.Values.TryScanQuery(client, username, n => n.Username, out RoleUser? user))
             {
                 client.LogAndSend(_log,
@@ -339,6 +332,7 @@ public class BlacklistCommand(
 
             case "add":
                 subArguments.SplitCommand(out string id, out string username);
+                username = username.Unwrap();
                 client.LogAndSend(
                     log,
                     blacklistService.AddWhitelist(id, username)
@@ -356,46 +350,43 @@ public class BlacklistCommand(
                 }
 
                 string flags = subArguments.GetFlags(out string subSubArguments);
-                if (TryGetSerializedUser(
-                        client,
-                        subSubArguments,
-                        SerializedUserIdFlag(flags),
-                        blacklistService.Whitelist.Values,
-                        out SerializedUser? user))
-                {
-                    client.LogAndSend(
-                        log,
-                        blacklistService.RemoveWhitelist(user)
-                            ? "Removed [{User}] from whitelist"
-                            : "Failed to remove [{User}] from whitelist, id not found",
-                        user);
-                }
+                SerializedUser user = GetSerializedUser(
+                    subSubArguments.Unwrap(),
+                    SerializedUserIdFlag(flags),
+                    blacklistService.Whitelist.Values);
+                client.LogAndSend(
+                    log,
+                    blacklistService.RemoveWhitelist(user)
+                        ? "Removed [{User}] from whitelist"
+                        : "Failed to remove [{User}] from whitelist, id not found",
+                    user);
 
                 break;
 
             default:
-                client.SendServerMessage("Did not recognize whitelist subcommand [{Message}]", subCommand);
-                break;
+                throw new CommandUnrecognizedSubcommandException("whitelist", subCommand);
         }
     }
 
-    private static bool TryGetSerializedUser(
-        IClient client,
+    private static SerializedUser GetSerializedUser(
         string arguments,
         Func<SerializedUser, string> func,
-        IEnumerable<SerializedUser> users,
-        [NotNullWhen(true)] out SerializedUser? result)
+        IEnumerable<SerializedUser> users)
     {
-        return users.TryScanQuery(client, arguments, func, out result);
+        return users.ScanQuery(arguments, func);
     }
 
-    private bool TryGetClient(
+    private IClient GetClient(
         IClient client,
         string arguments,
-        Func<IClient, string> func,
-        [NotNullWhen(true)] out IClient? result)
+        Func<IClient, string> func)
     {
-        return listenerService.Clients.Values.TryScanQuery(client, arguments, func, out result) &&
-               result.GetImmunity() < client.GetImmunity();
+        IClient result = listenerService.Clients.Values.ScanQuery(arguments, func);
+        if (result.GetImmunity() >= client.GetImmunity())
+        {
+            throw new CommandException("Target has greater or equal immunity");
+        }
+
+        return result;
     }
 }

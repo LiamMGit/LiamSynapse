@@ -14,21 +14,21 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
     [Command("motd")]
     public void Motd(IClient client, string arguments)
     {
-        if (string.IsNullOrWhiteSpace(arguments))
+        string message = arguments.Unwrap();
+        if (string.IsNullOrWhiteSpace(message))
         {
-            client.SendServerMessage(eventService.MotdOverride);
+            client.SendServerMessage(eventService.Motd);
             return;
         }
 
         if (!client.HasPermission(Permission.Coordinator))
         {
-            client.SendServerMessage("You do not have permission to do that");
-            return;
+            throw new CommandPermissionException();
         }
 
-        eventService.MotdOverride = arguments;
+        eventService.Motd = message;
         client.LogAndSend(log, "Motd successfully changed");
-        log.LogInformation("{Motd}", arguments);
+        log.LogInformation("{Motd}", message);
     }
 
     [Command("roll")]
@@ -36,18 +36,16 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
     {
         if (!client.Chatter)
         {
-            client.SendServerMessage("You must join the chat to do that");
-            return;
+            throw new CommandChatterException();
         }
 
-        string[] args = arguments.Split(' ');
+        string[] args = arguments.SplitArguments();
         int min = 1;
         int max = 100;
         switch (args.Length)
         {
             case > 2:
-                client.SendServerMessage("Too many arguments");
-                return;
+                throw new CommandTooManyArgumentException();
             case 2:
                 Parse(args[0], ref min);
                 Parse(args[1], ref max);
@@ -72,6 +70,10 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
             {
                 val = i;
             }
+            else
+            {
+                throw new CommandParseException(arg);
+            }
         }
     }
 
@@ -81,22 +83,11 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
     [Command("w")]
     public void Tell(IClient client, string arguments)
     {
-        arguments.SplitCommand(out string name, out string message);
-        if (!listenerService.Chatters.Keys.TryScanQuery(
-                client,
-                name,
-                CommandExtensions.ByUsername,
-                out IClient? target))
-        {
-            return;
-        }
+        arguments.SplitCommand(out string name, out string subArguments);
+        string message = subArguments.Unwrap();
+        IClient target = listenerService.Chatters.Keys.ScanQuery(name, CommandExtensions.ByUsername);
 
         string censored = StringUtils.Sanitize(message);
-        if (string.IsNullOrWhiteSpace(censored))
-        {
-            client.SendServerMessage("Invalid whisper");
-            return;
-        }
 
         client.SendChatMessage(
             new ChatMessage(target.Id, target.Username, target.GetColor(), MessageType.WhisperTo, censored));
@@ -110,31 +101,30 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
     public void Who(IClient client, string arguments)
     {
         string flags = arguments.GetFlags(out string extra);
+        string username = extra.Unwrap();
         bool verbose = false;
         if (flags.Contains('v'))
         {
             if (!client.HasPermission(Permission.Moderator))
             {
-                client.SendServerMessage("You do not have permission to do that");
-                return;
+                throw new CommandPermissionException();
             }
 
             verbose = true;
         }
 
         IClient[] query;
-        if (!string.IsNullOrWhiteSpace(extra))
+        if (!string.IsNullOrWhiteSpace(username))
         {
             query = listenerService
                 .Chatters.Keys
-                .Where(n => n.Username.StartsWith(arguments, StringComparison.CurrentCultureIgnoreCase))
+                .Where(n => n.Username.StartsWith(username, StringComparison.CurrentCultureIgnoreCase))
                 .ToArray();
 
             switch (query.Length)
             {
                 case <= 0:
-                    client.SendServerMessage($"Could not find [{arguments}]");
-                    return;
+                    throw new CommandQueryFailedException(username);
             }
         }
         else
