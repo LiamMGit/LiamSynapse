@@ -70,6 +70,16 @@ internal class ListingManager : IInitializable
         _ = InitializeAsync();
     }
 
+    public void Clear()
+    {
+        Listing = null;
+        _bannerUrl = null;
+        _bannerImage = null;
+        _lastListing = null;
+        ListingFoundBacking?.Invoke(null);
+        BannerImageCreatedBacking?.Invoke(null);
+    }
+
     private async Task GetBannerImage(Listing listing, CancellationToken token)
     {
         if (_bannerUrl != listing.BannerImage)

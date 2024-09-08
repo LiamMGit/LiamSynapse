@@ -90,7 +90,7 @@ public class FakeClient(string id, string username) : IClient
 
     public string Username { get; } = username;
 
-    public Task Disconnect(string reason, bool local = true)
+    public Task Disconnect(DisconnectCode _)
     {
         return Task.CompletedTask;
     }

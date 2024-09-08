@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 
 namespace Synapse.Networking;
 
@@ -22,6 +23,7 @@ public class AsyncTcpLocalClient : AsyncTcpClient
         _reconnectTries = reconnectTries;
     }
 
+    [PublicAPI]
     public AsyncTcpLocalClient(string hostName, int port, int reconnectTries)
     {
         _hostName = hostName;
@@ -62,7 +64,9 @@ public class AsyncTcpLocalClient : AsyncTcpClient
 
                 reconnectTry = 0;
 
-                await ReadAsync(socket, token);
+                using NetworkStream stream = new(socket);
+                Stream = stream;
+                await ReadAsync(token);
             }
             catch (OperationCanceledException)
             {
@@ -70,6 +74,11 @@ public class AsyncTcpLocalClient : AsyncTcpClient
             }
             catch (Exception e)
             {
+                if (Closing)
+                {
+                    return;
+                }
+
                 reconnectTry++;
                 if (reconnectTry >= _reconnectTries)
                 {
@@ -82,6 +91,7 @@ public class AsyncTcpLocalClient : AsyncTcpClient
             {
                 SendMessage(new AsyncTcpMessageEventArgs(Networking.Message.ConnectionClosed, null, reconnectTry));
                 _socket = null;
+                Stream = null;
             }
         }
     }

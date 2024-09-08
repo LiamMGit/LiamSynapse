@@ -15,7 +15,7 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
 
     public string Username => "Server";
 
-    public Task Disconnect(string reason, bool local = true)
+    public Task Disconnect(DisconnectCode _)
     {
         return Task.CompletedTask;
     }

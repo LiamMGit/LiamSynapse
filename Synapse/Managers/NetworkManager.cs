@@ -88,7 +88,7 @@ internal class NetworkManager : IDisposable
 
     public void Dispose()
     {
-        _ = Disconnect("Disposed");
+        _ = Disconnect(DisconnectCode.ClientDisposed);
     }
 
     public async Task Send(byte[] data, CancellationToken cancellationToken = default)
@@ -131,27 +131,32 @@ internal class NetworkManager : IDisposable
         await Send(packetBuilder.ToArray());
     }
 
-    internal async Task Disconnect(string reason, bool local = true)
+    internal Task Disconnect(DisconnectCode code, Exception? exception = null, bool notify = true)
+    {
+        return Disconnect(code.ToReason(), exception, notify ? code : null);
+    }
+
+    internal async Task Disconnect(string reason, Exception? exception = null, DisconnectCode? notifyCode = null)
     {
         if (_client == null)
         {
             return;
         }
 
+        if (exception != null)
+        {
+            _log.Error($"{reason}\n{exception}");
+        }
+        else
+        {
+            _log.Debug(reason);
+        }
+
         AsyncTcpClient client = _client;
         _client = null;
         Disconnected?.Invoke(reason);
 
-        if (local && client.IsConnected)
-        {
-            using PacketBuilder packetBuilder = new((byte)ServerOpcode.Disconnect);
-            CancellationTokenSource cts = new();
-            Task notify = client.Send(packetBuilder.ToArray(), cts.Token);
-            await Task.WhenAny(notify, Task.Delay(2000, cts.Token));
-            cts.Cancel();
-        }
-
-        client.Dispose();
+        await client.Disconnect(notifyCode);
     }
 
     internal async Task RunAsync()
@@ -189,18 +194,15 @@ internal class NetworkManager : IDisposable
         }
         catch (AsyncTcpFailedAfterRetriesException e)
         {
-            _log.Error($"Connection failed after {e.ReconnectTries} tries: {e.InnerException}");
-            await Disconnect($"Connection failed after {e.ReconnectTries} tries", false);
+            await Disconnect($"Connection failed after {e.ReconnectTries} tries", e.InnerException);
         }
         catch (AsyncTcpSocketException e)
         {
-            _log.Error($"Connection closed unexpectedly: {e}");
-            await Disconnect("Connection closed unexpectedly", false);
+            await Disconnect(DisconnectCode.ConnectionClosedUnexpectedly, e, false);
         }
         catch (Exception e)
         {
-            _log.Critical($"An unexpected exception has occurred: {e}");
-            await Disconnect("An unexpected error has occured", false);
+            await Disconnect(DisconnectCode.UnexpectedException, e, false);
         }
 
         client.Message -= OnMessageReceived;
@@ -255,8 +257,7 @@ internal class NetworkManager : IDisposable
         }
         catch (Exception e)
         {
-            _log.Error($"Exception while authenticating\n{e}");
-            await Disconnect("Exception while authenticating");
+            await Disconnect(DisconnectCode.UnexpectedException, e);
         }
     }
 
@@ -301,7 +302,7 @@ internal class NetworkManager : IDisposable
                 break;
 
             case Message.PacketException:
-                _log.Error("Received invalid packet");
+                _log.Error("Exception while processing packet");
                 if (args.Exception != null)
                 {
                     _log.Error(args.Exception.ToString());
@@ -327,10 +328,15 @@ internal class NetworkManager : IDisposable
                 break;
             }
 
-            case ClientOpcode.Disconnected:
+            case ClientOpcode.Disconnect:
             {
-                string message = reader.ReadString();
-                await Disconnect(message, false);
+                DisconnectCode disconnectCode = (DisconnectCode)reader.ReadByte();
+                if (disconnectCode == DisconnectCode.ListingMismatch)
+                {
+                    _listingManager.Clear();
+                }
+
+                await Disconnect($"Disconnected by server\n{disconnectCode.ToReason()}");
 
                 break;
             }

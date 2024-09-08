@@ -127,7 +127,7 @@ public class ListenerService : IListenerService
 
         string username = client.Username;
         _blacklistService.AddBlacklist(id, username);
-        _ = client.Disconnect("Banned");
+        _ = client.Disconnect(DisconnectCode.Banned);
         BroadcastString(ClientOpcode.UserBanned, id);
     }
 
@@ -153,7 +153,7 @@ public class ListenerService : IListenerService
 
     public async Task Stop()
     {
-        AllClients(n => n.Disconnect("Server closing"));
+        AllClients(n => n.Disconnect(DisconnectCode.ServerClosing));
         _log.LogInformation("Closing...");
         await Task.Delay(2000);
         _listener.Dispose();
@@ -178,15 +178,18 @@ public class ListenerService : IListenerService
         string ip = client.Address.ToString();
         if (RateLimiter.RateLimit(this, 4, 10000, ip))
         {
-            _log.LogInformation("Denied [{Ip}] due to rate limit", ip);
-            await client.Disconnect("Too many connections");
+            await client.Disconnect(DisconnectCode.RateLimited);
+            return;
+        }
+
+        if (CheckMaxConnection(client))
+        {
             return;
         }
 
         if (_blacklistService.BannedIps.ContainsKey(ip))
         {
-            _log.LogInformation("Attempted connection from banned ip [{Ip}]", ip);
-            await client.Disconnect("Banned");
+            await client.Disconnect(DisconnectCode.Banned);
             return;
         }
 
@@ -241,21 +244,17 @@ public class ListenerService : IListenerService
     private void OnDisconnected(ConnectedClient client, string reason)
     {
         Clients.Remove(client.Id, out _);
-        _log.LogInformation("{Username} ({Address}) disconnected ({Reason})", client.Username, client.Address, reason);
     }
 
     private void OnJoined(ConnectedClient client)
     {
         if (Clients.TryGetValue(client.Id, out IClient? existing))
         {
-            _ = existing.Disconnect("Connected from another client");
+            _ = existing.Disconnect(DisconnectCode.DuplicateConnection);
         }
 
-        string ip = client.Address.ToString();
-        if (_maxPlayers > 0 && Clients.Count >= _maxPlayers)
+        if (CheckMaxConnection(client))
         {
-            _log.LogInformation("Refused connection from [{Ip}], maximum players reached", ip);
-            _ = client.Disconnect("Maximum players reached");
             return;
         }
 
@@ -280,5 +279,16 @@ public class ListenerService : IListenerService
     private void OnScoreSubmissionReceived(ConnectedClient connectedClient, ScoreSubmission scoreSubmission)
     {
         ScoreSubmissionReceived?.Invoke(connectedClient, scoreSubmission);
+    }
+
+    private bool CheckMaxConnection(ConnectedClient client)
+    {
+        if (Clients.Count + 1 > _maxPlayers)
+        {
+            return false;
+        }
+
+        _ = client.Disconnect(DisconnectCode.MaximumConnections);
+        return true;
     }
 }

@@ -57,6 +57,7 @@ public class ConnectedClient(
     {
         log.LogInformation("Client connecting from [{Address}]", Address);
         _ = TimeoutAuthentication();
+        client.Message += OnMessageReceived;
         client.ReceivedCallback = OnReceived;
         try
         {
@@ -67,51 +68,15 @@ public class ConnectedClient(
         }
         catch (AsyncTcpSocketException e)
         {
-            log.LogError(e, "Connection from [{Address}] closed unexpectedly", Address);
-            await Disconnect("Connection closed unexpectedly", false);
+            await Disconnect(DisconnectCode.ConnectionClosedUnexpectedly, e, false);
         }
         catch (Exception e)
         {
-            log.LogCritical(e, "An unexpected exception from [{Address}] has occurred", Address);
-            await Disconnect("An unexpected error has occured", false);
+            await Disconnect(DisconnectCode.UnexpectedException, e, false);
         }
-    }
 
-    public async Task Disconnect(string reason, bool local = true)
-    {
-        try
-        {
-            if (_disposing)
-            {
-                return;
-            }
-
-            _disposing = true;
-
-            if (_authentication == Authentication.Authenticated)
-            {
-                Disconnected?.Invoke(this, reason);
-                if (Chatter)
-                {
-                    ChatLeft?.Invoke(this);
-                }
-            }
-            else
-            {
-                log.LogInformation("Closed connection from [{Address}] ({Reason})", Address, reason);
-            }
-
-            if (local && client.IsConnected)
-            {
-                await SendString(ClientOpcode.Disconnected, reason);
-            }
-
-            client.Dispose();
-        }
-        catch (Exception e)
-        {
-            log.LogError(e, "Exception while disconnecting client [{Client}]", this);
-        }
+        client.Message -= OnMessageReceived;
+        client.ReceivedCallback = null;
     }
 
     public string? GetColor()
@@ -150,11 +115,13 @@ public class ConnectedClient(
         await client.Send(packetBuilder.ToArray());
     }
 
-    public async Task SendRefusal(string reason)
+    public Task SendRefusal(string reason) => SendRefusal(reason, null);
+
+    public async Task SendRefusal(string reason, Exception? exception)
     {
         if (_authentication == Authentication.Authenticated)
         {
-            log.LogInformation("Refused packet from [{Username}] ({Reason})", Username, reason);
+            log.LogInformation(exception, "Refused packet from [{Username}] ({Reason})", Username, reason);
         }
 
         using PacketBuilder packetBuilder = new((byte)ClientOpcode.RefusedPacket);
@@ -188,6 +155,51 @@ public class ConnectedClient(
         return $"({Id}) {Username}";
     }
 
+    public Task Disconnect(DisconnectCode code)
+    {
+        return Disconnect(code, null, true);
+    }
+
+    public Task Disconnect(DisconnectCode code, Exception? exception, bool notify)
+    {
+        return Disconnect($"Disconnected by server: {code.ToReason()}", exception, notify ? code : null);
+    }
+
+    private async Task Disconnect(string reason, Exception? exception = null, DisconnectCode? notifyCode = null)
+    {
+        if (_disposing)
+        {
+            return;
+        }
+
+        _disposing = true;
+
+        if (_authentication == Authentication.Authenticated)
+        {
+            Disconnected?.Invoke(this, reason);
+            if (Chatter)
+            {
+                ChatLeft?.Invoke(this);
+            }
+
+            log.LogInformation(exception, "{Username} ({Address}) disconnected ({Reason})", Username, Address, reason);
+        }
+        else
+        {
+            log.LogInformation(exception, "Closed connection from [{Address}] ({Reason})", Address, reason);
+        }
+
+        await client.Disconnect(notifyCode);
+    }
+
+    private void OnMessageReceived(object? obj, AsyncTcpMessageEventArgs args)
+    {
+        if (args.Message == Message.PacketException)
+        {
+            _ = SendRefusal("Exception while processing packet", args.Exception);
+        }
+    }
+
     private async Task OnReceived(byte byteOpcode, BinaryReader reader, CancellationToken cancelToken)
     {
         if (RateLimiter.RateLimit(this, 100, 10000))
@@ -201,7 +213,8 @@ public class ConnectedClient(
         switch (opcode)
         {
             case ServerOpcode.Disconnect:
-                await Disconnect("Disconnect by user", false);
+                DisconnectCode disconnectCode = (DisconnectCode)reader.ReadByte();
+                await Disconnect(disconnectCode.ToReason());
 
                 return;
         }
@@ -229,41 +242,39 @@ public class ConnectedClient(
                     string.IsNullOrWhiteSpace(token) ||
                     string.IsNullOrWhiteSpace(listing))
                 {
-                    await Disconnect("Invalid parameters");
+                    await Disconnect(DisconnectCode.Unauthenticated);
                     break;
                 }
 
                 if (platform != Platform.Test && listingService.Listing.Guid != listing)
                 {
-                    await Disconnect("Listing mismatch, try restarting your game");
+                    await Disconnect(DisconnectCode.ListingMismatch);
                     break;
                 }
 
                 if (!await authService.Authenticate(token, platform, id))
                 {
-                    await Disconnect("Authentication failed, try restarting your game");
+                    await Disconnect(DisconnectCode.Unauthenticated);
                     break;
                 }
 
+                _authentication = Authentication.Authenticated;
                 Id = $"{id}_{platform}";
+                Username = username;
 
                 if (!blacklistService.Whitelist?.ContainsKey(Id) ?? false)
                 {
                     log.LogInformation("[({Id}) {Username}] was not whitelisted", Id, username);
-                    await Disconnect("Not whitelisted");
+                    await Disconnect(DisconnectCode.NotWhitelisted);
                     break;
                 }
 
                 if (blacklistService.Blacklist.ContainsKey(Id))
                 {
                     log.LogInformation("[({Id}) {Username}] was blacklisted", Id, username);
-                    await Disconnect("Banned");
+                    await Disconnect(DisconnectCode.Banned);
                     break;
                 }
-
-
-                _authentication = Authentication.Authenticated;
-                Username = username;
 
                 await SendOpcode(ClientOpcode.Authenticated);
 
@@ -366,10 +377,10 @@ public class ConnectedClient(
 
     private async Task TimeoutAuthentication()
     {
-        await Task.Delay(20 * 1000);
+        await Task.Delay(10000);
         if (_authentication == Authentication.None)
         {
-            await Disconnect("Authentication timed out");
+            await Disconnect(DisconnectCode.Unauthenticated);
         }
     }
 }

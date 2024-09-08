@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using Synapse.Networking.Models;
 using Synapse.Server.Clients;
 using Synapse.Server.Extras;
 using Synapse.Server.Models;
@@ -183,7 +184,7 @@ public class BlacklistCommand(
             reason = "Kicked";
         }
 
-        _ = target.Disconnect(reason);
+        _ = target.Disconnect(DisconnectCode.Banned);
         client.LogAndSend(log, "Kicked [{Client}] ({Reason})", target, reason);
     }
 

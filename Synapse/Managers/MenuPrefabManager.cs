@@ -225,16 +225,11 @@ internal class MenuPrefabManager : IDisposable
 
     private void Refresh()
     {
-        if (_prefab == null)
-        {
-            return;
-        }
-
         if (_active)
         {
-            _prefab.SetActive(false);
+            SetPrefabActive(false);
             DustParticles?.Stop();
-            _prefab.SetActive(true);
+            SetPrefabActive(true);
             _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.None);
             _songPreviewPlayer.FadeOut(1);
         }
@@ -243,7 +238,17 @@ internal class MenuPrefabManager : IDisposable
             DustParticles?.Play();
             _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
             _songPreviewPlayer.CrossfadeToDefault();
-            _prefab.SetActive(false);
+            SetPrefabActive(false);
+        }
+
+        return;
+
+        void SetPrefabActive(bool value)
+        {
+            if (_prefab != null)
+            {
+                _prefab.SetActive(value);
+            }
         }
     }
 

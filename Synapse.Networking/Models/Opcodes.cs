@@ -2,25 +2,25 @@
 
 public enum ClientOpcode
 {
-    Authenticated = 0,
-    Disconnected = 1,
-    RefusedPacket = 2,
-    Ping = 3,
-    Status = 4,
-    ChatMessage = 10,
-    UserBanned = 11,
-    LeaderboardScores = 21,
-    StopLevel = 22
+    Authenticated,
+    Disconnect,
+    RefusedPacket,
+    Ping,
+    Status,
+    ChatMessage,
+    UserBanned,
+    LeaderboardScores,
+    StopLevel
 }
 
 public enum ServerOpcode
 {
-    Authentication = 0,
-    Disconnect = 1,
-    Ping = 3,
-    SetChatter = 9,
-    ChatMessage = 10,
-    Command = 12,
-    ScoreSubmission = 20,
-    LeaderboardRequest = 21
+    Authentication,
+    Disconnect,
+    Ping,
+    SetChatter,
+    ChatMessage,
+    Command,
+    ScoreSubmission,
+    LeaderboardRequest
 }

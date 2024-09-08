@@ -3,13 +3,16 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
+using Synapse.Networking.Models;
 
 namespace Synapse.Networking;
 
 public abstract class AsyncTcpClient : IDisposable
 {
+    private readonly TaskCompletionSource<object?> _closed = new();
+    private bool _disposed;
     private bool _active;
-    private NetworkStream? _stream;
 
     public event EventHandler<AsyncTcpMessageEventArgs>? Message;
 
@@ -17,11 +20,17 @@ public abstract class AsyncTcpClient : IDisposable
 
     public Func<byte, BinaryReader, CancellationToken, Task>? ReceivedCallback { get; set; }
 
+    [PublicAPI]
     public abstract Socket Socket { get; }
+
+    [PublicAPI]
+    public Stream? Stream { get; protected set; }
 
     protected virtual CancellationTokenSource Cts { get; } = new();
 
-    public bool IsConnected => _stream is { CanWrite: true };
+    public bool IsConnected => Stream is { CanWrite: true };
+
+    protected bool Closing { get; private set; }
 
     protected abstract Task ConnectAsync(CancellationToken token);
 
@@ -33,6 +42,7 @@ public abstract class AsyncTcpClient : IDisposable
         }
 
         _active = true;
+
         CancellationToken token = Cts.Token;
         token.ThrowIfCancellationRequested();
         await ConnectAsync(token);
@@ -40,8 +50,26 @@ public abstract class AsyncTcpClient : IDisposable
 
     public void Dispose()
     {
-        Cts.Cancel();
-        Cts.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            Cts.Cancel();
+            Cts.Dispose();
+        }
+
+        _closed.SetResult(null);
+
+        _disposed = true;
     }
 
     public async Task Send(byte[] data, CancellationToken cancellationToken = default)
@@ -51,13 +79,33 @@ public abstract class AsyncTcpClient : IDisposable
             throw new InvalidOperationException("Could not send packet, not connected.");
         }
 
-        await _stream!.WriteAsync(data, 0, data.Length, cancellationToken);
+        await Stream!.WriteAsync(data, 0, data.Length, cancellationToken);
     }
 
-    protected async Task ReadAsync(Socket socket, CancellationToken token)
+    public async Task Disconnect(DisconnectCode? notifyCode)
     {
-        using NetworkStream stream = new(socket);
-        _stream = stream;
+        Closing = true;
+
+        if (notifyCode != null && IsConnected)
+        {
+            // disconnect opcode must be same between server/client
+            using PacketBuilder packetBuilder = new((byte)ServerOpcode.Disconnect);
+            packetBuilder.Write((byte)notifyCode.Value);
+            CancellationTokenSource cts = new();
+            _ = Send(packetBuilder.ToArray(), cts.Token);
+            await Task.WhenAny(_closed.Task, Task.Delay(1000, cts.Token));
+            cts.Cancel();
+        }
+
+        Dispose();
+    }
+
+    protected async Task ReadAsync(CancellationToken token)
+    {
+        if (Stream == null)
+        {
+            throw new InvalidOperationException("No stream available");
+        }
 
         if (ConnectedCallback != null)
         {
@@ -71,7 +119,7 @@ public abstract class AsyncTcpClient : IDisposable
             {
                 try
                 {
-                    int readLength = await stream.ReadAsync(lengthBuffer, 0, lengthBuffer.Length, token);
+                    int readLength = await Stream.ReadAsync(lengthBuffer, 0, lengthBuffer.Length, token);
                     token.ThrowIfCancellationRequested();
                     if (readLength != lengthBuffer.Length)
                     {
@@ -83,7 +131,7 @@ public abstract class AsyncTcpClient : IDisposable
                     int offset = 0;
                     while (offset < messageLength)
                     {
-                        int bytesRead = await stream.ReadAsync(messageBuffer, offset, messageLength - offset, token);
+                        int bytesRead = await Stream.ReadAsync(messageBuffer, offset, messageLength - offset, token);
                         token.ThrowIfCancellationRequested();
                         if (bytesRead == 0)
                         {

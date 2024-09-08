@@ -187,7 +187,7 @@ internal class EventFlowCoordinator : FlowCoordinator
             _lobbyNavigationViewController.IntroStarted -= OnIntroStarted;
             _loadingViewController.Finished -= OnLoadingFinished;
             _networkManager.Disconnected -= OnDisconnected;
-            _ = _networkManager.Disconnect("Leaving");
+            _ = _networkManager.Disconnect(DisconnectCode.DisconnectedByUser);
             _menuPrefabManager.Hide();
         }
     }
