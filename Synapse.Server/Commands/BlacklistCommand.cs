@@ -22,7 +22,9 @@ public class BlacklistCommand(
     public void Allow(IClient client, string arguments)
     {
         string flags = arguments.GetFlags(out string extra);
-        IClient target = GetClient(client, extra.Unwrap(), flags.IdFlag());
+        extra = extra.Unwrap();
+        extra.NotEnough();
+        IClient target = GetClient(client, extra, flags.IdFlag());
         listenerService.Whitelist(target);
         client.LogAndSend(log, "Whitelisted [{Client}]", target);
     }
@@ -40,7 +42,7 @@ public class BlacklistCommand(
             timeSpan = TimeSpan.Parse(subSubArguments); // TODO: spruce up this parsing
         }
 
-        IClient target = GetClient(client, subCommand.Unwrap(), flags.IdFlag());
+        IClient target = GetClient(client, subCommand, flags.IdFlag());
         listenerService.Blacklist(target, subSubCommand, timeSpan != null ? DateTime.UtcNow + timeSpan : null);
         client.LogAndSend(
             log,
@@ -54,7 +56,9 @@ public class BlacklistCommand(
     public void BanIp(IClient client, string arguments)
     {
         string flags = arguments.GetFlags(out string extra);
-        IClient target = GetClient(client, extra.Unwrap(), flags.IdFlag());
+        extra = extra.Unwrap();
+        extra.NotEnough();
+        IClient target = GetClient(client, extra, flags.IdFlag());
         listenerService.BanIp(target);
         client.LogAndSend(log, "Ip banned [{Client}]", target);
     }
@@ -63,7 +67,6 @@ public class BlacklistCommand(
     public void BannedIps(IClient client, string arguments)
     {
         arguments.SplitCommand(out string subCommand, out string subArguments);
-        subArguments = subArguments.Unwrap();
         switch (subCommand)
         {
             case "reload":
@@ -84,6 +87,8 @@ public class BlacklistCommand(
                 break;
 
             case "add":
+                subArguments = subArguments.Unwrap();
+                subArguments.Unwrap();
                 client.LogAndSend(
                     log,
                     blacklistService.AddBannedIp(subArguments)
@@ -93,6 +98,8 @@ public class BlacklistCommand(
                 break;
 
             case "remove":
+                subArguments = subArguments.Unwrap();
+                subArguments.Unwrap();
                 string ip = blacklistService.BannedIps.Keys.ScanQuery(subArguments, n => n);
                 client.LogAndSend(
                     log,
@@ -134,6 +141,7 @@ public class BlacklistCommand(
             case "add":
                 subArguments.SplitCommand(out string id, out string username);
                 username = username.Unwrap();
+                username.NotEnough();
                 client.LogAndSend(
                     log,
                     blacklistService.AddBlacklist(id, username, null, null)
@@ -147,6 +155,7 @@ public class BlacklistCommand(
             case "remove":
                 string flags = subArguments.GetFlags(out string subSubArguments);
                 subSubArguments = subSubArguments.Unwrap();
+                subSubArguments.NotEnough();
                 SerializedUser user = GetSerializedUser(
                     subSubArguments,
                     SerializedUserIdFlag(flags),
@@ -283,6 +292,7 @@ public class BlacklistCommand(
         {
             extra.SplitCommand(out string username, out string roleName);
             roleName = roleName.Unwrap();
+            roleName.NotEnough();
             Role role = roleService.Roles.Values.ScanQuery(roleName, n => n.Name);
             IClient target = GetClient(client, username, func);
             client.LogAndSend(
@@ -333,6 +343,7 @@ public class BlacklistCommand(
             case "add":
                 subArguments.SplitCommand(out string id, out string username);
                 username = username.Unwrap();
+                username.NotEnough();
                 client.LogAndSend(
                     log,
                     blacklistService.AddWhitelist(id, username)
@@ -350,8 +361,10 @@ public class BlacklistCommand(
                 }
 
                 string flags = subArguments.GetFlags(out string subSubArguments);
+                subSubArguments = subSubArguments.Unwrap();
+                subSubArguments.NotEnough();
                 SerializedUser user = GetSerializedUser(
-                    subSubArguments.Unwrap(),
+                    subSubArguments,
                     SerializedUserIdFlag(flags),
                     blacklistService.Whitelist.Values);
                 client.LogAndSend(

@@ -12,6 +12,7 @@ public class MessageCommand(
     public void Say(IClient client, string arguments)
     {
         string message = arguments.Unwrap();
+        message.NotEnough();
 
         listenerService.BroadcastServerMessage("[Server] {Say}", message);
         ////_log.LogInformation("[Server] {Say}", arguments);

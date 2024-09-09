@@ -85,6 +85,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
     {
         arguments.SplitCommand(out string name, out string subArguments);
         string message = subArguments.Unwrap();
+        message.NotEnough();
         IClient target = listenerService.Chatters.Keys.ScanQuery(name, CommandExtensions.ByUsername);
 
         string censored = StringUtils.Sanitize(message);

@@ -90,6 +90,7 @@ public static class CommandExtensions
 
     public static void SplitCommand(this string input, out string command, out string arguments)
     {
+        bool escaping = false;
         bool quoting = false;
         bool quoted = false;
         StringBuilder commandBuilder = new();
@@ -97,29 +98,42 @@ public static class CommandExtensions
         StringBuilder active = commandBuilder;
         foreach (char c in input)
         {
-            switch (c)
+            if (escaping)
             {
-                case '"' when active == commandBuilder:
+                escaping = false;
+            }
+            else
+            {
+                switch (c)
                 {
-                    if (!quoted)
+                    case '\\' when active == commandBuilder:
                     {
-                        quoting = true;
-                        quoted = true;
+                        escaping = true;
                         continue;
                     }
 
-                    if (quoting)
+                    case '"' when active == commandBuilder:
                     {
-                        quoting = false;
-                        continue;
+                        if (!quoted)
+                        {
+                            quoting = true;
+                            quoted = true;
+                            continue;
+                        }
+
+                        if (quoting)
+                        {
+                            quoting = false;
+                            continue;
+                        }
+
+                        break;
                     }
 
-                    break;
+                    case ' ' when !quoting && active == commandBuilder:
+                        active = argumentBuilder;
+                        continue;
                 }
-
-                case ' ' when !quoting && active == commandBuilder:
-                    active = argumentBuilder;
-                    continue;
             }
 
             active.Append(c);
@@ -131,25 +145,39 @@ public static class CommandExtensions
 
     public static string[] SplitArguments(this string input)
     {
+        bool escaping = false;
         bool quoting = false;
         List<StringBuilder> builders = [];
         StringBuilder active = new();
         foreach (char c in input)
         {
-            switch (c)
+            if (escaping)
             {
-                case '"':
-                    if (quoting)
+                escaping = false;
+            }
+            else
+            {
+                switch (c)
+                {
+                    case '\\':
                     {
-                        FinishActive();
+                        escaping = true;
+                        continue;
                     }
 
-                    quoting = !quoting;
-                    continue;
+                    case '"':
+                        if (quoting)
+                        {
+                            FinishActive();
+                        }
 
-                case ' ' when !quoting:
-                    FinishActive();
-                    continue;
+                        quoting = !quoting;
+                        continue;
+
+                    case ' ' when !quoting:
+                        FinishActive();
+                        continue;
+                }
             }
 
             active.Append(c);
@@ -173,30 +201,42 @@ public static class CommandExtensions
 
     public static string Unwrap(this string input)
     {
+        bool escaping = false;
         bool quoting = false;
         StringBuilder builder = new();
         foreach (char c in input)
         {
-            switch (c)
+            if (escaping)
             {
-                case '"':
+                escaping = false;
+            }
+            else
+            {
+                switch (c)
                 {
-                    if (quoting)
+                    case '\\':
                     {
-                        return builder.ToString();
+                        escaping = true;
+                        continue;
                     }
 
-                    quoting = true;
-                    continue;
+                    case '"':
+                    {
+                        if (quoting)
+                        {
+                            return builder.ToString();
+                        }
+
+                        quoting = true;
+                        continue;
+                    }
                 }
             }
 
             builder.Append(c);
         }
 
-        string result = builder.ToString();
-        result.NotEnough();
-        return result;
+        return builder.ToString();
     }
 
     public static void NotEnough(this string input)
