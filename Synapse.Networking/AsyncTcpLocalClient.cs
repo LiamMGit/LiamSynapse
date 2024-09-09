@@ -45,7 +45,7 @@ public class AsyncTcpLocalClient : AsyncTcpClient
                 SendMessage(new AsyncTcpMessageEventArgs(Networking.Message.Connecting, null, reconnectTry));
                 Task connect = !string.IsNullOrWhiteSpace(_hostName)
                     ? socket.ConnectAsync(_hostName, _port)
-                    : socket.ConnectAsync(_address, _port);
+                    : socket.ConnectAsync(_address ?? throw new InvalidOperationException("No hostname or ip"), _port);
                 _socket = socket;
                 Task timeout = Task.Delay(5000, token);
                 if (await Task.WhenAny(connect, timeout) == timeout)
@@ -86,6 +86,7 @@ public class AsyncTcpLocalClient : AsyncTcpClient
                 }
 
                 SendMessage(new AsyncTcpMessageEventArgs(Networking.Message.ConnectionFailed, e, reconnectTry));
+                await Task.Delay(2000, token);
             }
             finally
             {

@@ -104,28 +104,28 @@ internal class NetworkManager : IDisposable
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await Send(packetBuilder.ToArray());
+        await Send(packetBuilder.ToBytes());
     }
 
     public async Task Send(ServerOpcode opcode, int value)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await Send(packetBuilder.ToArray());
+        await Send(packetBuilder.ToBytes());
     }
 
     public async Task Send(ServerOpcode opcode, float value)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await Send(packetBuilder.ToArray());
+        await Send(packetBuilder.ToBytes());
     }
 
     public async Task Send(ServerOpcode opcode, string value)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await Send(packetBuilder.ToArray());
+        await Send(packetBuilder.ToBytes());
     }
 
     internal Task Disconnect(DisconnectCode code, Exception? exception = null, bool notify = true)
@@ -244,7 +244,7 @@ internal class NetworkManager : IDisposable
             packetBuilder.Write(Plugin.GameVersion);
             packetBuilder.Write(
                 _listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded."));
-            await _client.Send(packetBuilder.ToArray(), cancelToken);
+            await _client.Send(packetBuilder.ToBytes(), cancelToken);
 
             byte[][] queued = _queuedPackets.ToArray();
             _queuedPackets.Clear();
@@ -263,8 +263,7 @@ internal class NetworkManager : IDisposable
     {
         if (args.Exception != null)
         {
-            _log.Error(args.Message);
-            _log.Error(args.Exception);
+            _log.Error($"{args.Message}\n{args.Exception}");
         }
         else
         {
@@ -285,6 +284,7 @@ internal class NetworkManager : IDisposable
                         break;
 
                     case AsyncTcpConnectFailedException:
+                    case AsyncTcpMessageException:
                         Connecting?.Invoke(ConnectingStage.Refused, args.ReconnectTries);
                         break;
                 }

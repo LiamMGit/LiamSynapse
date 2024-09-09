@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Synapse.Server.Clients;
 using Synapse.Server.Commands;
 using Synapse.Server.Extras;
@@ -17,16 +16,13 @@ public interface ICommandService
 public class CommandService : ICommandService
 {
     private readonly ImmutableDictionary<string, CommandInfo> _commands;
-    private readonly ILogger<CommandService> _log;
     private readonly IClient _serverClient;
 
     public CommandService(
-        ILogger<CommandService> log,
         IServiceProvider provider,
         IListenerService listenerService,
         IClient serverClient)
     {
-        _log = log;
         _serverClient = serverClient;
 
         Dictionary<string, CommandInfo> commands = new();
@@ -61,7 +57,6 @@ public class CommandService : ICommandService
 
             if (line == "quit")
             {
-                _log.LogInformation("Quitting...");
                 return;
             }
 

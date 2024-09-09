@@ -83,7 +83,10 @@ public class ClientService
                     Score = _random.Next(99999)
                 };
                 string scoreJson = JsonSerializer.Serialize(scoreSubmission, JsonSettings.Settings);
-                tasks.Add(await Task.Delay(_random.Next(10, 100), token).ContinueWith(_ => client.Send(ServerOpcode.ScoreSubmission, scoreJson), token));
+                tasks.Add(
+                    await Task
+                        .Delay(_random.Next(10, 100), token)
+                        .ContinueWith(_ => client.Send(ServerOpcode.ScoreSubmission, scoreJson), token));
             }
             else
             {

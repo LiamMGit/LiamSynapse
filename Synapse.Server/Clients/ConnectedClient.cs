@@ -114,7 +114,7 @@ public class ConnectedClient(
     public async Task SendOpcode(ClientOpcode opcode)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
-        await client.Send(packetBuilder.ToArray());
+        await client.Send(packetBuilder.ToBytes());
     }
 
     public Task SendRefusal(string reason) => SendRefusal(reason, null);
@@ -128,7 +128,7 @@ public class ConnectedClient(
 
         using PacketBuilder packetBuilder = new((byte)ClientOpcode.RefusedPacket);
         packetBuilder.Write(reason);
-        await client.Send(packetBuilder.ToArray());
+        await client.Send(packetBuilder.ToBytes());
     }
 
     public async Task SendServerMessage(string message, params object?[] args)
@@ -149,7 +149,7 @@ public class ConnectedClient(
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await client.Send(packetBuilder.ToArray());
+        await client.Send(packetBuilder.ToBytes());
     }
 
     public override string ToString()
@@ -304,7 +304,7 @@ public class ConnectedClient(
                         using PacketBuilder packetBuilder = new((byte)ClientOpcode.Ping);
                         packetBuilder.Write(clientTime);
                         packetBuilder.Write(timeService.Time);
-                        await client.Send(packetBuilder.ToArray(), cancelToken);
+                        await client.Send(packetBuilder.ToBytes(), cancelToken);
 
                         break;
                     }

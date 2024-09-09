@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Synapse.Networking;
 
-public class AsyncTcpListener(int port) : IDisposable
+public sealed class AsyncTcpListener(int port) : IDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
@@ -36,7 +37,7 @@ public class AsyncTcpListener(int port) : IDisposable
         socket.Listen((int)SocketOptionName.MaxConnections);
         while (!token.IsCancellationRequested)
         {
-            _ = ConnectClient(await socket.AcceptAsync(), token);
+            _ = ConnectClient(await socket.AcceptAsync(token), token);
         }
     }
 
@@ -56,3 +57,4 @@ public class AsyncTcpListener(int port) : IDisposable
         }
     }
 }
+#endif

@@ -5,11 +5,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Synapse.Networking.Models;
+#if NET
+using System.Buffers;
+#endif
 
 namespace Synapse.Networking;
 
 public abstract class AsyncTcpClient : IDisposable
 {
+    public const int MAXIMUM_MESSAGE_LENGTH = 4096;
+
     private readonly TaskCompletionSource<object?> _closed = new();
     private bool _disposed;
     private bool _active;
@@ -24,7 +29,7 @@ public abstract class AsyncTcpClient : IDisposable
     public abstract Socket Socket { get; }
 
     [PublicAPI]
-    public Stream? Stream { get; protected set; }
+    public NetworkStream? Stream { get; protected set; }
 
     protected virtual CancellationTokenSource Cts { get; } = new();
 
@@ -72,6 +77,20 @@ public abstract class AsyncTcpClient : IDisposable
         _disposed = true;
     }
 
+#if NET
+    public async Task Send(ReadOnlySequence<byte> data, CancellationToken cancellationToken = default)
+    {
+        if (!IsConnected)
+        {
+            throw new InvalidOperationException("Could not send packet, not connected.");
+        }
+
+        foreach (ReadOnlyMemory<byte> memory in data)
+        {
+            await Stream!.WriteAsync(memory, cancellationToken);
+        }
+    }
+#else
     public async Task Send(byte[] data, CancellationToken cancellationToken = default)
     {
         if (!IsConnected)
@@ -81,6 +100,7 @@ public abstract class AsyncTcpClient : IDisposable
 
         await Stream!.WriteAsync(data, 0, data.Length, cancellationToken);
     }
+#endif
 
     public async Task Disconnect(DisconnectCode? notifyCode)
     {
@@ -92,9 +112,13 @@ public abstract class AsyncTcpClient : IDisposable
             using PacketBuilder packetBuilder = new((byte)ServerOpcode.Disconnect);
             packetBuilder.Write((byte)notifyCode.Value);
             CancellationTokenSource cts = new();
-            _ = Send(packetBuilder.ToArray(), cts.Token);
+            _ = Send(packetBuilder.ToBytes(), cts.Token);
             await Task.WhenAny(_closed.Task, Task.Delay(1000, cts.Token));
+#if NET
+            await cts.CancelAsync();
+#else
             cts.Cancel();
+#endif
         }
 
         Dispose();
@@ -119,7 +143,11 @@ public abstract class AsyncTcpClient : IDisposable
             {
                 try
                 {
+#if NET
+                    int readLength = await Stream.ReadAsync(lengthBuffer, token);
+#else
                     int readLength = await Stream.ReadAsync(lengthBuffer, 0, lengthBuffer.Length, token);
+#endif
                     token.ThrowIfCancellationRequested();
                     if (readLength != lengthBuffer.Length)
                     {
@@ -127,11 +155,27 @@ public abstract class AsyncTcpClient : IDisposable
                     }
 
                     ushort messageLength = BitConverter.ToUInt16(lengthBuffer, 0);
+                    switch (messageLength)
+                    {
+                        case > MAXIMUM_MESSAGE_LENGTH:
+                            throw new AsyncTcpMessageTooLongException(messageLength);
+                        case 0:
+                            throw new AsyncTcpMessageZeroLengthException();
+                    }
+
+#if NET
+                    byte[] messageBuffer = ArrayPool<byte>.Shared.Rent(messageLength);
+#else
                     byte[] messageBuffer = new byte[messageLength];
+#endif
                     int offset = 0;
                     while (offset < messageLength)
                     {
+#if NET
+                        int bytesRead = await Stream.ReadAsync(messageBuffer.AsMemory(offset, messageLength - offset), token);
+#else
                         int bytesRead = await Stream.ReadAsync(messageBuffer, offset, messageLength - offset, token);
+#endif
                         token.ThrowIfCancellationRequested();
                         if (bytesRead == 0)
                         {
@@ -144,6 +188,10 @@ public abstract class AsyncTcpClient : IDisposable
                     _ = ProcessPacket(ReceivedCallback, messageBuffer, token);
                 }
                 catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (AsyncTcpMessageException)
                 {
                     throw;
                 }
@@ -173,5 +221,9 @@ public abstract class AsyncTcpClient : IDisposable
         {
             SendMessage(new AsyncTcpMessageEventArgs(Networking.Message.PacketException, e));
         }
+
+#if NET
+        ArrayPool<byte>.Shared.Return(data);
+#endif
     }
 }

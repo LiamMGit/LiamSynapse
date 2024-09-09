@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Buffers;
+using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Synapse.Networking;
@@ -127,12 +128,12 @@ public class Client
         return Username;
     }
 
-    public async Task Send(byte[] data, CancellationToken cancellationToken = default)
+    public async Task Send(ReadOnlySequence<byte> data, CancellationToken cancellationToken = default)
     {
         if (_client is not { IsConnected: true })
         {
             _log.LogWarning("[{Client}] Client not connected! Delaying sending packet", this);
-            _queuedPackets.Add(data);
+            _queuedPackets.Add(data.ToArray());
             return;
         }
 
@@ -143,28 +144,28 @@ public class Client
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await Send(packetBuilder.ToArray());
+        await Send(packetBuilder.ToBytes());
     }
 
     public async Task Send(ServerOpcode opcode, int value)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await Send(packetBuilder.ToArray());
+        await Send(packetBuilder.ToBytes());
     }
 
     public async Task Send(ServerOpcode opcode, float value)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await Send(packetBuilder.ToArray());
+        await Send(packetBuilder.ToBytes());
     }
 
     public async Task Send(ServerOpcode opcode, string value)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await Send(packetBuilder.ToArray());
+        await Send(packetBuilder.ToBytes());
     }
 
     internal Task Disconnect(DisconnectCode code, Exception? exception = null, bool notify = true)
@@ -262,13 +263,13 @@ public class Client
             packetBuilder.Write("token");
             packetBuilder.Write("1.29.1");
             packetBuilder.Write(_listingService.Listing.Guid);
-            await _client.Send(packetBuilder.ToArray(), cancelToken);
+            await _client.Send(packetBuilder.ToBytes(), cancelToken);
 
             byte[][] queued = _queuedPackets.ToArray();
             _queuedPackets.Clear();
             foreach (byte[] data in queued)
             {
-                _ = _client.Send(data, cancelToken);
+                _ = _client.Send(new ReadOnlySequence<byte>(data), cancelToken);
             }
 
             _ = _timeSyncManager.StartSync();
@@ -281,6 +282,11 @@ public class Client
 
     private void OnMessageReceived(object? _, AsyncTcpMessageEventArgs args)
     {
+        if (args.Exception != null)
+        {
+            _log.LogError(args.Exception, "{Message}", args.Message);
+        }
+
         switch (args.Message)
         {
             case Message.PacketException:
