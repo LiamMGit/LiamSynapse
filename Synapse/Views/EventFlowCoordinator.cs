@@ -104,28 +104,31 @@ internal class EventFlowCoordinator : FlowCoordinator
             {
                 if (_dirtyListing)
                 {
-                    RequiredMods? versionMods =
-                        _listing.RequiredMods.FirstOrDefault(n => n.GameVersion.MatchesGameVersion());
-                    if (versionMods == null)
+                    if (!_listing.GameVersion.MatchesGameVersion())
                     {
                         SetTitle(null);
                         showBackButton = false;
                         _simpleDialogPromptViewController.Init(
                             "Error",
-                            $"{_listing.Title} only allows versions {string.Join(", ", _listing.RequiredMods.Select(n => n.GameVersion))}",
+                            $"{_listing.Title} only allows versions {_listing.GameVersion.Replace(",", ", ")}",
                             "Ok",
                             _ => { Finished?.Invoke(this); });
                         ProvideInitialViewControllers(_simpleDialogPromptViewController);
                         return;
                     }
 
-                    List<ModInfo>? modsToDownload = _modsViewController.Init(versionMods.Mods);
-                    if (modsToDownload != null)
+                    RequiredMods? versionMods =
+                        _listing.RequiredMods.FirstOrDefault(n => n.GameVersion.MatchesGameVersion());
+                    if (versionMods != null)
                     {
-                        _modsDownloadingViewController.Init(modsToDownload);
-                        _modsViewController.Finished += OnAcceptModsDownload;
-                        ProvideInitialViewControllers(_modsViewController);
-                        return;
+                        List<ModInfo>? modsToDownload = _modsViewController.Init(versionMods.Mods);
+                        if (modsToDownload != null)
+                        {
+                            _modsDownloadingViewController.Init(modsToDownload);
+                            _modsViewController.Finished += OnAcceptModsDownload;
+                            ProvideInitialViewControllers(_modsViewController);
+                            return;
+                        }
                     }
                 }
 

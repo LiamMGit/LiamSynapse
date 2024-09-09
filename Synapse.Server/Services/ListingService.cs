@@ -9,6 +9,8 @@ public interface IListingService
 {
     public Listing Listing { get; }
 
+    public string[] GameVersion { get; }
+
     public Task Refresh();
 }
 
@@ -39,6 +41,8 @@ public class ListingService : IListingService
 
     public Listing Listing { get; private set; } = new();
 
+    public string[] GameVersion { get; private set; } = [];
+
     public async Task Refresh()
     {
         if (_refreshing)
@@ -53,6 +57,7 @@ public class ListingService : IListingService
             Listing listing = await _httpFactory.CreateClient("listing").GetFromJsonAsync<Listing>(_uri) ??
                               throw new InvalidOperationException("Deserialize returned null");
             Listing = listing;
+            GameVersion = listing.GameVersion.Split(',');
         }
         catch (Exception e)
         {

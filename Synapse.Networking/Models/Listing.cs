@@ -17,6 +17,8 @@ public record Listing
 
     public string BannerColor { get; init; } = string.Empty;
 
+    public string GameVersion { get; init; } = string.Empty;
+
     public DateTime Time { get; init; }
 
     public List<BundleInfo> Bundles { get; init; } = [];

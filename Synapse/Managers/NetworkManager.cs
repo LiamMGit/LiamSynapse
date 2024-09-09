@@ -10,9 +10,6 @@ using SiraUtil.Logging;
 using Synapse.Extras;
 using Synapse.Networking;
 using Synapse.Networking.Models;
-#if !V1_29_1
-using System.Threading;
-#endif
 
 namespace Synapse.Managers;
 
@@ -244,6 +241,7 @@ internal class NetworkManager : IDisposable
             packetBuilder.Write(authToken.userName);
             packetBuilder.Write((byte)authToken.platform);
             packetBuilder.Write(authToken.sessionToken);
+            packetBuilder.Write(Plugin.GameVersion);
             packetBuilder.Write(
                 _listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded."));
             await _client.Send(packetBuilder.ToArray(), cancelToken);

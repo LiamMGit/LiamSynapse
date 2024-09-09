@@ -15,7 +15,8 @@ public enum DisconnectCode
     Unauthenticated,
     Banned,
     NotWhitelisted,
-    ListingMismatch
+    ListingMismatch,
+    InvalidGameVersion
 }
 
 public static class DisconnectCodeExtensions
@@ -36,6 +37,7 @@ public static class DisconnectCodeExtensions
             DisconnectCode.Banned => "Banned",
             DisconnectCode.NotWhitelisted => "Not whitelisted",
             DisconnectCode.ListingMismatch => "Listing mismatch, try rejoining",
+            DisconnectCode.InvalidGameVersion => "Unsupported game version",
             _ => throw new ArgumentOutOfRangeException(nameof(code))
         };
     }

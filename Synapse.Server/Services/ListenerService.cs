@@ -259,7 +259,7 @@ public class ListenerService : IListenerService
         }
 
         Clients.TryAdd(client.Id, client);
-        _log.LogInformation("{Client} connected", client);
+        _log.LogInformation("{Client} ({GameVersion}) connected", client, client.GameVersion);
 
         ClientConnected?.Invoke(client);
     }

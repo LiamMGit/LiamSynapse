@@ -6,18 +6,11 @@ using System.Threading.Tasks;
 
 namespace Synapse.Networking;
 
-public class AsyncTcpListener : IDisposable
+public class AsyncTcpListener(int port) : IDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
-    private readonly int _port;
-
     private bool _active;
-
-    public AsyncTcpListener(int port)
-    {
-        _port = port;
-    }
 
     public Func<AsyncTcpServerClient, CancellationToken, Task>? ClientConnectedCallback { get; set; }
 
@@ -37,7 +30,7 @@ public class AsyncTcpListener : IDisposable
         _active = true;
         CancellationToken token = _cancellationTokenSource.Token;
         token.ThrowIfCancellationRequested();
-        IPEndPoint endPoint = new(IPAddress.Any, _port);
+        IPEndPoint endPoint = new(IPAddress.Any, port);
         using Socket socket = new(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         socket.Bind(endPoint);
         socket.Listen((int)SocketOptionName.MaxConnections);

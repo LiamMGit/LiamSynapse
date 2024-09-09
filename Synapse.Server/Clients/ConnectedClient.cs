@@ -53,6 +53,8 @@ public class ConnectedClient(
 
     public string Username { get; private set; } = "N/A";
 
+    public string GameVersion { get; private set; } = "N/A";
+
     public async Task RunAsync()
     {
         log.LogInformation("Client connecting from [{Address}]", Address);
@@ -232,6 +234,7 @@ public class ConnectedClient(
                 string username = reader.ReadString();
                 Platform platform = (Platform)reader.ReadByte();
                 string token = reader.ReadString();
+                string gameVersion = reader.ReadString();
                 string listing = reader.ReadString();
 
                 // we'll just make sure nothing is too sus
@@ -240,15 +243,22 @@ public class ConnectedClient(
                     string.IsNullOrWhiteSpace(username) ||
                     platform > Platform.Steam ||
                     string.IsNullOrWhiteSpace(token) ||
+                    string.IsNullOrWhiteSpace(gameVersion) ||
                     string.IsNullOrWhiteSpace(listing))
                 {
                     await Disconnect(DisconnectCode.Unauthenticated);
                     break;
                 }
 
-                if (platform != Platform.Test && listingService.Listing.Guid != listing)
+                if (listingService.Listing.Guid != listing)
                 {
                     await Disconnect(DisconnectCode.ListingMismatch);
+                    break;
+                }
+
+                if (listingService.GameVersion.All(n => n != gameVersion))
+                {
+                    await Disconnect(DisconnectCode.InvalidGameVersion);
                     break;
                 }
 
@@ -261,6 +271,7 @@ public class ConnectedClient(
                 _authentication = Authentication.Authenticated;
                 Id = $"{id}_{platform}";
                 Username = username;
+                GameVersion = gameVersion;
 
                 if (!blacklistService.Whitelist?.ContainsKey(Id) ?? false)
                 {
