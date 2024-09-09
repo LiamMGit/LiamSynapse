@@ -21,6 +21,8 @@ internal class ListingManager : IInitializable
     private string? _bannerUrl;
     private string? _lastListing;
 
+    private Task? _initializeTask;
+
     [UsedImplicitly]
     private ListingManager(SiraLog log, Config config, CancellationTokenManager cancellationTokenManager)
     {
@@ -67,7 +69,13 @@ internal class ListingManager : IInitializable
 
     public void Initialize()
     {
-        _ = InitializeAsync();
+        if ((!_initializeTask?.IsCompleted ?? false) ||
+            Listing != null)
+        {
+            return;
+        }
+
+        _initializeTask = InitializeAsync(_cancellationTokenManager.Reset());
     }
 
     public void Clear()
@@ -104,11 +112,10 @@ internal class ListingManager : IInitializable
         }
     }
 
-    private async Task InitializeAsync()
+    private async Task InitializeAsync(CancellationToken token)
     {
         try
         {
-            CancellationToken token = _cancellationTokenManager.Reset();
             string url = _config.Url;
             _log.Debug($"Checking [{url}] for active listing");
             UnityWebRequest www = UnityWebRequest.Get(url);
@@ -137,6 +144,7 @@ internal class ListingManager : IInitializable
         }
         catch (OperationCanceledException)
         {
+            throw;
         }
         catch (Exception e)
         {
@@ -144,6 +152,7 @@ internal class ListingManager : IInitializable
             _lastListing = null;
             ListingFoundBacking?.Invoke(null);
             BannerImageCreatedBacking?.Invoke(null);
+            throw;
         }
     }
 }
