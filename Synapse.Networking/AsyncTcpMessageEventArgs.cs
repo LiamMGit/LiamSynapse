@@ -7,7 +7,6 @@ public enum Message
     Connecting,
     ConnectionFailed,
     ConnectionClosed,
-    PacketDelayed,
     PacketException
 }
 

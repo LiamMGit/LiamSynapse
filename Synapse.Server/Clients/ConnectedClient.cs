@@ -68,9 +68,9 @@ public class ConnectedClient(
         catch (OperationCanceledException)
         {
         }
-        catch (AsyncTcpSocketException e)
+        catch (AsyncTcpSocketException)
         {
-            await Disconnect(DisconnectCode.ConnectionClosedUnexpectedly, e, false);
+            await Disconnect(DisconnectCode.ConnectionClosedUnexpectedly, null, false);
         }
         catch (Exception e)
         {

@@ -295,10 +295,6 @@ internal class NetworkManager : IDisposable
                 Closed?.Invoke();
                 break;
 
-            case Message.PacketDelayed:
-                _log.Error("Client not connected! Delaying sending packet");
-                break;
-
             case Message.PacketException:
                 _log.Error("Exception while processing packet");
                 if (args.Exception != null)

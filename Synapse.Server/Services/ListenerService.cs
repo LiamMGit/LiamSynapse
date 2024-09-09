@@ -176,11 +176,12 @@ public class ListenerService : IListenerService
         ConnectedClient client = ActivatorUtilities.CreateInstance<ConnectedClient>(_provider, tcpClient);
 
         string ip = client.Address.ToString();
-        if (RateLimiter.RateLimit(this, 4, 10000, ip))
+
+        /*if (RateLimiter.RateLimit(this, 4, 10000, ip))
         {
             await client.Disconnect(DisconnectCode.RateLimited);
             return;
-        }
+        }*/
 
         if (CheckMaxConnection(client))
         {

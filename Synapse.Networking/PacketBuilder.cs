@@ -20,11 +20,8 @@ public sealed class PacketBuilder : IDisposable
 
     public void Dispose()
     {
-        lock (_lock)
-        {
-            _stream.Dispose();
-            _writer.Dispose();
-        }
+        _stream.Dispose();
+        _writer.Dispose();
     }
 
     public byte[] ToArray()

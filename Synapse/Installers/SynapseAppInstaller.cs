@@ -35,10 +35,5 @@ internal class SynapseAppInstaller : Installer
         Container.BindInterfacesAndSelfTo<TimeSyncManager>().AsSingle();
 
         Container.BindInterfacesAndSelfTo<NoEnergyModifier>().AsSingle();
-
-#if DEBUG
-        Container.BindInterfacesTo<TestScoreManager>().AsSingle();
-        Container.BindInterfacesTo<TestMessageManager>().AsSingle();
-#endif
     }
 }

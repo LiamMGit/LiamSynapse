@@ -90,7 +90,7 @@ internal class TimeSyncManager : IDisposable
         _pingTask?.SetResult(null);
         _pingTask = new TaskCompletionSource<object?>();
         _ = _networkManager.Send(ServerOpcode.Ping, ElapsedSeconds);
-        _ = Timeout(_cancelPingTimeout.Token, MAX_TIMEOUT);
+        _ = Timeout(MAX_TIMEOUT, _cancelPingTimeout.Token);
         await _pingTask.Task;
     }
 
@@ -108,11 +108,11 @@ internal class TimeSyncManager : IDisposable
 
         if (success)
         {
-            _ = PingLoop(_cancellationTokenManager.Reset(), 10000);
+            _ = PingLoop(10000, _cancellationTokenManager.Reset());
         }
     }
 
-    private async Task PingLoop(CancellationToken cancellationToken, int millisecondLoop)
+    private async Task PingLoop(int millisecondLoop, CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -128,7 +128,7 @@ internal class TimeSyncManager : IDisposable
         UpdateLatency(roundTrip * 0.5f);
     }
 
-    private async Task Timeout(CancellationToken cancellationToken, int milliseconds)
+    private async Task Timeout(int milliseconds, CancellationToken cancellationToken)
     {
         await Task.Delay(milliseconds, cancellationToken);
         UpdateLatency(milliseconds * 0.001f);
