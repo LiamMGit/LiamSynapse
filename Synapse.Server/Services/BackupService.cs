@@ -61,25 +61,25 @@ public class BackupService : IBackupService
 
     public async Task LoadBackups()
     {
-        string[] files = Directory.EnumerateFiles(_directory, "scores??.json").ToArray();
-
-        List<Backup> backups = [];
-        for (int i = 0; i < _mapService.MapCount; i++)
-        {
-            string? file = files.FirstOrDefault(n => n.EndsWith($"scores{i:D2}.json"));
-            if (file == null)
-            {
-                break;
-            }
-
-            using StreamReader reader = new(file);
-            Backup backup = await JsonSerializer.DeserializeAsync<Backup>(reader.BaseStream, JsonUtils.Settings);
-            _log.LogInformation("Loaded score backup [{File}]", Path.GetFileName(file));
-            backups.Add(backup);
-        }
-
         try
         {
+            string[] files = Directory.EnumerateFiles(_directory, "scores??.json").ToArray();
+
+            List<Backup> backups = [];
+            for (int i = 0; i < _mapService.MapCount; i++)
+            {
+                string? file = files.FirstOrDefault(n => n.EndsWith($"scores{i:D2}.json"));
+                if (file == null)
+                {
+                    break;
+                }
+
+                using StreamReader reader = new(file);
+                Backup backup = await JsonSerializer.DeserializeAsync<Backup>(reader.BaseStream, JsonUtils.Settings);
+                _log.LogInformation("Loaded score backup [{File}]", Path.GetFileName(file));
+                backups.Add(backup);
+            }
+
             _backups = new ConcurrentList<Backup>(backups);
             _mapService.Index = backups.Count(n => n.ActivePlayers != null);
             InternalBackupsLoaded?.Invoke(_backups);
@@ -106,8 +106,8 @@ public class BackupService : IBackupService
             Backup backup = new()
             {
                 Index = index,
-                Scores = scores,
-                ActivePlayers = activePlayers ?? (backupExists ? _backups[index].ActivePlayers : null)
+                Scores = scores.ToArray(),
+                ActivePlayers = activePlayers?.ToArray() ?? (backupExists ? _backups[index].ActivePlayers : null)
             };
 
             if (backupExists)

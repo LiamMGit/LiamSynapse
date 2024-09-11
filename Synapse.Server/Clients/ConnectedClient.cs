@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Buffers;
+using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Synapse.Networking;
@@ -30,7 +31,7 @@ public class ConnectedClient(
 
     public event Action<ConnectedClient, string>? CommandReceived;
 
-    public event Action<ConnectedClient>? Connected;
+    public event Action<ConnectedClient>? Authenticated;
 
     public event Action<ConnectedClient, string>? Disconnected;
 
@@ -101,6 +102,11 @@ public class ConnectedClient(
         return false;
     }
 
+    private async Task Send(ReadOnlySequence<byte> data, CancellationToken token = default)
+    {
+        await client.Send(data, token);
+    }
+
     public async Task SendChatMessage(ChatMessage message)
     {
         if (!Chatter)
@@ -114,7 +120,7 @@ public class ConnectedClient(
     public async Task SendOpcode(ClientOpcode opcode)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
-        await client.Send(packetBuilder.ToBytes());
+        await Send(packetBuilder.ToBytes());
     }
 
     public Task SendRefusal(string reason) => SendRefusal(reason, null);
@@ -128,7 +134,7 @@ public class ConnectedClient(
 
         using PacketBuilder packetBuilder = new((byte)ClientOpcode.RefusedPacket);
         packetBuilder.Write(reason);
-        await client.Send(packetBuilder.ToBytes());
+        await Send(packetBuilder.ToBytes());
     }
 
     public async Task SendServerMessage(string message, params object?[] args)
@@ -149,7 +155,7 @@ public class ConnectedClient(
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
-        await client.Send(packetBuilder.ToBytes());
+        await Send(packetBuilder.ToBytes());
     }
 
     public override string ToString()
@@ -287,7 +293,7 @@ public class ConnectedClient(
 
                 await SendOpcode(ClientOpcode.Authenticated);
 
-                Connected?.Invoke(this);
+                Authenticated?.Invoke(this);
 
                 break;
 
@@ -304,7 +310,7 @@ public class ConnectedClient(
                         using PacketBuilder packetBuilder = new((byte)ClientOpcode.Ping);
                         packetBuilder.Write(clientTime);
                         packetBuilder.Write(timeService.Time);
-                        await client.Send(packetBuilder.ToBytes(), cancelToken);
+                        await Send(packetBuilder.ToBytes(), cancelToken);
 
                         break;
                     }

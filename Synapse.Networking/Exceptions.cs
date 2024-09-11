@@ -14,6 +14,8 @@ public class AsyncTcpFailedAfterRetriesException(int retries, Exception e)
 
 public class AsyncTcpSocketException(Exception e) : Exception("Connection closed.", e);
 
+public class AsyncTcpMessageTimeoutException() : Exception("Packet took too long to process.");
+
 public class AsyncTcpMessageException(string message) : Exception(message);
 
 public class AsyncTcpMessageTooLongException(int messageLength) : AsyncTcpMessageException($"Packet exceeded maximum length. ({messageLength})");

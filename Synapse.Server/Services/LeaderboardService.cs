@@ -309,13 +309,10 @@ public class LeaderboardService : ILeaderboardService
             else if (_mapService.Maps[index].Ruleset?.AllowResubmission ?? false)
             {
                 ConcurrentList<SavedScore> sortedElim = _sortedAllScores[index];
-                int prevIndex = sortedElim.FindIndex(n => n.Id == client.Id);
-                SavedScore prevScore = sortedElim[prevIndex];
-                if (prevScore.Score <= score)
+                if (sortedElim.Remove(n => n.Id == client.Id && n.Score <= score))
                 {
-                    sortedElim.RemoveAt(prevIndex);
                     ConcurrentList<SavedScore> sorted = _sortedScores[index];
-                    sorted.RemoveAt(sorted.FindIndex(n => n.Id == client.Id));
+                    sorted.Remove(n => n.Id == client.Id);
                     _log.LogInformation(
                         "[{Client}] rescored [{Score} ({Percentage})] on [{Map}]",
                         client,

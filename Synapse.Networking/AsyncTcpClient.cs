@@ -15,6 +15,8 @@ public abstract class AsyncTcpClient : IDisposable
 {
     public const int MAXIMUM_MESSAGE_LENGTH = 4096;
 
+    public const int PACKET_TIMEOUT = 2000;
+
     private readonly TaskCompletionSource<object?> _closed = new();
     private bool _disposed;
     private bool _active;
@@ -85,10 +87,13 @@ public abstract class AsyncTcpClient : IDisposable
             throw new InvalidOperationException("Could not send packet, not connected.");
         }
 
-        foreach (ReadOnlyMemory<byte> memory in data)
+        await Stream!.WriteAsync(data.ToArray(), cancellationToken);
+
+        // for some reason its sending malformed data when using memory directly, we have to allocate unfortunately
+        /*foreach (ReadOnlyMemory<byte> memory in data)
         {
             await Stream!.WriteAsync(memory, cancellationToken);
-        }
+        }*/
     }
 #else
     public async Task Send(byte[] data, CancellationToken cancellationToken = default)
@@ -113,7 +118,7 @@ public abstract class AsyncTcpClient : IDisposable
             packetBuilder.Write((byte)notifyCode.Value);
             CancellationTokenSource cts = new();
             _ = Send(packetBuilder.ToBytes(), cts.Token);
-            await Task.WhenAny(_closed.Task, Task.Delay(1000, cts.Token));
+            await Task.WhenAny(_closed.Task, Task.Delay(PACKET_TIMEOUT, cts.Token));
 #if NET
             await cts.CancelAsync();
 #else
@@ -185,7 +190,7 @@ public abstract class AsyncTcpClient : IDisposable
                         offset += bytesRead;
                     }
 
-                    _ = ProcessPacket(ReceivedCallback, messageBuffer, token);
+                    _ = HandleMessage(ReceivedCallback, messageBuffer, token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -208,14 +213,25 @@ public abstract class AsyncTcpClient : IDisposable
         Message?.Invoke(this, args);
     }
 
-    private async Task ProcessPacket(Func<byte, BinaryReader, CancellationToken, Task> func, byte[] data, CancellationToken token)
+    private static async Task ProcessPacket(Func<byte, BinaryReader, CancellationToken, Task> func, byte[] data, CancellationToken token)
     {
+        using MemoryStream stream = new(data);
+        using BinaryReader reader = new(stream);
+        byte opcode = reader.ReadByte();
+        await func(opcode, reader, token);
+    }
+
+    private async Task HandleMessage(Func<byte, BinaryReader, CancellationToken, Task> func, byte[] data, CancellationToken token)
+    {
+        CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(token);
         try
         {
-            using MemoryStream stream = new(data);
-            using BinaryReader reader = new(stream);
-            byte opcode = reader.ReadByte();
-            await func(opcode, reader, token);
+            Task process = ProcessPacket(func, data, cts.Token);
+            Task timeout = Task.Delay(PACKET_TIMEOUT, cts.Token);
+            if (await Task.WhenAny(process, timeout) == timeout)
+            {
+                throw new AsyncTcpMessageTimeoutException();
+            }
         }
         catch (Exception e)
         {
@@ -223,7 +239,10 @@ public abstract class AsyncTcpClient : IDisposable
         }
 
 #if NET
+        await cts.CancelAsync();
         ArrayPool<byte>.Shared.Return(data);
+#else
+        cts.Cancel();
 #endif
     }
 }

@@ -72,29 +72,27 @@ public class ClientService
 
     public async Task Score(CancellationToken token)
     {
-        List<Task> tasks = [];
-        foreach (Client client in _clients)
-        {
-            if (client.Status.Stage is PlayStatus playStatus)
-            {
-                ScoreSubmission scoreSubmission = new()
-                {
-                    Index = playStatus.Index,
-                    Score = _random.Next(99999)
-                };
-                string scoreJson = JsonSerializer.Serialize(scoreSubmission, JsonSettings.Settings);
-                tasks.Add(
-                    await Task
-                        .Delay(_random.Next(10, 100), token)
-                        .ContinueWith(_ => client.Send(ServerOpcode.ScoreSubmission, scoreJson), token));
-            }
-            else
-            {
-                _log.LogError("[{Client}] Can not submit score, no map active", client);
-            }
-        }
-
+        Task[] tasks = _clients.Select(client => CreateAndSubmitScore(client, token)).ToArray();
         await Task.WhenAll(tasks);
+    }
+
+    private async Task CreateAndSubmitScore(Client client, CancellationToken token)
+    {
+        if (client.Status.Stage is PlayStatus playStatus)
+        {
+            ScoreSubmission scoreSubmission = new()
+            {
+                Index = playStatus.Index,
+                Score = _random.Next(99999)
+            };
+            string scoreJson = JsonSerializer.Serialize(scoreSubmission, JsonSettings.Settings);
+            await Task.Delay(_random.Next(10, 100), token);
+            await client.Send(ServerOpcode.ScoreSubmission, scoreJson);
+        }
+        else
+        {
+            _log.LogError("[{Client}] Can not submit score, no map active", client);
+        }
     }
 
     public void SendRandomMessages()

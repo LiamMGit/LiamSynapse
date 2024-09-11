@@ -194,7 +194,7 @@ public class ListenerService : IListenerService
             return;
         }
 
-        client.Connected += OnJoined;
+        client.Authenticated += OnJoined;
         client.Disconnected += OnDisconnected;
         client.ChatJoined += OnChatJoined;
         client.ChatLeft += OnChatLeft;
@@ -203,7 +203,7 @@ public class ListenerService : IListenerService
         client.ScoreSubmissionReceived += OnScoreSubmissionReceived;
         client.LeaderboardRequested += OnLeaderboardRequested;
         await client.RunAsync();
-        client.Connected -= OnJoined;
+        client.Authenticated -= OnJoined;
         client.Disconnected -= OnDisconnected;
         client.ChatJoined -= OnChatJoined;
         client.ChatLeft -= OnChatLeft;

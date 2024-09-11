@@ -54,7 +54,7 @@ public sealed class PacketBuilder : IDisposable
         _stream.Position = 0;
         Span<byte> span = _stream.GetSpan(2);
         span[0] = (byte)ushortLength;
-        span[1] = (byte)((uint)ushortLength >> 8);
+        span[1] = (byte)(ushortLength >> 8);
         return _stream.GetReadOnlySequence();
     }
 #else
@@ -63,7 +63,7 @@ public sealed class PacketBuilder : IDisposable
         byte[] bytes = _stream.GetBuffer();
         ushort ushortLength = checked((ushort)(bytes.Length - 2));
         bytes[0] = (byte)ushortLength;
-        bytes[1] = (byte)((uint)ushortLength >> 8);
+        bytes[1] = (byte)(ushortLength >> 8);
         return bytes;
     }
 #endif

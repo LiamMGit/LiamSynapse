@@ -99,6 +99,26 @@ public sealed class ConcurrentList<T> : IList<T>, IReadOnlyList<T>, IDisposable
         Write(() => _list.RemoveAt(index));
     }
 
+    public bool Remove(Predicate<T> predicate)
+    {
+        return Write(
+            () =>
+            {
+                for (int i = 0; i < _list.Count; i++)
+                {
+                    if (!predicate(_list[i]))
+                    {
+                        continue;
+                    }
+
+                    _list.RemoveAt(i);
+                    return true;
+                }
+
+                return false;
+            });
+    }
+
     private void Dispose(bool disposing)
     {
         if (disposing)

@@ -11,47 +11,43 @@ public static class RateLimiter
     public static bool RateLimit(object id, int max, int milliseconds, [CallerMemberName] string memberName = "")
     {
         string index = $"{id.GetHashCode()}/{memberName}";
-        if (_rateLimit.TryGetValue(index, out int count))
-        {
-            count++;
-            if (count > max)
-            {
-                return true;
-            }
 
-            _rateLimit[index] = count;
-            return false;
+        int count = _rateLimit.AddOrUpdate(index, 1, (_, n) => n + 1);
+        if (count > max)
+        {
+            return true;
         }
 
-        _rateLimit[index] = 1;
         _ = Task
-            .Delay(TimeSpan.FromMilliseconds(milliseconds))
+            .Delay(milliseconds)
             .ContinueWith(_ => { _rateLimit.TryRemove(index, out int _); });
         return false;
     }
 
     public static void Timeout(Action action, int milliseconds, [CallerMemberName] string memberName = "")
     {
-        string index = memberName;
-        if (_timeoutFinished.ContainsKey(index))
+        if (_timeoutFinished.AddOrUpdate(memberName, false, (_, _) => true))
         {
-            _timeoutFinished[index] = true;
             return;
         }
 
         action();
-        _timeoutFinished[index] = false;
-        _ = Task
-            .Delay(TimeSpan.FromMilliseconds(milliseconds))
-            .ContinueWith(
-                _ =>
-                {
-                    if (_timeoutFinished[index])
-                    {
-                        action();
-                    }
+        _ = TimeoutTask(memberName, action, milliseconds);
+    }
 
-                    _timeoutFinished.TryRemove(index, out bool _);
-                });
+    private static async Task TimeoutTask(string index, Action action, int milliseconds)
+    {
+        while (true)
+        {
+            await Task.Delay(milliseconds);
+            if (_timeoutFinished.TryUpdate(index, false, true))
+            {
+                action();
+                continue;
+            }
+
+            _timeoutFinished.TryRemove(index, out bool _);
+            break;
+        }
     }
 }

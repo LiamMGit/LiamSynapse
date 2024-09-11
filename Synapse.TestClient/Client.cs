@@ -284,15 +284,7 @@ public class Client
     {
         if (args.Exception != null)
         {
-            _log.LogError(args.Exception, "{Message}", args.Message);
-        }
-
-        switch (args.Message)
-        {
-            case Message.PacketException:
-                _log.LogError(args.Exception, "Exception while processing packet");
-
-                break;
+            _log.LogError(args.Exception, "[{Client}] {Message}", this, args.Message);
         }
     }
 
