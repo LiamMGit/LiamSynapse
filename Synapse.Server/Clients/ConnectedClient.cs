@@ -369,6 +369,10 @@ public class ConnectedClient(
                         if (score != null)
                         {
                             ScoreSubmissionReceived?.Invoke(this, score);
+                            using PacketBuilder packetBuilder = new((byte)ClientOpcode.AcknowledgeScore);
+                            packetBuilder.Write((byte)score.Index);
+                            packetBuilder.Write(score.Score);
+                            await Send(packetBuilder.ToBytes(), cancelToken);
                         }
                         else
                         {

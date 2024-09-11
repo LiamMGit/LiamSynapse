@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HMUI;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
@@ -18,6 +19,9 @@ namespace Synapse.Views;
 
 internal class EventFlowCoordinator : FlowCoordinator
 {
+    private const int SCORE_SUBMISSION_INTERVAL = 2000;
+    private const int SCORE_SUBMISSION_ATTEMPTS = 4;
+
     private Config _config = null!;
     private CountdownManager _countdownManager = null!;
     private bool _dirtyListing;
@@ -325,7 +329,7 @@ internal class EventFlowCoordinator : FlowCoordinator
             ViewController.AnimationDirection.Horizontal,
             true);
 
-        SubmitScore(map.Index, levelCompletionResults.modifiedScore, ScorePercentageHelper.ScorePercentage);
+        _ = SubmitScore(map, levelCompletionResults.modifiedScore, ScorePercentageHelper.ScorePercentage);
     }
 
     private void HandleResultsViewControllerContinueButtonPressed(ResultsViewController viewController)
@@ -454,8 +458,9 @@ internal class EventFlowCoordinator : FlowCoordinator
         };
     }
 
-    private void SubmitScore(int index, int score, float percentage)
+    private async Task SubmitScore(DownloadedMap map, int score, float percentage)
     {
+        int index = map.Index;
         ScoreSubmission scoreSubmission = new()
         {
             Index = index,
@@ -463,9 +468,25 @@ internal class EventFlowCoordinator : FlowCoordinator
             Percentage = percentage
         };
         string scoreJson = JsonConvert.SerializeObject(scoreSubmission, JsonSettings.Settings);
-        _log.Warn(scoreJson);
-        _ = _networkManager.Send(ServerOpcode.ScoreSubmission, scoreJson);
         _leaderboardViewController.ChangeSelection(index);
+        int submissionTry = 0;
+        while (_networkManager.Running)
+        {
+            await _networkManager.Send(ServerOpcode.ScoreSubmission, scoreJson);
+            await Task.Delay(SCORE_SUBMISSION_INTERVAL);
+            if (++submissionTry >= SCORE_SUBMISSION_ATTEMPTS)
+            {
+                break;
+            }
+
+            if (_networkManager.AcknowledgedScores.TryGetValue(index, out int acknowledgedScore) &&
+                acknowledgedScore == score)
+            {
+                return;
+            }
+        }
+
+        _log.Error($"Failed to submit score for [{map.Map.Name}], attempted to submit [{submissionTry}] times");
     }
 
     internal class EventFlowCoordinatorFactory : IFactory<EventFlowCoordinator>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -82,6 +83,10 @@ internal class NetworkManager : IDisposable
     internal event Action<string>? UserBanned;
 
     internal Status Status { get; private set; } = new();
+
+    internal ConcurrentDictionary<int, int> AcknowledgedScores { get; } = new();
+
+    internal bool Running => _client != null;
 
     public void Dispose()
     {
@@ -435,6 +440,15 @@ internal class NetworkManager : IDisposable
             {
                 string message = reader.ReadString();
                 UserBanned?.Invoke(message);
+
+                break;
+            }
+
+            case ClientOpcode.AcknowledgeScore:
+            {
+                byte index = reader.ReadByte();
+                int score = reader.ReadInt32();
+                AcknowledgedScores[index] = score;
 
                 break;
             }

@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -120,6 +121,8 @@ public class Client
 
     internal Status Status { get; private set; } = new();
 
+    internal ConcurrentDictionary<int, int> AcknowledgedScores { get; } = new();
+
     public string Username { get; } = _adjectives[_random.Next(_adjectives.Length)] +
                                       _nouns[_random.Next(_nouns.Length)] + _random.Next(99);
 
@@ -185,8 +188,6 @@ public class Client
         AsyncTcpClient client = _client;
         _client = null;
 
-        _timeSyncManager.Dispose();
-
         await client.Disconnect(notifyCode);
     }
 
@@ -231,6 +232,7 @@ public class Client
             await Disconnect(DisconnectCode.UnexpectedException, e, false);
         }
 
+        _timeSyncManager.Dispose();
         client.Message -= OnMessageReceived;
         client.ConnectedCallback = null;
         client.ReceivedCallback = null;
@@ -242,6 +244,45 @@ public class Client
         {
             await Send(ServerOpcode.ChatMessage, _testMessages[_random.Next(_testMessages.Length)]);
             await Task.Delay(_random.Next(10000, 200000));
+        }
+    }
+
+    internal async Task CreateAndSubmitScore(CancellationToken token)
+    {
+        if (Status.Stage is PlayStatus playStatus)
+        {
+            int index = playStatus.Index;
+            int score = _random.Next(999999);
+            ScoreSubmission scoreSubmission = new()
+            {
+                Index = index,
+                Score = score,
+                Percentage = _random.Next(1)
+            };
+            string scoreJson = JsonSerializer.Serialize(scoreSubmission, JsonSettings.Settings);
+            await Task.Delay(_random.Next(10, 100), token);
+            int submissionTry = 0;
+            while (_client != null)
+            {
+                await Send(ServerOpcode.ScoreSubmission, scoreJson);
+                await Task.Delay(2000, token);
+                if (++submissionTry >= 4)
+                {
+                    break;
+                }
+
+                if (AcknowledgedScores.TryGetValue(index, out int acknowledgedScore) &&
+                    acknowledgedScore == score)
+                {
+                    return;
+                }
+            }
+
+            _log.LogError("[{Client}] Failed to submit score for [{Map}], attempted to submit [{Try}] times", this, index, submissionTry);
+        }
+        else
+        {
+            _log.LogError("[{Client}] Can not submit score, no map active", this);
         }
     }
 
@@ -337,6 +378,15 @@ public class Client
 
             case ClientOpcode.UserBanned:
             {
+                break;
+            }
+
+            case ClientOpcode.AcknowledgeScore:
+            {
+                byte index = reader.ReadByte();
+                int score = reader.ReadInt32();
+                AcknowledgedScores[index] = score;
+
                 break;
             }
 

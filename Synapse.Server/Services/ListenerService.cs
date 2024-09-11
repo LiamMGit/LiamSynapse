@@ -94,7 +94,7 @@ public class ListenerService : IListenerService
         {
             try
             {
-                action(client);
+                _ = action(client);
             }
             catch (Exception e)
             {
@@ -102,7 +102,7 @@ public class ListenerService : IListenerService
             }
         }
 
-        action(_serverClient);
+        _ = action(_serverClient);
     }
 
     public void BanIp(IClient client)

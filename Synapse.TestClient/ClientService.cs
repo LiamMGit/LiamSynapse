@@ -1,15 +1,11 @@
-﻿using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Synapse.Networking.Models;
-using Synapse.TestClient.Extras;
 
 namespace Synapse.TestClient;
 
 public class ClientService
 {
-    private static readonly Random _random = new();
-
     private readonly HashSet<Client> _clients = [];
 
     private readonly ILogger<ClientService> _log;
@@ -72,27 +68,8 @@ public class ClientService
 
     public async Task Score(CancellationToken token)
     {
-        Task[] tasks = _clients.Select(client => CreateAndSubmitScore(client, token)).ToArray();
+        Task[] tasks = _clients.Select(client => client.CreateAndSubmitScore(token)).ToArray();
         await Task.WhenAll(tasks);
-    }
-
-    private async Task CreateAndSubmitScore(Client client, CancellationToken token)
-    {
-        if (client.Status.Stage is PlayStatus playStatus)
-        {
-            ScoreSubmission scoreSubmission = new()
-            {
-                Index = playStatus.Index,
-                Score = _random.Next(99999)
-            };
-            string scoreJson = JsonSerializer.Serialize(scoreSubmission, JsonSettings.Settings);
-            await Task.Delay(_random.Next(10, 100), token);
-            await client.Send(ServerOpcode.ScoreSubmission, scoreJson);
-        }
-        else
-        {
-            _log.LogError("[{Client}] Can not submit score, no map active", client);
-        }
     }
 
     public void SendRandomMessages()

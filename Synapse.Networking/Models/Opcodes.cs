@@ -9,6 +9,7 @@ public enum ClientOpcode
     Status,
     ChatMessage,
     UserBanned,
+    AcknowledgeScore,
     LeaderboardScores,
     StopLevel
 }
