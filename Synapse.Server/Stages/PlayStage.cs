@@ -17,6 +17,7 @@ public class PlayStage : Stage
 {
     private readonly TaskCompletionSource _backupsLoaded = new();
     private readonly ILeaderboardService _leaderboardService;
+    private readonly ITournamentService _tournamentService;
     private readonly ILogger<PlayStage> _log;
     private readonly IMapService _mapService;
     private readonly IClient _serverClient;
@@ -33,6 +34,7 @@ public class PlayStage : Stage
         ITimeService timeService,
         IMapService mapService,
         ILeaderboardService leaderboardService,
+        ITournamentService tournamentService,
         IClient serverClient,
         IBackupService backupService)
     {
@@ -40,6 +42,7 @@ public class PlayStage : Stage
         _timeService = timeService;
         _mapService = mapService;
         _leaderboardService = leaderboardService;
+        _tournamentService = tournamentService;
         _serverClient = serverClient;
         backupService.BackupsLoaded += OnBackupsLoaded;
     }
@@ -47,19 +50,22 @@ public class PlayStage : Stage
     public override Status AdjustStatus(Status status, IClient client)
     {
         PlayStatus playStatus = (PlayStatus)status.Stage;
-        // ReSharper disable once InvertIf
-        if (_leaderboardService.TryGetScore(playStatus.Index, client, out SavedScore savedScore))
-        {
-            PlayerScore score = new()
-            {
-                Score = savedScore.Score,
-                Percentage = savedScore.Percentage
-            };
+        int index = playStatus.Index;
 
-            status = status with { Stage = playStatus with { PlayerScore = score } };
+        bool eliminated = _tournamentService.IsEliminated(index, client.Id);
+
+        if (!_leaderboardService.TryGetScore(index, client, out SavedScore savedScore))
+        {
+            return status with { Stage = playStatus with { Eliminated = eliminated } };
         }
 
-        return status;
+        PlayerScore score = new()
+        {
+            Score = savedScore.Score,
+            Percentage = savedScore.Percentage
+        };
+
+        return status with { Stage = playStatus with { PlayerScore = score, Eliminated = eliminated} };
     }
 
     public void AutoPlay(IClient client)

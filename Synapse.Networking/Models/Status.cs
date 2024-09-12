@@ -39,6 +39,8 @@ public record PlayStatus : IStageStatus
 
     public float StartTime { get; init; } = float.MinValue;
 
+    public bool Eliminated { get; init; }
+
     public PlayerScore? PlayerScore { get; init; }
 
     public Map Map { get; init; } = new();

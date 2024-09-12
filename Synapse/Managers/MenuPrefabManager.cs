@@ -20,15 +20,19 @@ internal class MenuPrefabManager : IDisposable
         (Path.GetDirectoryName(Application.streamingAssetsPath) ?? throw new InvalidOperationException()) +
         $"{Path.DirectorySeparatorChar}Synapse{Path.DirectorySeparatorChar}Bundles";
 
+    private static readonly int _eliminated = Animator.StringToHash("eliminated");
+
     private readonly CancellationTokenManager _cancellationTokenManager;
     private readonly IInstantiator _instantiator;
     private readonly ListingManager _listingManager;
+    private readonly NetworkManager _networkManager;
 
     private readonly SiraLog _log;
     private readonly MenuEnvironmentManager _menuEnvironmentManager;
     private readonly SongPreviewPlayer _songPreviewPlayer;
 
     private bool _active;
+    private bool _lastActive;
     private BundleInfo? _bundleInfo;
 
     private bool? _didLoadSucceed;
@@ -42,6 +46,7 @@ internal class MenuPrefabManager : IDisposable
         SiraLog log,
         IInstantiator instantiator,
         ListingManager listingManager,
+        NetworkManager networkManager,
         MenuEnvironmentManager menuEnvironmentManager,
         SongPreviewPlayer songPreviewPlayer,
         CancellationTokenManager cancellationTokenManager)
@@ -49,10 +54,12 @@ internal class MenuPrefabManager : IDisposable
         _log = log;
         _instantiator = instantiator;
         _listingManager = listingManager;
+        _networkManager = networkManager;
         _menuEnvironmentManager = menuEnvironmentManager;
         _songPreviewPlayer = songPreviewPlayer;
         _cancellationTokenManager = cancellationTokenManager;
         listingManager.ListingFound += OnListingFound;
+        networkManager.EliminatedUpdated += Refresh;
     }
 
     internal event Action<bool>? Loaded
@@ -85,6 +92,7 @@ internal class MenuPrefabManager : IDisposable
     public void Dispose()
     {
         _listingManager.ListingFound -= OnListingFound;
+        _networkManager.EliminatedUpdated -= Refresh;
     }
 
     internal void Reset(bool clearPrefab)
@@ -157,13 +165,7 @@ internal class MenuPrefabManager : IDisposable
 
     internal void Hide()
     {
-        if (!_active)
-        {
-            return;
-        }
-
         _active = false;
-
         Refresh();
     }
 
@@ -174,13 +176,7 @@ internal class MenuPrefabManager : IDisposable
 
     internal void Show()
     {
-        if (_active)
-        {
-            return;
-        }
-
         _active = true;
-
         Refresh();
     }
 
@@ -225,6 +221,12 @@ internal class MenuPrefabManager : IDisposable
 
     private void Refresh()
     {
+        if (_lastActive == _active)
+        {
+            return;
+        }
+
+        _lastActive = _active;
         if (_active)
         {
             SetPrefabActive(false);
@@ -240,6 +242,8 @@ internal class MenuPrefabManager : IDisposable
             _songPreviewPlayer.CrossfadeToDefault();
             SetPrefabActive(false);
         }
+
+        Animator?.SetBool(_eliminated, _networkManager.Status.Stage is PlayStatus { Eliminated: true });
 
         return;
 

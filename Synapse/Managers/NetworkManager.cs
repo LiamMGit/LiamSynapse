@@ -72,6 +72,8 @@ internal class NetworkManager : IDisposable
 
     internal event Action<PlayerScore?>? PlayerScoreUpdated;
 
+    internal event Action? EliminatedUpdated;
+
     internal event Action<float, float>? PongReceived;
 
     internal event Action<IStageStatus>? StageUpdated;
@@ -407,6 +409,11 @@ internal class NetworkManager : IDisposable
                         if (lastPlayStatus.PlayerScore != playStatus.PlayerScore)
                         {
                             PlayerScoreUpdated?.Invoke(playStatus.PlayerScore);
+                        }
+
+                        if (lastPlayStatus.Eliminated != playStatus.Eliminated)
+                        {
+                            EliminatedUpdated?.Invoke();
                         }
 
                         break;
