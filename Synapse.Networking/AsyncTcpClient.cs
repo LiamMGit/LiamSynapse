@@ -13,7 +13,7 @@ namespace Synapse.Networking;
 
 public abstract class AsyncTcpClient : IDisposable
 {
-    public const int MAXIMUM_MESSAGE_LENGTH = 4096;
+    public const int MAXIMUM_MESSAGE_LENGTH = 16384;
 
     public const int PACKET_TIMEOUT = 2000;
 

@@ -243,7 +243,10 @@ internal class MenuPrefabManager : IDisposable
             SetPrefabActive(false);
         }
 
-        Animator?.SetBool(_eliminated, _networkManager.Status.Stage is PlayStatus { Eliminated: true });
+        if (Animator != null)
+        {
+            Animator.SetBool(_eliminated, _networkManager.Status.Stage is PlayStatus { Eliminated: true });
+        }
 
         return;
 
