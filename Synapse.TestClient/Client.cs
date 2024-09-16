@@ -257,7 +257,7 @@ public class Client
             {
                 Index = index,
                 Score = score,
-                Percentage = _random.Next(1)
+                Percentage = _random.NextSingle()
             };
             string scoreJson = JsonSerializer.Serialize(scoreSubmission, JsonSettings.Settings);
             await Task.Delay(_random.Next(10, 100), token);
