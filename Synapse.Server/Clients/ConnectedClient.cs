@@ -242,6 +242,7 @@ public class ConnectedClient(
                 string token = reader.ReadString();
                 string gameVersion = reader.ReadString();
                 string listing = reader.ReadString();
+                string listingGuid = reader.ReadString();
 
                 // we'll just make sure nothing is too sus
                 if (string.IsNullOrWhiteSpace(id) ||
@@ -250,13 +251,15 @@ public class ConnectedClient(
                     platform > Platform.Steam ||
                     string.IsNullOrWhiteSpace(token) ||
                     string.IsNullOrWhiteSpace(gameVersion) ||
-                    string.IsNullOrWhiteSpace(listing))
+                    string.IsNullOrWhiteSpace(listingGuid))
                 {
                     await Disconnect(DisconnectCode.Unauthenticated);
                     break;
                 }
 
-                if (listingService.Listing.Guid != listing)
+                Listing? listing = listingService.Listing;
+                if (listing == null ||
+                    listing.Guid != listingGuid)
                 {
                     await Disconnect(DisconnectCode.ListingMismatch);
                     break;

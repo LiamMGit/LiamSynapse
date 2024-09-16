@@ -59,7 +59,14 @@ public class IntroStage : Stage
     public override void Enter()
     {
         _cancellationTokenSource.Cancel();
-        TimeSpan diff = _listingService.Listing.Time - DateTime.Now;
+        Listing? listing = _listingService.Listing;
+        if (listing == null)
+        {
+            _log.LogError("Unable to auto start event, failed to find listing");
+            return;
+        }
+
+        TimeSpan diff = listing.Time - DateTime.Now;
         if (diff.Ticks > 0)
         {
             _ = AutoStartEvent(diff);

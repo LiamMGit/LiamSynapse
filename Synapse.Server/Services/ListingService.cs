@@ -7,11 +7,9 @@ namespace Synapse.Server.Services;
 
 public interface IListingService
 {
-    public Listing Listing { get; }
+    public Listing? Listing { get; }
 
     public string[] GameVersion { get; }
-
-    public Task Refresh();
 }
 
 public class ListingService : IListingService
@@ -20,7 +18,8 @@ public class ListingService : IListingService
     private readonly ILogger<ListingService> _log;
     private readonly string _uri;
 
-    private bool _refreshing;
+    private Listing? _listing;
+    private TaskCompletionSource<Listing?>? _refreshTcs;
 
     public ListingService(ILogger<ListingService> log, IConfiguration config, IHttpClientFactory httpFactory)
     {
@@ -29,41 +28,39 @@ public class ListingService : IListingService
         string fullUrl = config.GetRequiredSection("Listing").Get<string>() ?? throw new InvalidOperationException();
         int id = fullUrl.LastIndexOf('/');
         _uri = fullUrl[(id + 1)..];
-        try
-        {
-            Refresh().Wait();
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
+        _ = GetListing().ContinueWith(n => _listing = n.Result);
     }
 
-    public Listing Listing { get; private set; } = new();
+    public Listing? Listing => _listing ??= GetListing().Result;
 
     public string[] GameVersion { get; private set; } = [];
 
-    public async Task Refresh()
+    private async Task<Listing?> GetListing()
     {
-        if (_refreshing)
+        if (_refreshTcs != null)
         {
-            return;
+            return await _refreshTcs.Task;
         }
 
-        _refreshing = true;
+        _refreshTcs = new TaskCompletionSource<Listing?>();
         HttpClient client = _httpFactory.CreateClient("listing");
         try
         {
-            Listing listing = await _httpFactory.CreateClient("listing").GetFromJsonAsync<Listing>(_uri) ??
+            Listing listing = await client.GetFromJsonAsync<Listing>(_uri) ??
                               throw new InvalidOperationException("Deserialize returned null");
-            Listing = listing;
             GameVersion = listing.GameVersion.Split(',');
+            _refreshTcs.SetResult(listing);
+            return listing;
         }
         catch (Exception e)
         {
             _log.LogError(e, "Failed to retrieve listing from [{Url}]", client.BaseAddress + _uri);
+            _refreshTcs.SetResult(null);
+            return null;
         }
-
-        _refreshing = false;
+        finally
+        {
+            _refreshTcs = null;
+        }
     }
 }
