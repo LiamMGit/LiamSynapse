@@ -216,7 +216,7 @@ internal class MenuPrefabManager : IDisposable
             _log.Error("No animator on prefab");
         }
 
-        Refresh();
+        _prefab.SetActive(_active);
     }
 
     private void Refresh()
