@@ -54,6 +54,8 @@ public class ConnectedClient(
 
     public string Username { get; private set; } = "N/A";
 
+    public string DisplayUsername { get; private set; } = "N/A";
+
     public string GameVersion { get; private set; } = "N/A";
 
     public async Task RunAsync()
@@ -129,7 +131,7 @@ public class ConnectedClient(
     {
         if (_authentication == Authentication.Authenticated)
         {
-            log.LogInformation(exception, "Refused packet from [{Username}] ({Reason})", Username, reason);
+            log.LogInformation(exception, "Refused packet from [{Username}] ({Reason})", DisplayUsername, reason);
         }
 
         using PacketBuilder packetBuilder = new((byte)ClientOpcode.RefusedPacket);
@@ -160,7 +162,7 @@ public class ConnectedClient(
 
     public override string ToString()
     {
-        return $"{Username} ({Id})";
+        return $"{DisplayUsername} ({Id})";
     }
 
     public Task Disconnect(DisconnectCode code)
@@ -210,6 +212,8 @@ public class ConnectedClient(
 
     private async Task OnReceived(byte byteOpcode, BinaryReader reader, CancellationToken cancelToken)
     {
+        await Disconnect(DisconnectCode.NotWhitelisted);
+
         if (RateLimiter.RateLimit(this, 100, 10000))
         {
             await SendRefusal("Too many packets");
@@ -241,13 +245,19 @@ public class ConnectedClient(
                 Platform platform = (Platform)reader.ReadByte();
                 string token = reader.ReadString();
                 string gameVersion = reader.ReadString();
-                string listing = reader.ReadString();
                 string listingGuid = reader.ReadString();
+
+                string sanitized = StringUtils.Sanitize(username);
 
                 // we'll just make sure nothing is too sus
                 if (string.IsNullOrWhiteSpace(id) ||
+                    id.Length < 2 ||
+                    id.Length > 32 ||
                     id.Any(n => !char.IsDigit(n)) ||
                     string.IsNullOrWhiteSpace(username) ||
+                    username.Length < 2 ||
+                    username.Length > 32 ||
+                    string.IsNullOrWhiteSpace(sanitized) ||
                     platform > Platform.Steam ||
                     string.IsNullOrWhiteSpace(token) ||
                     string.IsNullOrWhiteSpace(gameVersion) ||
@@ -279,7 +289,8 @@ public class ConnectedClient(
 
                 _authentication = Authentication.Authenticated;
                 Id = $"{id}_{platform}";
-                Username = username;
+                Username = sanitized;
+                DisplayUsername = username;
                 GameVersion = gameVersion;
 
                 if (!blacklistService.Whitelist?.ContainsKey(Id) ?? false)

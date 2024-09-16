@@ -90,6 +90,8 @@ public class FakeClient(string id, string username) : IClient
 
     public string Username { get; } = username;
 
+    public string DisplayUsername => Username;
+
     public Task Disconnect(DisconnectCode _)
     {
         return Task.CompletedTask;
@@ -137,7 +139,7 @@ public class FakeClient(string id, string username) : IClient
 
     public override string ToString()
     {
-        return $"({Id}) {Username}";
+        return $"{DisplayUsername} ({Id})";
     }
 
     private static string RandomString(int length)

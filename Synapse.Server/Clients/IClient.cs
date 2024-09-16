@@ -15,6 +15,8 @@ public interface IClient
 
     public string Username { get; }
 
+    public string DisplayUsername { get; }
+
     public Task Disconnect(DisconnectCode code);
 
     public string? GetColor();

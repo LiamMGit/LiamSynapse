@@ -276,7 +276,7 @@ public class BlacklistCommand(
 
         string Add(IClient target, Role role)
         {
-            return roleService.AddRole(target.Id, target.Username, role)
+            return roleService.AddRole(target.Id, target.DisplayUsername, role)
                 ? "Added [{Role}] to [{Target}]"
                 : "Failed to add [{Role}] to [{Target}], role already exists";
         }

@@ -25,8 +25,9 @@ public static class CommandExtensions
         StringBuilder extraBuilder = new();
         StringBuilder flagBuilder = new();
         StringBuilder active = extraBuilder;
-        foreach (char c in input)
+        for (int i = 0; i < input.Length; i++)
         {
+            char c = input[i];
             switch (c)
             {
                 case '"':
@@ -38,9 +39,20 @@ public static class CommandExtensions
                     active = flagBuilder;
                     continue;
 
-                case ' ' when !quoting && active == flagBuilder:
-                    active = extraBuilder;
-                    continue;
+                case ' ':
+                    if (!quoting && active == flagBuilder)
+                    {
+                        active = extraBuilder;
+                        continue;
+                    }
+
+                    if (i + 1 < input.Length &&
+                        input[i + 1] == '-')
+                    {
+                        continue;
+                    }
+
+                    break;
             }
 
             active.Append(c);
@@ -258,7 +270,8 @@ public static class CommandExtensions
     public static T ScanQuery<T>(
         this IEnumerable<T> list,
         string arguments,
-        Func<T, string> func)
+        Func<T, string> func,
+        bool showMatches = true)
     {
         T[] query = list
             .Where(n => func(n).StartsWith(arguments, StringComparison.CurrentCultureIgnoreCase))
@@ -266,7 +279,7 @@ public static class CommandExtensions
 
         return query.Length switch
         {
-            > 1 => throw new CommandException($"Ambiguous match found: [{string.Join(", ", query)}]"),
+            > 1 => throw new CommandException(showMatches ? $"Ambiguous match found: [{string.Join(", ", query)}]" : "Ambiguous match found"),
             <= 0 => throw new CommandQueryFailedException(arguments),
             _ => query[0]
         };

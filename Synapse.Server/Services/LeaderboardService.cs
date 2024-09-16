@@ -329,7 +329,7 @@ public class LeaderboardService : ILeaderboardService
 
             void Submit()
             {
-                SavedScore savedScore = new(score, percentage, id, client.Username);
+                SavedScore savedScore = new(score, percentage, id, client.DisplayUsername);
                 _savedIds[index][id] = savedScore;
                 _sortedAllScores[index].InsertIntoSortedList(savedScore);
                 _cachedAllScores[index] = null;

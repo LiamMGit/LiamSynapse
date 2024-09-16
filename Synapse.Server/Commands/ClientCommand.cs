@@ -58,7 +58,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
         int roll = _random.Next(min, max + 1);
         listenerService.BroadcastServerMessage(
             "{Client} rolled {Roll} ({Min}-{Max})",
-            client.Username,
+            client.DisplayUsername,
             roll,
             min,
             max);
@@ -86,16 +86,16 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
         arguments.SplitCommand(out string name, out string subArguments);
         string message = subArguments.Unwrap();
         message.NotEnough();
-        IClient target = listenerService.Chatters.Keys.ScanQuery(name, CommandExtensions.ByUsername);
+        IClient target = listenerService.Chatters.Keys.ScanQuery(name, CommandExtensions.ByUsername, false);
 
         string censored = StringUtils.Sanitize(message);
 
         client.SendChatMessage(
-            new ChatMessage(target.Id, target.Username, target.GetColor(), MessageType.WhisperTo, censored));
+            new ChatMessage(target.Id, target.DisplayUsername, target.GetColor(), MessageType.WhisperTo, censored));
         target.SendChatMessage(
-            new ChatMessage(client.Id, client.Username, client.GetColor(), MessageType.WhisperFrom, censored));
+            new ChatMessage(client.Id, client.DisplayUsername, client.GetColor(), MessageType.WhisperFrom, censored));
 
-        log.LogInformation("{Source} whispers {Target}: {Message}", client.Username, target.Username, censored);
+        log.LogInformation("{Source} whispers {Target}: {Message}", client.DisplayUsername, target.DisplayUsername, censored);
     }
 
     [Command("who")]
@@ -148,7 +148,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
         IEnumerable<IClient> chatters = query.Take(limit);
         string names = string.Join(
             ", ",
-            verbose ? chatters.Select(n => n.ToString()) : chatters.Select(n => n.Username));
+            verbose ? chatters.Select(n => n.ToString()) : chatters.Select(n => n.DisplayUsername));
         if (query.Length > limit)
         {
             names += ", ...";

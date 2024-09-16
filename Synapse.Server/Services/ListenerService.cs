@@ -125,7 +125,7 @@ public class ListenerService : IListenerService
             return;
         }
 
-        string username = client.Username;
+        string username = client.DisplayUsername;
         _blacklistService.AddBlacklist(id, username, reason, banTime);
         _ = client.Disconnect(DisconnectCode.Banned); // TODO: pass reason / bantime to this
         BroadcastString(ClientOpcode.UserBanned, id);
@@ -167,7 +167,7 @@ public class ListenerService : IListenerService
             return;
         }
 
-        string username = client.Username;
+        string username = client.DisplayUsername;
         _blacklistService.AddWhitelist(id, username);
     }
 
@@ -216,13 +216,13 @@ public class ListenerService : IListenerService
     private void OnChatJoined(ConnectedClient client)
     {
         Chatters.TryAdd(client, 0);
-        BroadcastServerMessage("{Username} has joined.", client.Username);
+        BroadcastServerMessage("{Username} has joined.", client.DisplayUsername);
     }
 
     private void OnChatLeft(ConnectedClient client)
     {
         Chatters.TryRemove(client, out _);
-        BroadcastServerMessage("{Username} has left.", client.Username);
+        BroadcastServerMessage("{Username} has left.", client.DisplayUsername);
     }
 
     private void OnChatMessageReceived(ConnectedClient connectedClient, string message)
@@ -234,7 +234,7 @@ public class ListenerService : IListenerService
         }
 
         ////_log.LogInformation("[{Client}]{Extra} {Message}", connectedClient, censored == message ? string.Empty : " (censored)", message);
-        BroadcastChatMessage(connectedClient.Id, connectedClient.Username, connectedClient.GetColor(), censored);
+        BroadcastChatMessage(connectedClient.Id, connectedClient.DisplayUsername, connectedClient.GetColor(), censored);
     }
 
     private void OnCommandReceived(ConnectedClient client, string command)

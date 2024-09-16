@@ -15,6 +15,8 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
 
     public string Username => "Server";
 
+    public string DisplayUsername => Username;
+
     public Task Disconnect(DisconnectCode _)
     {
         return Task.CompletedTask;
