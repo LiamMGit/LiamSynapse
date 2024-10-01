@@ -22,24 +22,26 @@ internal class EventFlowCoordinator : FlowCoordinator
     private const int SCORE_SUBMISSION_INTERVAL = 2000;
     private const int SCORE_SUBMISSION_ATTEMPTS = 4;
 
+    private SiraLog _log = null!;
     private Config _config = null!;
-    private CountdownManager _countdownManager = null!;
-    private bool _dirtyListing;
     private GameplaySetupViewController _gameplaySetupViewController = null!;
+    private ResultsViewController _resultsViewController = null!;
+    private EventDivisionSelectViewController _divisionSelectViewController = null!;
     private EventIntroViewController _introViewController = null!;
     private EventLeaderboardViewController _leaderboardViewController = null!;
-    private LevelStartManager _levelStartManager = null!;
-    private Listing? _listing;
     private EventLoadingViewController _loadingViewController = null!;
     private EventLobbyNavigationViewController _lobbyNavigationViewController = null!;
-    private SiraLog _log = null!;
-    private MapDownloadingManager _mapDownloadingManager = null!;
-    private MenuPrefabManager _menuPrefabManager = null!;
     private EventModsDownloadingViewController _modsDownloadingViewController = null!;
     private EventModsViewController _modsViewController = null!;
-    private NetworkManager _networkManager = null!;
-    private ResultsViewController _resultsViewController = null!;
     private SimpleDialogPromptViewController _simpleDialogPromptViewController = null!;
+    private CountdownManager _countdownManager = null!;
+    private MapDownloadingManager _mapDownloadingManager = null!;
+    private LevelStartManager _levelStartManager = null!;
+    private NetworkManager _networkManager = null!;
+    private MenuPrefabManager _menuPrefabManager = null!;
+
+    private bool _dirtyListing;
+    private Listing? _listing;
 
     private Queue<Action> _transitionFinished = new();
 
@@ -146,38 +148,7 @@ internal class EventFlowCoordinator : FlowCoordinator
                 _introViewController.Finished += OnIntroFinished;
                 _networkManager.Disconnected += OnDisconnected;
                 _menuPrefabManager.Show();
-                if (_config.JoinChat == null)
-                {
-                    _simpleDialogPromptViewController.Init(
-                        "Chat",
-                        "Automatically join chatrooms for events?",
-                        "Yes",
-                        "No",
-                        n =>
-                        {
-                            _config.JoinChat = n switch
-                            {
-                                0 => true,
-                                _ => false
-                            };
-
-                            TransitionFinished += () =>
-                            {
-                                ReplaceTopViewController(
-                                    _loadingViewController,
-                                    null,
-                                    ViewController.AnimationType.In,
-                                    ViewController.AnimationDirection.Vertical);
-                            };
-                            _ = _networkManager.RunAsync();
-                        });
-                    ProvideInitialViewControllers(_simpleDialogPromptViewController);
-                }
-                else
-                {
-                    ProvideInitialViewControllers(_loadingViewController);
-                    _ = _networkManager.RunAsync();
-                }
+                ShowLoading(true);
             }
         }
     }
@@ -230,6 +201,7 @@ internal class EventFlowCoordinator : FlowCoordinator
                 break;
             case EventLoadingViewController:
             case EventModsDownloadingViewController:
+            case EventDivisionSelectViewController:
                 SetTitle(_listing?.Title ?? "N/A", animationType);
                 showBackButton = true;
                 break;
@@ -255,6 +227,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         Config config,
         GameplaySetupViewController gameplaySetupViewController,
         ResultsViewController resultsViewController,
+        EventDivisionSelectViewController divisionSelectViewController,
         EventIntroViewController introViewController,
         EventLeaderboardViewController leaderboardViewController,
         EventLoadingViewController loadingViewController,
@@ -273,6 +246,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         _config = config;
         _gameplaySetupViewController = gameplaySetupViewController;
         _resultsViewController = resultsViewController;
+        _divisionSelectViewController = divisionSelectViewController;
         _introViewController = introViewController;
         _leaderboardViewController = leaderboardViewController;
         _loadingViewController = loadingViewController;
@@ -286,6 +260,89 @@ internal class EventFlowCoordinator : FlowCoordinator
         listingManager.ListingFound += OnListingFound;
         _networkManager = networkManager;
         _menuPrefabManager = menuPrefabManager;
+    }
+
+    private void ShowLoading(bool provide)
+    {
+        if (_config.JoinChat == null)
+        {
+            _simpleDialogPromptViewController.Init(
+                "Chat",
+                "Automatically join chatrooms for events?",
+                "Yes",
+                "No",
+                n =>
+                {
+                    _config.JoinChat = n switch
+                    {
+                        0 => true,
+                        _ => false
+                    };
+                    ShowLoading(false);
+                });
+
+            if (provide)
+            {
+                ProvideInitialViewControllers(_simpleDialogPromptViewController);
+            }
+            else
+            {
+                TransitionFinished += () =>
+                {
+                    ReplaceTopViewController(
+                        _simpleDialogPromptViewController,
+                        null,
+                        ViewController.AnimationType.In,
+                        ViewController.AnimationDirection.Vertical);
+                };
+            }
+        }
+        else if (_config.LastEvent.Division == null &&
+                 _listing?.Divisions.Count > 0)
+        {
+            _divisionSelectViewController.SetCallback(
+                n =>
+                {
+                    _config.LastEvent.Division = n;
+                    ShowLoading(false);
+                });
+
+            if (provide)
+            {
+                ProvideInitialViewControllers(_divisionSelectViewController);
+            }
+            else
+            {
+                TransitionFinished += () =>
+                {
+                    ReplaceTopViewController(
+                        _divisionSelectViewController,
+                        null,
+                        ViewController.AnimationType.In,
+                        ViewController.AnimationDirection.Vertical);
+                };
+            }
+        }
+        else
+        {
+            if (provide)
+            {
+                ProvideInitialViewControllers(_loadingViewController);
+            }
+            else
+            {
+                TransitionFinished += () =>
+                {
+                    ReplaceTopViewController(
+                        _loadingViewController,
+                        null,
+                        ViewController.AnimationType.In,
+                        ViewController.AnimationDirection.Vertical);
+                };
+            }
+
+            _ = _networkManager.RunAsync();
+        }
     }
 
     private void HandleLevelDidFinish(
@@ -460,9 +517,11 @@ internal class EventFlowCoordinator : FlowCoordinator
 
     private async Task SubmitScore(DownloadedMap map, int score, float percentage)
     {
+        int division = _config.LastEvent.Division ?? 0;
         int index = map.Index;
         ScoreSubmission scoreSubmission = new()
         {
+            Division = division,
             Index = index,
             Score = score,
             Percentage = percentage

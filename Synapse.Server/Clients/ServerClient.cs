@@ -11,16 +11,15 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
 
     public bool Chatter => false;
 
+    public int Division => -1;
+
     public string Id => string.Empty;
 
     public string Username => "Server";
 
     public string DisplayUsername => Username;
 
-    public Task Disconnect(DisconnectCode _)
-    {
-        return Task.CompletedTask;
-    }
+    public Task Disconnect(DisconnectCode _) => Task.CompletedTask;
 
     public string GetColor()
     {
@@ -45,15 +44,9 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
         return Task.CompletedTask;
     }
 
-    public Task SendOpcode(ClientOpcode opcode)
-    {
-        return Task.CompletedTask;
-    }
+    public Task SendOpcode(ClientOpcode opcode) => Task.CompletedTask;
 
-    public Task SendRefusal(string reason)
-    {
-        return Task.CompletedTask;
-    }
+    public Task SendRefusal(string reason) => Task.CompletedTask;
 
     public Task SendServerMessage(string message, params object?[] args)
     {
@@ -64,10 +57,9 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
         return Task.CompletedTask;
     }
 
-    public Task SendString(ClientOpcode opcode, string message)
-    {
-        return Task.CompletedTask;
-    }
+    public Task SendString(ClientOpcode opcode, string message) => Task.CompletedTask;
+
+    public Task SendInt(ClientOpcode opcode, int value) => Task.CompletedTask;
 
     public override string ToString()
     {

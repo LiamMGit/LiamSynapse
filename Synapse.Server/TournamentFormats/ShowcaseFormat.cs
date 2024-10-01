@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using JetBrains.Annotations;
+using Microsoft.Extensions.Logging;
 using Synapse.Server.Extras;
 using Synapse.Server.Models;
 using Synapse.Server.Services;
@@ -7,28 +8,26 @@ namespace Synapse.Server.TournamentFormats;
 
 public class ShowcaseFormat : ITournamentFormat
 {
-    private readonly IListenerService _listenerService;
-    private readonly ILogger<ShowcaseFormat> _log;
     private readonly int _mapCount;
     private int _finalists;
 
     private int _semifinalists;
 
     public ShowcaseFormat(
-        ILogger<ShowcaseFormat> log,
-        IListenerService listenerService,
         IMapService mapService)
     {
-        _log = log;
-        _listenerService = listenerService;
         _mapCount = mapService.Maps.Count;
         if (_mapCount < 3)
         {
             throw new InvalidOperationException("Not enough maps for this format");
         }
 
-        ActivePlayers = ConcurrentList<SavedScore[]?>.Prefilled(_mapCount);
+        ActivePlayers = ConcurrentList<SavedScore[]?>.Prefilled(_mapCount, _ => null);
     }
+
+    public event Action<LogLevel, string, object[]>? Log;
+
+    public event Action<string, object[]>? Broadcast;
 
     public ConcurrentList<SavedScore[]?> ActivePlayers { get; }
 
@@ -93,13 +92,13 @@ public class ShowcaseFormat : ITournamentFormat
             if (playerCount > 0)
             {
                 ////_log.LogInformation("{PlayerCount} players qualified, glhf!", playerCount);
-                _listenerService.BroadcastServerMessage("{PlayerCount} players qualified, glhf!", playerCount);
+                SendBroadcast("{PlayerCount} players qualified, glhf!", playerCount);
                 _semifinalists = playerCount > 20 ? 10 : playerCount > 8 ? 4 : playerCount >= 2 ? 2 : 1;
                 _finalists = (int)Math.Ceiling(_semifinalists / 2f);
             }
             else
             {
-                _log.LogWarning("No player scores submitted, cannot run tournament format");
+                SendLog(LogLevel.Warning, "No player scores submitted, cannot run tournament format");
             }
         }
         else
@@ -107,7 +106,7 @@ public class ShowcaseFormat : ITournamentFormat
             SavedScore[]? prevScores = ActivePlayers[index - 1];
             if (prevScores == null)
             {
-                _log.LogWarning("Scores for previous map not found");
+                SendLog(LogLevel.Warning, "Scores for previous map not found");
                 return;
             }
 
@@ -117,7 +116,7 @@ public class ShowcaseFormat : ITournamentFormat
             if (playerCount <= 0)
             {
                 ActivePlayers[index] = [];
-                _log.LogWarning("No active player scores submitted");
+                SendLog(LogLevel.Warning, "No active player scores submitted");
                 return;
             }
 
@@ -149,7 +148,8 @@ public class ShowcaseFormat : ITournamentFormat
                 SavedScore[] currPlayers = activeScores[..playersKept];
                 ActivePlayers[index] = currPlayers;
                 LogElimination(currPlayers, playersKept);
-                _log.LogDebug(
+                SendLog(
+                    LogLevel.Debug,
                     "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}, playersKept: {PlayersKept}, semifinalists: {Semifinalists}]",
                     index,
                     playerCount,
@@ -167,7 +167,10 @@ public class ShowcaseFormat : ITournamentFormat
                 SavedScore[] currPlayers = activeScores[..playersKept];
                 ActivePlayers[index] = currPlayers;
                 LogElimination(currPlayers, playersKept);
-                _log.LogDebug(
+
+                // TODO: remove these debug messages
+                SendLog(
+                    LogLevel.Debug,
                     "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}, playersKept: {PlayersKept}, finalists: {Finalists}]",
                     index,
                     playerCount,
@@ -179,8 +182,9 @@ public class ShowcaseFormat : ITournamentFormat
                 ActivePlayers[index] = activeScores[..1];
                 SavedScore winner = activeScores[0];
                 ////_log.LogInformation("{Winner} won!", winner.Username);
-                _listenerService.BroadcastServerMessage("{Winner} won!", winner.Username);
-                _log.LogDebug(
+                SendBroadcast("{Winner} won!", winner.Username);
+                SendLog(
+                    LogLevel.Debug,
                     "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}",
                     index,
                     playerCount);
@@ -196,7 +200,7 @@ public class ShowcaseFormat : ITournamentFormat
                 {
                     case <= 0:
                         ////_log.LogInformation("Nobody was eliminated, {PlayersKept} remain!", playersKept);
-                        _listenerService.BroadcastServerMessage("Nobody was eliminated, {PlayersKept}", keptString);
+                        SendBroadcast("Nobody was eliminated, {PlayersKept}", keptString);
                         break;
 
                     case <= 5:
@@ -216,7 +220,7 @@ public class ShowcaseFormat : ITournamentFormat
                         };
 
                         ////_log.LogInformation("{EliminatedNames} were eliminated, {PlayersKept} remain!", eliminatedNames, playersKept);
-                        _listenerService.BroadcastServerMessage(
+                        SendBroadcast(
                             "{EliminatedNames} eliminated, {PlayersKept}",
                             eliminatedNames,
                             keptString);
@@ -225,7 +229,7 @@ public class ShowcaseFormat : ITournamentFormat
 
                     default:
                         ////_log.LogInformation("{PlayersEliminated} players were eliminated, {PlayersKept} remain!", playersEliminated, playersKept);
-                        _listenerService.BroadcastServerMessage(
+                        SendBroadcast(
                             "{PlayersEliminated} players were eliminated, {PlayersKept}",
                             playersEliminated,
                             keptString);
@@ -233,5 +237,15 @@ public class ShowcaseFormat : ITournamentFormat
                 }
             }
         }
+    }
+
+    private void SendBroadcast([StructuredMessageTemplate] string message, params object[] args)
+    {
+        Broadcast?.Invoke(message, args);
+    }
+
+    private void SendLog(LogLevel logLevel, [StructuredMessageTemplate] string message, params object[] args)
+    {
+        Log?.Invoke(logLevel, message, args);
     }
 }

@@ -11,7 +11,7 @@ public class Config
 {
     public bool? JoinChat { get; set; }
 
-    public uint LastSeenIntro { get; set; }
+    public EventInfo LastEvent { get; set; } = new();
 
     public bool MuteMusic { get; set; }
 
@@ -20,4 +20,13 @@ public class Config
     public bool ShowEliminated { get; set; } = true;
 
     public string Url { get; set; } = "https://event.aeroluna.dev/api/v1/directory";
+}
+
+public class EventInfo
+{
+    public string Title { get; set; } = string.Empty;
+
+    public bool SeenIntro { get; set; }
+
+    public int? Division { get; set; }
 }

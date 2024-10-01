@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using BeatSaberMarkupLanguage.Attributes;
 using BeatSaberMarkupLanguage.ViewControllers;
 using HarmonyLib;
@@ -8,6 +10,7 @@ using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using Synapse.Managers;
 using Synapse.Models;
+using Synapse.Networking;
 using Synapse.Networking.Models;
 using TMPro;
 using UnityEngine;
@@ -43,8 +46,6 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     [UIObject("leaderboard")]
     private readonly GameObject _leaderboardObject = null!;
 
-    private readonly Dictionary<int, LeaderboardScores> _leaderboardScores = new();
-
     [UIComponent("modal")]
     private readonly ModalView _modal = null!;
 
@@ -65,6 +66,8 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
 
     [UIComponent("titlemap")]
     private readonly TextMeshProUGUI _titleMapText = null!;
+
+    private readonly ConcurrentDictionary<int, LeaderboardScores> _leaderboardScores = new();
 
     private bool _altCover;
     private Config _config = null!;
@@ -89,7 +92,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         set
         {
             _config.ShowEliminated = value;
-            ChangeView(_index);
+            InvalidateAllScores();
         }
     }
 
@@ -110,6 +113,12 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     {
         _textSegments.SelectCellWithNumber(index);
         ChangeView(index);
+    }
+
+    internal void InvalidateAllScores()
+    {
+        _leaderboardScores.Clear();
+        Refresh();
     }
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
@@ -144,6 +153,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
             _mapDownloadingManager.MapDownloaded += OnMapDownloaded;
             OnStageUpdated(_networkManager.Status.Stage);
             _networkManager.StageUpdated += OnStageUpdated;
+            _networkManager.InvalidateScores += OnInvalidateScores;
         }
 
         _motivational.text = _randomMotivationals[Random.Range(0, _randomMotivationals.Length - 1)];
@@ -158,6 +168,16 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         {
             _mapDownloadingManager.MapDownloaded -= OnMapDownloaded;
             _networkManager.StageUpdated -= OnStageUpdated;
+            _networkManager.InvalidateScores -= OnInvalidateScores;
+        }
+    }
+
+    private void OnInvalidateScores(int index)
+    {
+        _leaderboardScores.TryRemove(index, out _);
+        if (_index == index)
+        {
+            Refresh();
         }
     }
 
@@ -168,7 +188,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
                       scores.Index >= playStatus.Index &&
                       playStatus.PlayerScore == null;
         _titleMapText.text = useAlt ? "???" : scores.Title;
-        IReadOnlyList<LeaderboardCell> cells = ShowEliminated ? scores.ElimScores : scores.Scores;
+        IReadOnlyList<LeaderboardCell> cells = scores.Scores;
         if (cells.Count > 0)
         {
             List<LeaderboardTableView.ScoreData> data = cells
@@ -190,7 +210,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
                             color);
                     })
                 .ToList();
-            int playerScoreIndex = ShowEliminated ? scores.ElimPlayerScoreIndex : scores.PlayerScoreIndex;
+            int playerScoreIndex = scores.PlayerScoreIndex;
             _leaderboardTable.SetScores(data, playerScoreIndex);
             _noScoreObject.SetActive(false);
             _leaderboardObject.SetActive(true);
@@ -295,7 +315,16 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     {
         _loadingControl.ShowLoading();
         _leaderboardTable.SetScores(null, -1);
-        _ = _networkManager.Send(ServerOpcode.LeaderboardRequest, _index);
+        _ = SendLeaderboardRequest(_index, _config.LastEvent.Division ?? 0, ShowEliminated);
+    }
+
+    private async Task SendLeaderboardRequest(int index, int division, bool showEliminated)
+    {
+        using PacketBuilder packetBuilder = new((byte)ServerOpcode.LeaderboardRequest);
+        packetBuilder.Write(index);
+        packetBuilder.Write(division);
+        packetBuilder.Write(showEliminated);
+        await _networkManager.Send(packetBuilder.ToBytes());
     }
 
     [UsedImplicitly]

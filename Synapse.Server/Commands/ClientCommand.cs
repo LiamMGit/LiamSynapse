@@ -17,7 +17,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
         string message = arguments.Unwrap();
         if (string.IsNullOrWhiteSpace(message))
         {
-            client.SendServerMessage(eventService.Motd);
+            client.SendServerMessage("{Motd}", eventService.Motd);
             return;
         }
 
@@ -28,7 +28,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
 
         eventService.Motd = message;
         client.LogAndSend(log, "Motd successfully changed");
-        log.LogInformation("{Motd}", message);
+        log.LogInformation("{ChangedMotd}", message);
     }
 
     [Command("roll")]

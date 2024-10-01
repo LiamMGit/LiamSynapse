@@ -11,11 +11,12 @@
                vertical-fit='Unconstrained' size-delta-y='7'/>
   <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='-58' anchor-pos-y='37'
                    size-delta-x='4' size-delta-y='4'/>
-  <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='36'>
-    <vertical horizontal-fit='PreferredSize' pref-width='78'>
+  <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='40'>
+    <vertical horizontal-fit='PreferredSize' pref-width='78' pad='2'>
       <checkbox-setting text='Join chat' value='joinChat' apply-on-change='true' bind-value='true'/>
       <checkbox-setting text='Profanity filter' value='profanityFilter' apply-on-change='true' bind-value='true'/>
       <checkbox-setting text='Mute music' value='muteMusic' apply-on-change='true' bind-value='true'/>
+      <dropdown-list-setting id='division-setting' choices='division-choices' formatter='division-format' text='Division' value='division' apply-on-change='true' bind-value='true'/>
       <button id='replay-intro-button' text='Replay Intro' on-click='replay-intro'/>
     </vertical>
   </modal>

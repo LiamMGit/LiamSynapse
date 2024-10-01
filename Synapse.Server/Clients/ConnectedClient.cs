@@ -35,7 +35,7 @@ public class ConnectedClient(
 
     public event Action<ConnectedClient, string>? Disconnected;
 
-    public event Action<ConnectedClient, int>? LeaderboardRequested;
+    public event Action<ConnectedClient, int, int, bool>? LeaderboardRequested;
 
     public event Action<ConnectedClient, ScoreSubmission>? ScoreSubmissionReceived;
 
@@ -49,6 +49,8 @@ public class ConnectedClient(
         (client.Socket.RemoteEndPoint as IPEndPoint)?.Address.MapToIPv4() ?? IPAddress.None;
 
     public bool Chatter { get; private set; }
+
+    public int Division { get; private set; }
 
     public string Id { get; private set; } = "N/A";
 
@@ -160,6 +162,13 @@ public class ConnectedClient(
         await Send(packetBuilder.ToBytes());
     }
 
+    public async Task SendInt(ClientOpcode opcode, int value)
+    {
+        using PacketBuilder packetBuilder = new((byte)opcode);
+        packetBuilder.Write(value);
+        await Send(packetBuilder.ToBytes());
+    }
+
     public override string ToString()
     {
         return $"{DisplayUsername} ({Id})";
@@ -212,8 +221,6 @@ public class ConnectedClient(
 
     private async Task OnReceived(byte byteOpcode, BinaryReader reader, CancellationToken cancelToken)
     {
-        await Disconnect(DisconnectCode.NotWhitelisted);
-
         if (RateLimiter.RateLimit(this, 100, 10000))
         {
             await SendRefusal("Too many packets");
@@ -330,13 +337,13 @@ public class ConnectedClient(
                     }
 
                     case ServerOpcode.SetChatter:
-                        bool chatter = reader.ReadBoolean();
                         if (RateLimiter.RateLimit(this, 4, 5000, ServerOpcode.SetChatter.ToString()))
                         {
                             await SendRefusal("Too many requests");
                             break;
                         }
 
+                        bool chatter = reader.ReadBoolean();
                         switch (Chatter)
                         {
                             case false when chatter:
@@ -348,6 +355,10 @@ public class ConnectedClient(
                         }
 
                         Chatter = chatter;
+                        break;
+
+                    case ServerOpcode.SetDivision:
+                        Division = reader.ReadInt32();
                         break;
 
                     case ServerOpcode.ChatMessage:
@@ -397,7 +408,9 @@ public class ConnectedClient(
 
                     case ServerOpcode.LeaderboardRequest:
                         int index = reader.ReadInt32();
-                        LeaderboardRequested?.Invoke(this, index);
+                        int division = reader.ReadInt32();
+                        bool showEliminated = reader.ReadBoolean();
+                        LeaderboardRequested?.Invoke(this, index, division, showEliminated);
                         break;
 
                     default:

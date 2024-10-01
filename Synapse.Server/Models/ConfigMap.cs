@@ -22,5 +22,7 @@ public record ConfigMap
 
     public Ruleset? Ruleset { get; init; }
 
+    public List<Key> Keys { get; init; } = [];
+
     public List<Download> Downloads { get; init; } = [];
 }

@@ -95,7 +95,7 @@ internal class EventIntroViewController : BSMLAutomaticViewController
     private void Finish()
     {
         _config.MuteMusic = _doMute;
-        _config.LastSeenIntro = _menuPrefabManager.LastHash;
+        _config.LastEvent.SeenIntro = true;
         Finished?.Invoke();
     }
 

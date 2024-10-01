@@ -11,6 +11,8 @@ public interface IClient
 
     public bool Chatter { get; }
 
+    public int Division { get; }
+
     public string Id { get; }
 
     public string Username { get; }
@@ -34,4 +36,6 @@ public interface IClient
     public Task SendServerMessage([StructuredMessageTemplate] string message, params object?[] args);
 
     public Task SendString(ClientOpcode opcode, string message);
+
+    public Task SendInt(ClientOpcode opcode, int value);
 }

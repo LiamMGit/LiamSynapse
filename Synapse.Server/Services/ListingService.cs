@@ -9,6 +9,8 @@ public interface IListingService
 {
     public Listing? Listing { get; }
 
+    public int DivisionCount { get; }
+
     public string[] GameVersion { get; }
 }
 
@@ -32,6 +34,8 @@ public class ListingService : IListingService
     }
 
     public Listing? Listing => _listing ??= GetListing().Result;
+
+    public int DivisionCount => Listing == null ? 1 : Math.Max(Listing.Divisions.Count, 1);
 
     public string[] GameVersion { get; private set; } = [];
 

@@ -139,6 +139,13 @@ internal class ListingManager : IInitializable
 
             Listing = listing;
             ListingFoundBacking?.Invoke(Listing);
+            if (_config.LastEvent.Title != listing.Title)
+            {
+                _config.LastEvent = new EventInfo
+                {
+                    Title = listing.Title
+                };
+            }
 
             _ = GetBannerImage(listing, token);
         }

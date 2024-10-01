@@ -1,0 +1,16 @@
+﻿<bg>
+  <vertical child-control-height='false' child-expand-height='false' spacing='8' child-align='MiddleCenter'>
+    <horizontal bg='panel-fade-gradient' preferred-width='60'>
+      <text text='Division Select' italics='true' align='Center' font-size='6' all-uppercase='true'/>
+    </horizontal>
+    <horizontal spacing='4'>
+      <horizontal bg='round-rect-panel' pad='1' preferred-width='32'>
+        <text-segments id='segments' select-cell='selectcell'/>
+      </horizontal>
+      <vertical bg='round-rect-panel' min-height='32' min-width='64'>
+        <text id='description' align='Center'/>
+      </vertical>
+    </horizontal>
+    <primary-button id='continue-button' text='continue' preferred-height='10' preferred-width='32' on-click='continue-click' interactable='false'/>
+  </vertical>
+</bg>

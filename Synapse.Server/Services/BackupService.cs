@@ -7,11 +7,11 @@ namespace Synapse.Server.Services;
 
 public interface IBackupService
 {
-    public event Action<IReadOnlyList<Backup>>? BackupsLoaded;
+    public event Action<IReadOnlyList<IReadOnlyList<Backup>>>? BackupsLoaded;
 
     public Task LoadBackups();
 
-    public Task SaveScores(int index, IReadOnlyList<SavedScore> scores, IReadOnlyList<string>? activePlayers);
+    public Task SaveScores(int division, int index, IReadOnlyList<SavedScore> scores, IReadOnlyList<string>? activePlayers);
 }
 
 public class BackupService : IBackupService
@@ -19,23 +19,26 @@ public class BackupService : IBackupService
     private readonly string _directory;
     private readonly ILogger<BackupService> _log;
     private readonly IMapService _mapService;
+    private readonly IListingService _listingService;
 
-    private ConcurrentList<Backup>? _backups;
+    private readonly HashSet<string> _saving = [];
 
-    private bool _saving;
+    private Backup[][]? _backups;
 
     public BackupService(
         ILogger<BackupService> log,
         IMapService mapService,
+        IListingService listingService,
         IDirectoryService directoryService)
     {
         _log = log;
         _mapService = mapService;
+        _listingService = listingService;
         _directory = Directory.CreateDirectory(Path.Combine(directoryService.EventDirectory, "backups")).FullName;
         _ = LoadBackups();
     }
 
-    public event Action<IReadOnlyList<Backup>>? BackupsLoaded
+    public event Action<IReadOnlyList<IReadOnlyList<Backup>>>? BackupsLoaded
     {
         add
         {
@@ -57,32 +60,40 @@ public class BackupService : IBackupService
         remove => InternalBackupsLoaded -= value;
     }
 
-    private event Action<IReadOnlyList<Backup>>? InternalBackupsLoaded;
+    private event Action<IReadOnlyList<IReadOnlyList<Backup>>>? InternalBackupsLoaded;
 
     public async Task LoadBackups()
     {
         try
         {
-            string[] files = Directory.EnumerateFiles(_directory, "scores??.json").ToArray();
 
-            List<Backup> backups = [];
-            for (int i = 0; i < _mapService.MapCount; i++)
+            int divisionsCount = _listingService.DivisionCount;
+            int mapCount = _mapService.MapCount;
+            Backup[][] backups = new Backup[divisionsCount][];
+            for (int j = 0; j < divisionsCount; j++)
             {
-                string? file = files.FirstOrDefault(n => n.EndsWith($"scores{i:D2}.json"));
-                if (file == null)
+                string[] files = Directory.EnumerateFiles(_directory, $"scores{j:D2}??.json").ToArray();
+                Backup[] divisionBackups = new Backup[files.Length];
+                for (int i = 0; i < mapCount; i++)
                 {
-                    break;
+                    string? file = files.FirstOrDefault(n => n.EndsWith($"scores{j:D2}{i:D2}.json"));
+                    if (file == null)
+                    {
+                        break;
+                    }
+
+                    using StreamReader reader = new(file);
+                    Backup backup = await JsonSerializer.DeserializeAsync<Backup>(reader.BaseStream, JsonUtils.Settings);
+                    _log.LogInformation("Loaded score backup [{File}]", Path.GetFileName(file));
+                    divisionBackups[i] = backup;
                 }
 
-                using StreamReader reader = new(file);
-                Backup backup = await JsonSerializer.DeserializeAsync<Backup>(reader.BaseStream, JsonUtils.Settings);
-                _log.LogInformation("Loaded score backup [{File}]", Path.GetFileName(file));
-                backups.Add(backup);
+                backups[j] = divisionBackups;
             }
 
-            _backups = new ConcurrentList<Backup>(backups);
-            _mapService.Index = backups.Count(n => n.ActivePlayers != null);
-            InternalBackupsLoaded?.Invoke(_backups);
+            _mapService.Index = backups[0].Count(n => n.ActivePlayers != null);
+            _backups = backups;
+            InternalBackupsLoaded?.Invoke(backups);
         }
         catch (Exception e)
         {
@@ -90,39 +101,39 @@ public class BackupService : IBackupService
         }
     }
 
-    public async Task SaveScores(int index, IReadOnlyList<SavedScore> scores, IReadOnlyList<string>? activePlayers)
+    public async Task SaveScores(int division, int index, IReadOnlyList<SavedScore> scores, IReadOnlyList<string>? activePlayers)
     {
+        string path = Path.Combine(_directory, $"scores{division:D2}{index:D2}.json");
+        if (_backups == null || !_saving.Add(path))
+        {
+            _log.LogError("Could not save backup");
+            return;
+        }
+
         try
         {
-            if (_backups == null || _saving)
-            {
-                _log.LogError("Could not save backup");
-                return;
-            }
-
-            _saving = true;
-            bool backupExists = _backups.Count > index;
-            string path = Path.Combine(_directory, $"scores{index:D2}.json");
+            bool backupExists = _backups[division].Length > index;
             Backup backup = new()
             {
                 Index = index,
                 Scores = scores.ToArray(),
-                ActivePlayers = activePlayers?.ToArray() ?? (backupExists ? _backups[index].ActivePlayers : null)
+                ActivePlayers = activePlayers?.ToArray() ?? (backupExists ? _backups[division][index].ActivePlayers : null)
             };
 
             if (backupExists)
             {
-                _backups[index] = backup;
+                _backups[division][index] = backup;
             }
 
             await using StreamWriter output = new(path);
             await JsonSerializer.SerializeAsync(output.BaseStream, backup, JsonUtils.PrettySettings);
-            _saving = false;
             ////_log.LogInformation("Created backup {File}", path);
         }
         catch (Exception e)
         {
             _log.LogError(e, "Exception while saving backup");
         }
+
+        _saving.Remove(path);
     }
 }

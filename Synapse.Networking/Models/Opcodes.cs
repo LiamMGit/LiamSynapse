@@ -10,6 +10,7 @@ public enum ClientOpcode
     ChatMessage,
     UserBanned,
     AcknowledgeScore,
+    InvalidateScores,
     LeaderboardScores,
     StopLevel
 }
@@ -20,6 +21,7 @@ public enum ServerOpcode
     Disconnect,
     Ping,
     SetChatter,
+    SetDivision,
     ChatMessage,
     Command,
     ScoreSubmission,

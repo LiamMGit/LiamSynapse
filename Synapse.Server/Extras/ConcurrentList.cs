@@ -3,24 +3,20 @@
 namespace Synapse.Server.Extras;
 
 // not true concurrency but good enough
-public sealed class ConcurrentList<T> : IList<T>, IReadOnlyList<T>, IDisposable
+public sealed class ConcurrentList<T>(List<T> list) : IList<T>, IReadOnlyList<T>, IDisposable
 {
-    private readonly List<T> _list;
     private readonly ReaderWriterLockSlim _lock = new(LockRecursionPolicy.SupportsRecursion);
 
-    public ConcurrentList()
+    public ConcurrentList() : this([])
     {
-        _list = new List<T>();
     }
 
-    public ConcurrentList(IEnumerable<T> enumerable)
+    public ConcurrentList(IEnumerable<T> enumerable) : this(enumerable.ToList())
     {
-        _list = enumerable.ToList();
     }
 
-    public ConcurrentList(int count)
+    public ConcurrentList(int count) : this(new List<T>(count))
     {
-        _list = new List<T>(count);
     }
 
     ~ConcurrentList()
@@ -28,39 +24,39 @@ public sealed class ConcurrentList<T> : IList<T>, IReadOnlyList<T>, IDisposable
         Dispose(false);
     }
 
-    public int Count => Read(() => _list.Count);
+    public int Count => Read(() => list.Count);
 
     bool ICollection<T>.IsReadOnly => false;
 
     public T this[int index]
     {
-        get => Read(() => _list[index]);
-        set => Write(() => _list[index] = value);
+        get => Read(() => list[index]);
+        set => Write(() => list[index] = value);
     }
 
-    public static ConcurrentList<T?> Prefilled(int count)
+    public static ConcurrentList<T> Prefilled(int count, Func<int, T> func)
     {
-        return new ConcurrentList<T?>(Enumerable.Range(0, count).Select<int, T?>(_ => default));
+        return new ConcurrentList<T>(Enumerable.Range(0, count).Select(func));
     }
 
     public void Add(T item)
     {
-        Write(() => _list.Add(item));
+        Write(() => list.Add(item));
     }
 
     public void Clear()
     {
-        Write(() => _list.Clear());
+        Write(() => list.Clear());
     }
 
     public bool Contains(T item)
     {
-        return Read(() => _list.Contains(item));
+        return Read(() => list.Contains(item));
     }
 
     public void CopyTo(T[] array, int arrayIndex)
     {
-        Read(() => _list.CopyTo(array, arrayIndex));
+        Read(() => list.CopyTo(array, arrayIndex));
     }
 
     public void Dispose()
@@ -71,32 +67,32 @@ public sealed class ConcurrentList<T> : IList<T>, IReadOnlyList<T>, IDisposable
 
     public int FindIndex(Predicate<T> match)
     {
-        return Read(() => _list.FindIndex(match));
+        return Read(() => list.FindIndex(match));
     }
 
     public IEnumerator<T> GetEnumerator()
     {
-        return Read(() => _list.GetEnumerator());
+        return Read(() => list.GetEnumerator());
     }
 
     public int IndexOf(T item)
     {
-        return Read(() => _list.IndexOf(item));
+        return Read(() => list.IndexOf(item));
     }
 
     public void Insert(int index, T item)
     {
-        Write(() => _list.Insert(index, item));
+        Write(() => list.Insert(index, item));
     }
 
     public bool Remove(T item)
     {
-        return Write(() => _list.Remove(item));
+        return Write(() => list.Remove(item));
     }
 
     public void RemoveAt(int index)
     {
-        Write(() => _list.RemoveAt(index));
+        Write(() => list.RemoveAt(index));
     }
 
     public bool Remove(Predicate<T> predicate)
@@ -104,14 +100,14 @@ public sealed class ConcurrentList<T> : IList<T>, IReadOnlyList<T>, IDisposable
         return Write(
             () =>
             {
-                for (int i = 0; i < _list.Count; i++)
+                for (int i = 0; i < list.Count; i++)
                 {
-                    if (!predicate(_list[i]))
+                    if (!predicate(list[i]))
                     {
                         continue;
                     }
 
-                    _list.RemoveAt(i);
+                    list.RemoveAt(i);
                     return true;
                 }
 
@@ -129,7 +125,7 @@ public sealed class ConcurrentList<T> : IList<T>, IReadOnlyList<T>, IDisposable
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return Read(() => _list.GetEnumerator());
+        return Read(() => list.GetEnumerator());
     }
 
     private void Read(Action action)

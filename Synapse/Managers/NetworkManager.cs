@@ -64,6 +64,8 @@ internal class NetworkManager : IDisposable
 
     internal event Action<float>? IntroStartTimeUpdated;
 
+    internal event Action<int>? InvalidateScores;
+
     internal event Action<LeaderboardScores>? LeaderboardReceived;
 
     internal event Action<int, Map>? MapUpdated;
@@ -326,6 +328,11 @@ internal class NetworkManager : IDisposable
                     _ = Send(ServerOpcode.SetChatter, true);
                 }
 
+                if (_config.LastEvent.Division != null)
+                {
+                    _ = Send(ServerOpcode.SetDivision, _config.LastEvent.Division.Value);
+                }
+
                 break;
             }
 
@@ -456,6 +463,14 @@ internal class NetworkManager : IDisposable
                 byte index = reader.ReadByte();
                 int score = reader.ReadInt32();
                 AcknowledgedScores[index] = score;
+
+                break;
+            }
+
+            case ClientOpcode.InvalidateScores:
+            {
+                byte index = reader.ReadByte();
+                InvalidateScores?.Invoke(index);
 
                 break;
             }

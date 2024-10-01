@@ -20,6 +20,7 @@ internal class LevelStartManager : IDisposable
     private readonly EnvironmentsListModel _environmentsListModel;
 #endif
 
+    private readonly Config _config;
     private readonly GameplaySetupViewController _gameplaySetupViewController;
     private readonly LazyInject<HeckIntegrationManager>? _heckIntegrationManager;
     private readonly MenuTransitionsHelper _menuTransitionsHelper;
@@ -31,6 +32,7 @@ internal class LevelStartManager : IDisposable
     [UsedImplicitly]
     private LevelStartManager(
         SiraLog log,
+        Config config,
         DiContainer container,
         GameplaySetupViewController gameplaySetupViewController,
         MenuTransitionsHelper menuTransitionsHelper,
@@ -41,6 +43,7 @@ internal class LevelStartManager : IDisposable
         NoEnergyModifier noEnergyModifier,
         [InjectOptional] LazyInject<HeckIntegrationManager>? heckIntegrationManager)
     {
+        _config = config;
         _gameplaySetupViewController = gameplaySetupViewController;
         _menuTransitionsHelper = menuTransitionsHelper;
 #if LATEST
@@ -226,8 +229,10 @@ internal class LevelStartManager : IDisposable
             callback = (a, b) => levelFinishedCallback(downloadedMap, a, b);
         }
 
+        int division = _config.LastEvent.Division ?? 0;
+
 #if LATEST
-        BeatmapKey beatmapKey = downloadedMap.BeatmapKey;
+        BeatmapKey beatmapKey = downloadedMap.BeatmapKeys[division];
         BeatmapLevel beatmapLevel = downloadedMap.BeatmapLevel;
         ColorScheme? beatmapOverrideColorScheme =
             beatmapLevel.GetColorScheme(beatmapKey.beatmapCharacteristic, beatmapKey.difficulty);
@@ -254,7 +259,7 @@ internal class LevelStartManager : IDisposable
             beatmapKey,
             beatmapLevel,
 #else
-            downloadedMap.DifficultyBeatmap,
+            downloadedMap.DifficultyBeatmaps[division],
             downloadedMap.BeatmapLevel,
 #endif
             null, // no environment override

@@ -69,13 +69,11 @@ public record Map
 {
     public string Name { get; init; } = string.Empty;
 
-    public string Characteristic { get; init; } = string.Empty;
-
-    public int Difficulty { get; init; }
-
     public string? AltCoverUrl { get; init; } = string.Empty;
 
     public Ruleset? Ruleset { get; init; }
+
+    public List<Key> Keys { get; init; } = [];
 
     public List<Download> Downloads { get; init; } = [];
 }
@@ -90,6 +88,14 @@ public record Ruleset
     public bool? AllowLeftHand { get; init; }
 
     public bool? AllowResubmission { get; init; }
+}
+
+[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+public record Key
+{
+    public string Characteristic { get; init; } = string.Empty;
+
+    public int Difficulty { get; init; }
 }
 
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]

@@ -30,7 +30,7 @@ internal class EventLobbyNavigationViewController : NavigationController
         // ReSharper disable once InvertIf
         if (addedToHierarchy)
         {
-            if (_config.LastSeenIntro != _menuPrefabManager.LastHash)
+            if (_config.LastEvent.SeenIntro)
             {
                 switch (_networkManager.Status.Stage)
                 {

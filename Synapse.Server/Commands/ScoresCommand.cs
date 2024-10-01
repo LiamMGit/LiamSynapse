@@ -58,7 +58,14 @@ public class ScoresCommand(
                 int mapIndexInt;
                 string flags = subArguments.GetFlags(out string extra);
                 extra.SplitCommand(out string mapIndex, out string subSubArguments);
-                string id = subSubArguments.Unwrap();
+                subSubArguments.SplitCommand(out string subSubCommand, out string subSubSubArguments);
+
+                if (!int.TryParse(subSubCommand, out int divisionInt))
+                {
+                    throw new CommandParseException(subSubCommand);
+                }
+
+                string id = subSubSubArguments.Unwrap();
                 if (string.IsNullOrWhiteSpace(id))
                 {
                     id = mapIndex;
@@ -76,7 +83,7 @@ public class ScoresCommand(
                 }
 
                 SavedScore score = leaderboardService
-                    .AllScores[mapIndexInt]
+                    .AllScores[divisionInt][mapIndexInt]
                     .ScanQuery(
                         id,
                         flags.Contains('i') ? n => n.Id : n => n.Username);
@@ -85,7 +92,7 @@ public class ScoresCommand(
                     "Removed score [{Score}] from map [{Map}]",
                     score,
                     mapService.Maps[mapIndexInt].Name);
-                leaderboardService.RemoveScore(mapIndexInt, score);
+                leaderboardService.RemoveScore(divisionInt, mapIndexInt, score);
                 if (listenerService.Clients.TryGetValue(score.Id, out IClient? target))
                 {
                     eventService.SendStatus(target);
@@ -97,7 +104,14 @@ public class ScoresCommand(
             // TODO: add a "are you sure" prompt
             case "drop":
             {
-                subArguments.SplitCommand(out string mapIndex);
+                subArguments.SplitCommand(out string divisionIndex, out string mapIndex);
+                mapIndex = mapIndex.Unwrap();
+
+                if (!int.TryParse(divisionIndex, out int divisionInt))
+                {
+                    throw new CommandParseException(divisionIndex);
+                }
+
                 int mapIndexInt;
                 if (string.IsNullOrWhiteSpace(mapIndex))
                 {
@@ -115,7 +129,7 @@ public class ScoresCommand(
                 }
 
                 int scoresCount = leaderboardService.AllScores[mapIndexInt].Count;
-                leaderboardService.DropScores(mapIndexInt);
+                leaderboardService.DropScores(divisionInt, mapIndexInt);
                 client.LogAndSend(
                     log,
                     "Removed [{ScoreCount}] score(s) from map [{Map}]",
@@ -151,14 +165,23 @@ public class ScoresCommand(
             {
                 int mapIndexInt;
                 string flags = subArguments.GetFlags(out string extra);
-                extra.SplitCommand(out string mapIndex);
-                if (string.IsNullOrWhiteSpace(mapIndex))
+                extra.SplitCommand(out string mapIndex, out string subSubArguments);
+                subSubArguments.SplitCommand(out string subSubCommand, out string subSubSubArguments);
+
+                if (!int.TryParse(subSubCommand, out int divisionInt))
                 {
+                    throw new CommandParseException(subSubCommand);
+                }
+
+                string id = subSubSubArguments.Unwrap();
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    id = mapIndex;
                     mapIndexInt = mapService.Index;
                 }
-                else if (!int.TryParse(mapIndex, out mapIndexInt))
+                else if (!int.TryParse(subArguments, out mapIndexInt))
                 {
-                    throw new CommandParseException(mapIndex);
+                    throw new CommandParseException(subArguments);
                 }
 
                 if (mapIndexInt < 0 ||
@@ -168,25 +191,27 @@ public class ScoresCommand(
                 }
 
                 string map = mapService.Maps[mapIndexInt].Name;
-                IReadOnlyList<SavedScore> scores = leaderboardService.AllScores[mapIndexInt];
-                string message = scores.Count switch
+                IReadOnlyList<SavedScore> scores = leaderboardService.AllScores[divisionInt][mapIndexInt];
+                if (scores.Count > 0)
                 {
-                    > 0 => $"{map} ({mapIndexInt}) has {scores.Count} scores",
-                    _ => $"No scores currently submitted for [{map}]"
-                };
-                client.SendServerMessage(message);
+                    client.SendServerMessage("{Map} ({Index}) has {ScoresCount} scores", map, mapIndexInt, scores.Count);
+                }
+                else
+                {
+                    client.SendServerMessage("No scores currently submitted for [{Map}]", map);
+                }
 
                 if (flags.Contains('v'))
                 {
                     int limit = flags.Contains('e') ? 100 : 20;
-                    IEnumerable<SavedScore> chatters = leaderboardService.AllScores[mapIndexInt].Take(limit);
-                    string scoresMessage = string.Join(", ", chatters.Select(n => n.ToString()));
+                    IEnumerable<SavedScore> limitedScores = scores.Take(limit);
+                    string scoresMessage = string.Join(", ", limitedScores.Select(n => n.ToString()));
                     if (scores.Count > limit)
                     {
                         scoresMessage += ", ...";
                     }
 
-                    client.SendServerMessage(scoresMessage);
+                    client.SendServerMessage("{VerboseScores}", scoresMessage);
                 }
 
                 break;

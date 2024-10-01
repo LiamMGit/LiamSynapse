@@ -21,6 +21,8 @@ public record Listing
 
     public DateTime Time { get; init; }
 
+    public List<Division> Divisions { get; init; } = [];
+
     public List<BundleInfo> Bundles { get; init; } = [];
 
     public List<RequiredMods> RequiredMods { get; init; } = [];
@@ -34,4 +36,12 @@ public class BundleInfo
     public uint Hash { get; init; }
 
     public string Url { get; init; } = string.Empty;
+}
+
+[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+public class Division
+{
+    public string Name { get; init; } = string.Empty;
+
+    public string Description { get; init; } = string.Empty;
 }

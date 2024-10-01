@@ -21,6 +21,7 @@ internal class SynapseMenuInstaller : Installer
         Container.BindInterfacesTo<AddMainMenuEventButton>().AsSingle();
 
         Container.Bind<EventFlowCoordinator>().FromFactory<EventFlowCoordinator.EventFlowCoordinatorFactory>();
+        Container.Bind<EventDivisionSelectViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventIntroViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventModsViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventModsDownloadingViewController>().FromNewComponentAsViewController().AsSingle();

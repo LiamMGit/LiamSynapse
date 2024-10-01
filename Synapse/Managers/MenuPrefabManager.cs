@@ -33,6 +33,7 @@ internal class MenuPrefabManager : IDisposable
 
     private bool _active;
     private bool _lastActive;
+    private uint _lastHash;
     private BundleInfo? _bundleInfo;
 
     private bool? _didLoadSucceed;
@@ -83,8 +84,6 @@ internal class MenuPrefabManager : IDisposable
     internal Animator? Animator { get; private set; }
 
     internal float DownloadProgress { get; private set; }
-
-    internal uint LastHash { get; private set; }
 
     private ParticleSystem? DustParticles => _dustParticles ??=
         Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(n => n.name == "DustPS");
@@ -268,12 +267,12 @@ internal class MenuPrefabManager : IDisposable
             return;
         }
 
-        if (_bundleInfo.Hash == LastHash)
+        if (_bundleInfo.Hash == _lastHash)
         {
             return;
         }
 
-        LastHash = _bundleInfo.Hash;
+        _lastHash = _bundleInfo.Hash;
 
         Reset(true);
 

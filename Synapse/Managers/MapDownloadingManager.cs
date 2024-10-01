@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -207,7 +208,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
         UnityMainThreadTaskScheduler.Factory.StartNew(
             async () =>
             {
-                int i = 0;
+                int i = 1;
                 while (true)
                 {
                     try
@@ -217,7 +218,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
                     }
                     catch
                     {
-                        await Task.Delay(++i * 1000);
+                        await Task.Delay((++i) * 1000);
                     }
                 }
             });
@@ -292,10 +293,14 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
             allExistingRepository._idToBeatmapLevel[beatmapLevel.levelID] = beatmapLevel;
             allExistingRepository._beatmapLevelIdToBeatmapLevelPackId[beatmapLevel.levelID] = beatmapLevelPack.packID;
 
-            BeatmapCharacteristicSO characteristic =
-                _customLevelLoader._beatmapCharacteristicCollection.GetBeatmapCharacteristicBySerializedName(
-                    map.Characteristic);
-            BeatmapKey beatmapKey = new(beatmapLevel.levelID, characteristic, (BeatmapDifficulty)map.Difficulty);
+            List<BeatmapKey> beatmapKeys = map.Keys.Select(
+                n =>
+                {
+                    BeatmapCharacteristicSO characteristic =
+                        _customLevelLoader._beatmapCharacteristicCollection.GetBeatmapCharacteristicBySerializedName(
+                            n.Characteristic);
+                    return new BeatmapKey(beatmapLevel.levelID, characteristic, (BeatmapDifficulty)n.Difficulty);
+                }).ToList();
 #else
             CustomPreviewBeatmapLevel beatmapLevel;
             if (_songCoreLoad != null)
@@ -315,11 +320,14 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
             _downloadProgress = 0.99f;
             CustomBeatmapLevel customBeatmapLevel =
                 await _customLevelLoader.LoadCustomBeatmapLevelAsync(beatmapLevel, token);
-            IDifficultyBeatmapSet set =
-                customBeatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(map.Characteristic);
-            IDifficultyBeatmap difficultyBeatmap =
-                set.difficultyBeatmaps.FirstOrDefault(n => (int)n.difficulty == map.Difficulty) ??
-                throw new InvalidOperationException($"Failed to find difficulty: [{map.Difficulty}].");
+            List<IDifficultyBeatmap> difficultyBeatmaps = map.Keys.Select(
+                n =>
+                {
+                    IDifficultyBeatmapSet set =
+                        customBeatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(n.Characteristic);
+                    return set.difficultyBeatmaps.FirstOrDefault(m => (int)m.difficulty == n.Difficulty) ??
+                           throw new InvalidOperationException($"Failed to find difficulty: [{n.Difficulty}].");
+                }).ToList();
 #endif
 
             _log.Debug($"Successfully downloaded [{map.Name}] as [{beatmapLevel.levelID}]");
@@ -329,10 +337,10 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
                 index,
                 map,
 #if LATEST
-                beatmapKey,
+                beatmapKeys,
                 beatmapLevel);
 #else
-                difficultyBeatmap,
+                difficultyBeatmaps,
                 beatmapLevel);
 #endif
             _beatmapLevel = downloadedMap;

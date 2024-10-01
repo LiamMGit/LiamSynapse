@@ -23,7 +23,6 @@ using IHost host = Host
             services.AddSingleton<IMapService, MapService>();
             services.AddSingleton<IDirectoryService, DirectoryService>();
             services.AddSingleton<ITournamentService, TournamentService>();
-            services.AddTransient<IFormatFactory, FormatFactory>();
             services.AddSingleton<IBackupService, BackupService>();
             services.AddSingleton<IBlacklistService, BlacklistService>();
             services.AddSingleton<IRoleService, RoleService>();

@@ -60,8 +60,6 @@ public class FakeClient(string id, string username) : IClient
     {
     }
 
-    public static FakeClient Aeroluna { get; } = new("76561198301904113_Steam", "Aeroluna");
-
     public static FakeClient[] Fakes
     {
         get
@@ -85,6 +83,8 @@ public class FakeClient(string id, string username) : IClient
     public IPAddress Address => IPAddress.Loopback;
 
     public bool Chatter => false;
+
+    public int Division { get; } = _random.Next(2);
 
     public string Id { get; } = id;
 
@@ -112,30 +112,17 @@ public class FakeClient(string id, string username) : IClient
         return false;
     }
 
-    public Task SendChatMessage(ChatMessage message)
-    {
-        return Task.CompletedTask;
-    }
+    public Task SendChatMessage(ChatMessage message) => Task.CompletedTask;
 
-    public Task SendOpcode(ClientOpcode opcode)
-    {
-        return Task.CompletedTask;
-    }
+    public Task SendOpcode(ClientOpcode opcode) => Task.CompletedTask;
 
-    public Task SendRefusal(string reason)
-    {
-        return Task.CompletedTask;
-    }
+    public Task SendRefusal(string reason) => Task.CompletedTask;
 
-    public Task SendServerMessage(string message, params object?[] args)
-    {
-        return Task.CompletedTask;
-    }
+    public Task SendServerMessage(string message, params object?[] args) => Task.CompletedTask;
 
-    public Task SendString(ClientOpcode opcode, string message)
-    {
-        return Task.CompletedTask;
-    }
+    public Task SendString(ClientOpcode opcode, string message) => Task.CompletedTask;
+
+    public Task SendInt(ClientOpcode opcode, int value) => Task.CompletedTask;
 
     public override string ToString()
     {

@@ -35,6 +35,9 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIComponent("modal")]
     private readonly ModalView _modal = null!;
 
+    [UIObject("division-setting")]
+    private readonly GameObject _divisionSetting = null!;
+
     [UIObject("replay-intro-button")]
     private readonly GameObject _replayIntroObject = null!;
 
@@ -47,14 +50,14 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIObject("toend")]
     private readonly GameObject _toEndObject = null!;
 
-    private Config _config = null!;
-
-    private InputFieldView _input = null!;
-    private IInstantiator _instantiator = null!;
-
     private SiraLog _log = null!;
+    private Config _config = null!;
     private MessageManager _messageManager = null!;
     private NetworkManager _networkManager = null!;
+    private ListingManager _listingManager = null!;
+    private IInstantiator _instantiator = null!;
+    private EventLeaderboardViewController _leaderboardViewController = null!;
+    private InputFieldView _input = null!;
     private OkRelay _okRelay = null!;
 
     internal event Action? IntroStarted;
@@ -86,6 +89,24 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         get => _config.ProfanityFilter;
         set => _config.ProfanityFilter = value;
     }
+
+    [UsedImplicitly]
+    [UIValue("division")]
+    private int Division
+    {
+        get => _config.LastEvent.Division ?? 0;
+        set
+        {
+            _config.LastEvent.Division = value;
+            _leaderboardViewController.InvalidateAllScores();
+            _ = _networkManager.Send(ServerOpcode.SetDivision, value);
+        }
+    }
+
+    [UsedImplicitly]
+    [UIValue("division-choices")]
+    private List<object> DivisionChoices =>
+        Enumerable.Range(0, Math.Max(_listingManager.Listing?.Divisions.Count ?? 1, 1)).Cast<object>().ToList();
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
@@ -138,6 +159,12 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _networkManager.UserBanned += OnUserBanned;
             OnStageUpdated(_networkManager.Status.Stage);
             _networkManager.StageUpdated += OnStageUpdated;
+
+            Listing? listing = _listingManager.Listing;
+            if (listing != null)
+            {
+                _divisionSetting.transform.parent.gameObject.SetActive(listing.Divisions.Count > 0);
+            }
         }
     }
 
@@ -168,13 +195,17 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         Config config,
         MessageManager messageManager,
         NetworkManager networkManager,
-        IInstantiator instantiator)
+        ListingManager listingManager,
+        IInstantiator instantiator,
+        EventLeaderboardViewController leaderboardViewController)
     {
         _log = log;
         _config = config;
         _messageManager = messageManager;
         _networkManager = networkManager;
+        _listingManager = listingManager;
         _instantiator = instantiator;
+        _leaderboardViewController = leaderboardViewController;
     }
 
     private void OnMessageReceived(ChatMessage message)
@@ -187,6 +218,14 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         string text = _input.text;
         _input.ClearInput();
         _messageManager.SendMessage(text);
+    }
+
+    [UsedImplicitly]
+    [UIAction("division-format")]
+    private string DivisionFormat(int value)
+    {
+        Listing? listing = _listingManager.Listing;
+        return listing is { Divisions.Count: > 0 } ? listing.Divisions[value].Name : "N/A";
     }
 
     [UsedImplicitly]

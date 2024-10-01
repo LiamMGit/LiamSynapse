@@ -16,7 +16,7 @@ public interface IListenerService
 
     public event Action<IClient, string>? CommandReceived;
 
-    public event Action<IClient, int>? LeaderboardRequested;
+    public event Action<IClient, int, int, bool>? LeaderboardRequested;
 
     public event Action<IClient, ScoreSubmission>? ScoreSubmissionReceived;
 
@@ -74,7 +74,7 @@ public class ListenerService : IListenerService
 
     public event Action<IClient, string>? CommandReceived;
 
-    public event Action<IClient, int>? LeaderboardRequested;
+    public event Action<IClient, int, int, bool>? LeaderboardRequested;
 
     public event Action<IClient, ScoreSubmission>? ScoreSubmissionReceived;
 
@@ -265,11 +265,11 @@ public class ListenerService : IListenerService
         ClientConnected?.Invoke(client);
     }
 
-    private void OnLeaderboardRequested(ConnectedClient connectedClient, int index)
+    private void OnLeaderboardRequested(ConnectedClient connectedClient, int index, int division, bool showEliminated)
     {
         try
         {
-            LeaderboardRequested?.Invoke(connectedClient, index);
+            LeaderboardRequested?.Invoke(connectedClient, index, division, showEliminated);
         }
         catch (Exception e)
         {

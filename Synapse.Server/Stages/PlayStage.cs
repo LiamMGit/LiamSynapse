@@ -89,10 +89,9 @@ public class PlayStage : Stage
         Map map = new()
         {
             Name = configMap.Name,
-            Characteristic = configMap.Characteristic,
-            Difficulty = configMap.Difficulty,
             AltCoverUrl = configMap.AltCoverUrl,
             Ruleset = configMap.Ruleset,
+            Keys = configMap.Keys,
             Downloads = configMap.Downloads
         };
 
@@ -232,7 +231,7 @@ public class PlayStage : Stage
         client.LogAndSend(_log, "Stopped {Map}", _mapService.CurrentMap.Name);
     }
 
-    private void OnBackupsLoaded(IReadOnlyList<Backup> _)
+    private void OnBackupsLoaded(IReadOnlyList<IReadOnlyList<Backup>> _)
     {
         _backupsLoaded.SetResult();
     }
