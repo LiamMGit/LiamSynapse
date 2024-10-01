@@ -14,7 +14,6 @@ internal class EventLobbyNavigationViewController : NavigationController
 {
     private EventLobbyChatViewController _chatViewController = null!;
     private Config _config = null!;
-    private MenuPrefabManager _menuPrefabManager = null!;
     private NetworkManager _networkManager = null!;
     private EventLobbySongInfoViewController _songInfoViewController = null!;
 
@@ -73,14 +72,12 @@ internal class EventLobbyNavigationViewController : NavigationController
         Config config,
         NetworkManager networkManager,
         TimeSyncManager timeSyncManager,
-        MenuPrefabManager menuPrefabManager,
         EventLobbyChatViewController chatViewController,
         EventLobbySongInfoViewController songInfoViewController)
     {
         _config = config;
         _networkManager = networkManager;
         _timeSyncManager = timeSyncManager;
-        _menuPrefabManager = menuPrefabManager;
         _chatViewController = chatViewController;
         _songInfoViewController = songInfoViewController;
     }

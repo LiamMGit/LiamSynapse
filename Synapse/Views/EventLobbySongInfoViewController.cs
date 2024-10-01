@@ -115,7 +115,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     private Sprite _coverPlaceholder = null!;
 
     private float _angle;
-#if LATEST
+#if !PRE_V1_37_1
     private BeatmapLevel? _beatmapLevel;
 #else
     private IPreviewBeatmapLevel? _beatmapLevel;
@@ -252,7 +252,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         }
         else if (_beatmapLevel != null)
         {
-#if LATEST
+#if !PRE_V1_37_1
             Task<Sprite> spriteTask = _beatmapLevel.previewMediaData.GetCoverSpriteAsync(token);
             string authorName = string.Join(", ", _beatmapLevel.allMappers);
 #else

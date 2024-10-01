@@ -36,9 +36,10 @@ internal class EventModsViewController : BSMLAutomaticViewController
     private readonly TMP_Text _header = null!;
 
     private Listing? _listing;
-    private ListingManager _listingManager = null!;
 
     private SiraLog _log = null!;
+    private BSMLParser _bsmlParser = null!;
+    private ListingManager _listingManager = null!;
     private NotificationManager _notificationManager = null!;
 
     internal event Action? Finished;
@@ -119,7 +120,7 @@ internal class EventModsViewController : BSMLAutomaticViewController
             Destroy(_contentObject);
         }
 
-        BSMLParser.instance.Parse(ContentBsml, gameObject, this);
+        _bsmlParser.Parse(ContentBsml, gameObject, this);
         return modsToDownload;
     }
 
@@ -136,9 +137,20 @@ internal class EventModsViewController : BSMLAutomaticViewController
 
     [UsedImplicitly]
     [Inject]
-    private void Construct(SiraLog log, ListingManager listingManager, NotificationManager notificationManager)
+    private void Construct(
+        SiraLog log,
+#if !V1_29_1
+        BSMLParser bsmlParser,
+#endif
+        ListingManager listingManager,
+        NotificationManager notificationManager)
     {
         _log = log;
+#if !V1_29_1
+        _bsmlParser = bsmlParser;
+#else
+        _bsmlParser = BSMLParser.instance;
+#endif
         _listingManager = listingManager;
         listingManager.ListingFound += OnListingFound;
         _notificationManager = notificationManager;

@@ -359,7 +359,7 @@ internal class EventFlowCoordinator : FlowCoordinator
             return;
         }
 
-#if LATEST
+#if !PRE_V1_37_1
         BeatmapKey beatmapKey = standardLevelScenesTransitionSetupData.beatmapKey;
         BeatmapLevel beatmapLevel = standardLevelScenesTransitionSetupData.beatmapLevel;
 #else
@@ -371,7 +371,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         _resultsViewController.Init(
             levelCompletionResults,
             transformedBeatmapData,
-#if LATEST
+#if !PRE_V1_37_1
             beatmapKey,
             beatmapLevel,
 #else

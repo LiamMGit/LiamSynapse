@@ -14,7 +14,7 @@ using Synapse.Models;
 using Synapse.Networking.Models;
 using UnityEngine;
 using Zenject;
-#if !LATEST
+#if PRE_V1_37_1
 using System.Reflection;
 using HarmonyLib;
 using SongCore.Data;
@@ -31,13 +31,13 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
     private readonly SiraLog _log;
     private readonly CustomLevelLoader _customLevelLoader;
     private readonly NetworkManager _networkManager;
-#if LATEST
+#if !PRE_V1_37_1
     private readonly BeatmapLevelsModel _beatmapLevelsModel;
 #endif
     private readonly CancellationTokenManager _cancellationTokenManager;
     private readonly DirectoryInfo _directory;
 
-#if LATEST
+#if !PRE_V1_37_1
     private readonly bool _doSongCoreLoad;
 #else
     private readonly MethodInfo? _songCoreLoad;
@@ -56,7 +56,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
         SiraLog log,
         CustomLevelLoader customLevelLoader,
         NetworkManager networkManager,
-#if LATEST
+#if !PRE_V1_37_1
         BeatmapLevelsModel beatmapLevelsModel,
 #endif
         CancellationTokenManager cancellationTokenManager)
@@ -64,7 +64,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
         _log = log;
         _customLevelLoader = customLevelLoader;
         _networkManager = networkManager;
-#if LATEST
+#if !PRE_V1_37_1
         _beatmapLevelsModel = beatmapLevelsModel;
 #endif
         _cancellationTokenManager = cancellationTokenManager;
@@ -75,7 +75,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
 
         if (PluginManager.GetPlugin("SongCore") != null)
         {
-#if LATEST
+#if !PRE_V1_37_1
             _doSongCoreLoad = true;
 #else
             _songCoreLoad = GetSongCoreLoadMethod();
@@ -154,7 +154,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
         _cancellationTokenManager.Cancel();
     }
 
-#if LATEST
+#if !PRE_V1_37_1
     private BeatmapLevel SongCoreLoad(string songPath)
     {
         (string, BeatmapLevel) customLevel = Loader.LoadCustomLevel(songPath) ??
@@ -259,7 +259,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
                 token);
 
             _downloadProgress = 0.98f;
-#if LATEST
+#if !PRE_V1_37_1
             BeatmapLevel beatmapLevel;
             if (_doSongCoreLoad)
             {
@@ -336,7 +336,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
             DownloadedMap downloadedMap = new(
                 index,
                 map,
-#if LATEST
+#if !PRE_V1_37_1
                 beatmapKeys,
                 beatmapLevel);
 #else

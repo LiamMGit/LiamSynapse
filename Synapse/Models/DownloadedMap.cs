@@ -8,7 +8,7 @@ public readonly struct DownloadedMap
     public DownloadedMap(
         int index,
         Map map,
-#if LATEST
+#if !PRE_V1_37_1
         List<BeatmapKey> beatmapKeys,
         BeatmapLevel beatmapLevel)
 #else
@@ -18,7 +18,7 @@ public readonly struct DownloadedMap
     {
         Index = index;
         Map = map;
-#if LATEST
+#if !PRE_V1_37_1
         BeatmapKeys = beatmapKeys;
 #else
         DifficultyBeatmaps = difficultyBeatmaps;
@@ -30,7 +30,7 @@ public readonly struct DownloadedMap
 
     public Map Map { get; }
 
-#if LATEST
+#if !PRE_V1_37_1
     public List<BeatmapKey> BeatmapKeys { get; }
 
     public BeatmapLevel BeatmapLevel { get; }

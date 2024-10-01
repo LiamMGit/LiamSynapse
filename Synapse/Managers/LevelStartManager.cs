@@ -16,7 +16,7 @@ internal class LevelStartManager : IDisposable
     private static readonly Action<string>? _nextLevelIsIsolated = GetNextLevelIsIsolated();
 
     private readonly Action? _disableCustomPlatform;
-#if LATEST
+#if !PRE_V1_37_1
     private readonly EnvironmentsListModel _environmentsListModel;
 #endif
 
@@ -36,7 +36,7 @@ internal class LevelStartManager : IDisposable
         DiContainer container,
         GameplaySetupViewController gameplaySetupViewController,
         MenuTransitionsHelper menuTransitionsHelper,
-#if LATEST
+#if !PRE_V1_37_1
         EnvironmentsListModel environmentsListModel,
 #endif
         NetworkManager networkManager,
@@ -46,7 +46,7 @@ internal class LevelStartManager : IDisposable
         _config = config;
         _gameplaySetupViewController = gameplaySetupViewController;
         _menuTransitionsHelper = menuTransitionsHelper;
-#if LATEST
+#if !PRE_V1_37_1
         _environmentsListModel = environmentsListModel;
 #endif
         _networkManager = networkManager;
@@ -231,18 +231,15 @@ internal class LevelStartManager : IDisposable
 
         int division = _config.LastEvent.Division ?? 0;
 
-#if LATEST
+#if !PRE_V1_37_1
         BeatmapKey beatmapKey = downloadedMap.BeatmapKeys[division];
         BeatmapLevel beatmapLevel = downloadedMap.BeatmapLevel;
         ColorScheme? beatmapOverrideColorScheme =
             beatmapLevel.GetColorScheme(beatmapKey.beatmapCharacteristic, beatmapKey.difficulty);
 #elif !V1_29_1
         ColorScheme? beatmapOverrideColorScheme = null;
-        if (downloadedMap is
-            {
-                BeatmapLevel: CustomBeatmapLevel customBeatmapLevel,
-                DifficultyBeatmap: CustomDifficultyBeatmap customDifficultyBeatmap
-            })
+        if (downloadedMap is { BeatmapLevel: CustomBeatmapLevel customBeatmapLevel } &&
+            downloadedMap.DifficultyBeatmaps[division] is CustomDifficultyBeatmap customDifficultyBeatmap)
         {
             beatmapOverrideColorScheme =
                 customBeatmapLevel.GetBeatmapLevelColorScheme(customDifficultyBeatmap.beatmapColorSchemeIdx);
@@ -255,7 +252,7 @@ internal class LevelStartManager : IDisposable
 
         StartStandardOrHeck(
             "screw yo analytics",
-#if LATEST
+#if !PRE_V1_37_1
             beatmapKey,
             beatmapLevel,
 #else
@@ -270,14 +267,14 @@ internal class LevelStartManager : IDisposable
             modifiers,
             playerSpecificSettings,
             null,
-#if LATEST
+#if !PRE_V1_37_1
             _environmentsListModel,
 #endif
             string.Empty, // doesnt matter, gets reset by animation anyways
             false,
             false,
             null,
-#if LATEST
+#if !PRE_V1_37_1
             null,
 #endif
             callback,
@@ -322,7 +319,7 @@ internal class LevelStartManager : IDisposable
     // i wish i could use my StartStandardLevelParameters here
     private void StartStandardOrHeck(
         string gameMode,
-#if LATEST
+#if !PRE_V1_37_1
         in BeatmapKey beatmapKey,
         BeatmapLevel beatmapLevel,
 #else
@@ -337,14 +334,14 @@ internal class LevelStartManager : IDisposable
         GameplayModifiers gameplayModifiers,
         PlayerSpecificSettings playerSpecificSettings,
         PracticeSettings? practiceSettings,
-#if LATEST
+#if !PRE_V1_37_1
         EnvironmentsListModel environmentsListModel,
 #endif
         string backButtonText,
         bool useTestNoteCutSoundEffects,
         bool startPaused,
         Action? beforeSceneSwitchCallback,
-#if LATEST
+#if !PRE_V1_37_1
         Action<DiContainer>? afterSceneSwitchCallback,
 #endif
         Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
@@ -359,7 +356,7 @@ internal class LevelStartManager : IDisposable
         {
             _heckIntegrationManager.Value.StartPlayViewInterruptedLevel(
                 gameMode,
-#if LATEST
+#if !PRE_V1_37_1
                 beatmapKey,
                 beatmapLevel,
 #else
@@ -374,14 +371,14 @@ internal class LevelStartManager : IDisposable
                 gameplayModifiers,
                 playerSpecificSettings,
                 practiceSettings,
-#if LATEST
+#if !PRE_V1_37_1
                 environmentsListModel,
 #endif
                 backButtonText,
                 useTestNoteCutSoundEffects,
                 startPaused,
                 beforeSceneSwitchCallback,
-#if LATEST
+#if !PRE_V1_37_1
                 afterSceneSwitchCallback,
 #endif
                 levelFinishedCallback,
@@ -396,7 +393,7 @@ internal class LevelStartManager : IDisposable
         {
             _menuTransitionsHelper.StartStandardLevel(
                 gameMode,
-#if LATEST
+#if !PRE_V1_37_1
                 beatmapKey,
                 beatmapLevel,
 #else
@@ -411,14 +408,14 @@ internal class LevelStartManager : IDisposable
                 gameplayModifiers,
                 playerSpecificSettings,
                 practiceSettings,
-#if LATEST
+#if !PRE_V1_37_1
                 environmentsListModel,
 #endif
                 backButtonText,
                 useTestNoteCutSoundEffects,
                 startPaused,
                 beforeSceneSwitchCallback,
-#if LATEST
+#if !PRE_V1_37_1
                 afterSceneSwitchCallback,
 #endif
                 levelFinishedCallback,

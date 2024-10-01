@@ -119,7 +119,7 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
         _originalBanner = original;
 
         MusicPackPromoBanner musicPackPromoBanner = newObject.GetComponent<MusicPackPromoBanner>();
-#if LATEST
+#if !PRE_V1_37_1
         Object.Destroy(musicPackPromoBanner._loadingIndicator);
         musicPackPromoBanner._promoBannerGo.SetActive(true);
         musicPackPromoBanner._backgroundImage.gameObject.SetActive(true);

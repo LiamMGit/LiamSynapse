@@ -1,7 +1,7 @@
 ﻿using System;
 using Heck.PlayView;
 using JetBrains.Annotations;
-#if LATEST
+#if !PRE_V1_37_1
 using Zenject;
 #endif
 
@@ -20,7 +20,7 @@ internal class HeckIntegrationManager
 
     internal void StartPlayViewInterruptedLevel(
         string gameMode,
-#if LATEST
+#if !PRE_V1_37_1
         in BeatmapKey beatmapKey,
         BeatmapLevel beatmapLevel,
 #else
@@ -35,14 +35,14 @@ internal class HeckIntegrationManager
         GameplayModifiers gameplayModifiers,
         PlayerSpecificSettings playerSpecificSettings,
         PracticeSettings? practiceSettings,
-#if LATEST
+#if !PRE_V1_37_1
         EnvironmentsListModel environmentsListModel,
 #endif
         string backButtonText,
         bool useTestNoteCutSoundEffects,
         bool startPaused,
         Action? beforeSceneSwitchCallback,
-#if LATEST
+#if !PRE_V1_37_1
         Action<DiContainer>? afterSceneSwitchCallback,
 #endif
         Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelFinishedCallback,
@@ -55,7 +55,7 @@ internal class HeckIntegrationManager
     {
         StartStandardLevelParameters parameters = new(
             gameMode,
-#if LATEST
+#if !PRE_V1_37_1
             beatmapKey,
             beatmapLevel,
 #else
@@ -70,14 +70,14 @@ internal class HeckIntegrationManager
             gameplayModifiers,
             playerSpecificSettings,
             practiceSettings,
-#if LATEST
+#if !PRE_V1_37_1
             environmentsListModel,
 #endif
             backButtonText,
             useTestNoteCutSoundEffects,
             startPaused,
             beforeSceneSwitchCallback,
-#if LATEST
+#if !PRE_V1_37_1
             afterSceneSwitchCallback,
 #endif
             levelFinishedCallback,
