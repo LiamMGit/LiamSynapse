@@ -7,8 +7,8 @@
       <horizontal bg='round-rect-panel' pad='1' preferred-width='32'>
         <text-segments id='segments' select-cell='selectcell'/>
       </horizontal>
-      <vertical bg='round-rect-panel' min-height='32' min-width='64'>
-        <text id='description' align='Center'/>
+      <vertical bg='round-rect-panel' min-height='32' preferred-width='64' horizontal-fit='Unconstrained'>
+        <text id='description' align='Center' word-wrapping='true'/>
       </vertical>
     </horizontal>
     <primary-button id='continue-button' text='continue' preferred-height='10' preferred-width='32' on-click='continue-click' interactable='false'/>

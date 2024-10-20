@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using BeatSaberMarkupLanguage;
 using BeatSaberMarkupLanguage.Attributes;
+using BeatSaberMarkupLanguage.Components.Settings;
 using BeatSaberMarkupLanguage.ViewControllers;
 using HarmonyLib;
 using HMUI;
@@ -35,8 +36,8 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIComponent("modal")]
     private readonly ModalView _modal = null!;
 
-    [UIObject("division-setting")]
-    private readonly GameObject _divisionSetting = null!;
+    [UIComponent("division-setting")]
+    private readonly DropDownListSetting _divisionSetting = null!;
 
     [UIObject("replay-intro-button")]
     private readonly GameObject _replayIntroObject = null!;
@@ -105,7 +106,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
     [UsedImplicitly]
     [UIValue("division-choices")]
-    private List<object> DivisionChoices { get; set; } = [];
+    private List<object> DivisionChoices { get; set; } = [0];
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
@@ -160,15 +161,25 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _networkManager.StageUpdated += OnStageUpdated;
 
             Listing? listing = _listingManager.Listing;
+            GameObject parent = _divisionSetting.transform.parent.gameObject;
             if (listing != null)
             {
-                _divisionSetting.transform.parent.gameObject.SetActive(listing.Divisions.Count > 0);
+                parent.SetActive(listing.Divisions.Count > 0);
                 DivisionChoices = Enumerable.Range(0, Math.Max(listing.Divisions.Count, 1)).Cast<object>().ToList();
             }
             else
             {
-                DivisionChoices = [];
+                parent.SetActive(false);
+                DivisionChoices = [0];
             }
+
+#if LATEST
+            _divisionSetting.Values = DivisionChoices;
+#else
+            _divisionSetting.values = DivisionChoices;
+#endif
+            _divisionSetting.UpdateChoices();
+            _divisionSetting.Value = Division;
         }
     }
 
