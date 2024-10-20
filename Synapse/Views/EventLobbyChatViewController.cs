@@ -30,7 +30,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private readonly VerticalLayoutGroup _chatObject = null!;
 
     private readonly List<ChatMessage> _messageQueue = [];
-    private readonly LinkedList<Tuple<ChatMessage, TextMeshProUGUI>> _messages = [];
+    private readonly LinkedList<(ChatMessage ChatMessage, TextMeshProUGUI TextMesh)> _messages = [];
 
     [UIComponent("modal")]
     private readonly ModalView _modal = null!;
@@ -105,8 +105,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
     [UsedImplicitly]
     [UIValue("division-choices")]
-    private List<object> DivisionChoices =>
-        Enumerable.Range(0, Math.Max(_listingManager.Listing?.Divisions.Count ?? 1, 1)).Cast<object>().ToList();
+    private List<object> DivisionChoices { get; set; } = [];
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
@@ -164,6 +163,11 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             if (listing != null)
             {
                 _divisionSetting.transform.parent.gameObject.SetActive(listing.Divisions.Count > 0);
+                DivisionChoices = Enumerable.Range(0, Math.Max(listing.Divisions.Count, 1)).Cast<object>().ToList();
+            }
+            else
+            {
+                DivisionChoices = [];
             }
         }
     }
@@ -250,7 +254,18 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private void OnUserBanned(string id)
     {
         _messageQueue.RemoveAll(n => n.Id == id);
-        _messages.Where(n => n.Item1.Id == id).Do(n => n.Item2.text = "<deleted>");
+
+        bool scrollToEnd = AtEnd();
+        float heightLost = 0;
+        _messages.Where(n => n.ChatMessage.Id == id).Do(
+            n =>
+            {
+                TextMeshProUGUI textMesh = n.TextMesh;
+                float height = textMesh.rectTransform.rect.height;
+                textMesh.text = "<deleted>";
+                heightLost += textMesh.rectTransform.rect.height - height;
+            });
+        ScrollLostHeight(scrollToEnd, heightLost);
     }
 
     [UsedImplicitly]
@@ -258,6 +273,38 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private void ShowModal()
     {
         _modal.Show(true);
+    }
+
+    private bool AtEnd()
+    {
+        float end = _scrollView.contentSize - _scrollView.scrollPageSize;
+        return end < 0 || Mathf.Abs(end - _scrollView._destinationPos) < 0.01f;
+    }
+
+    private void ScrollLostHeight(bool scrollToEnd, float heightLost)
+    {
+        Canvas.ForceUpdateCanvases();
+        RectTransform contentTransform = _scrollView._contentRectTransform;
+        _scrollView.SetContentSize(contentTransform.rect.height);
+        float heightDiff;
+        if (scrollToEnd)
+        {
+            heightDiff = _scrollView.contentSize - _scrollView.scrollPageSize - _scrollView._destinationPos;
+        }
+        else if (heightLost > 0)
+        {
+            heightDiff = -heightLost;
+        }
+        else
+        {
+            return;
+        }
+
+        _scrollView._destinationPos = Mathf.Max(_scrollView._destinationPos + heightDiff, 0);
+        _scrollView.RefreshButtons();
+        float newY = Mathf.Max(contentTransform.anchoredPosition.y + heightDiff, 0);
+        contentTransform.anchoredPosition = new Vector2(0, newY);
+        _scrollView.UpdateVerticalScrollIndicator(Mathf.Abs(newY));
     }
 
     private void Update()
@@ -269,9 +316,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
         try
         {
-            float end = _scrollView.contentSize - _scrollView.scrollPageSize;
-            bool scrollToEnd = end < 0 ||
-                               Mathf.Abs(end - _scrollView._destinationPos) < 0.01f;
+            bool scrollToEnd = AtEnd();
             float heightLost = 0;
 
             ChatMessage[] queue = _messageQueue.ToArray();
@@ -315,14 +360,14 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
                 if (_messages.Count > 100)
                 {
-                    LinkedListNode<Tuple<ChatMessage, TextMeshProUGUI>> first = _messages.First;
+                    LinkedListNode<(ChatMessage, TextMeshProUGUI)> first = _messages.First;
                     _messages.RemoveFirst();
                     TextMeshProUGUI text = first.Value.Item2;
                     float height = text.rectTransform.rect.height;
                     text.color = color;
                     text.text = content;
                     text.transform.SetAsLastSibling();
-                    first.Value = new Tuple<ChatMessage, TextMeshProUGUI>(message, text);
+                    first.Value = (message, text);
                     _messages.AddLast(first);
                     heightLost += height;
                 }
@@ -338,32 +383,11 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
                     text.color = color;
                     text.alignment = TextAlignmentOptions.Left;
                     text.fontSize = 4;
-                    _messages.AddLast(new Tuple<ChatMessage, TextMeshProUGUI>(message, text));
+                    _messages.AddLast((message, text));
                 }
-            }
 
-            Canvas.ForceUpdateCanvases();
-            RectTransform contentTransform = _scrollView._contentRectTransform;
-            _scrollView.SetContentSize(contentTransform.rect.height);
-            float heightDiff = heightLost;
-            if (scrollToEnd)
-            {
-                heightDiff = _scrollView.contentSize - _scrollView.scrollPageSize - _scrollView._destinationPos;
+                ScrollLostHeight(scrollToEnd, heightLost);
             }
-            else if (heightLost > 0)
-            {
-                heightDiff = -heightLost;
-            }
-            else
-            {
-                return;
-            }
-
-            _scrollView._destinationPos = Mathf.Max(_scrollView._destinationPos + heightDiff, 0);
-            _scrollView.RefreshButtons();
-            float newY = Mathf.Max(contentTransform.anchoredPosition.y + heightDiff, 0);
-            contentTransform.anchoredPosition = new Vector2(0, newY);
-            _scrollView.UpdateVerticalScrollIndicator(Mathf.Abs(newY));
         }
         catch (Exception e)
         {

@@ -133,7 +133,7 @@ public class ConnectedClient(
     {
         if (_authentication == Authentication.Authenticated)
         {
-            log.LogInformation(exception, "Refused packet from [{Username}] ({Reason})", DisplayUsername, reason);
+            log.LogInformation(exception, "Refused packet from [{Client}] ({Reason})", this, reason);
         }
 
         using PacketBuilder packetBuilder = new((byte)ClientOpcode.RefusedPacket);

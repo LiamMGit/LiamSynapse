@@ -13,7 +13,8 @@ public class ScoresCommand(
     IMapService mapService,
     IEventService eventService,
     IListenerService listenerService,
-    IBackupService backupService)
+    IBackupService backupService,
+    IListingService listingService)
 {
     [Command("scores", Permission.Coordinator)]
     public void Scores(IClient client, string arguments)
@@ -48,7 +49,9 @@ public class ScoresCommand(
                 }
 
                 leaderboardService.BroadcastLeaderboard(mapIndexInt);
-                client.SendServerMessage("Refreshed leaderboards for ({Index})", mapIndexInt);
+                client.SendServerMessage("Refreshed leaderboards for [{Map} ({Index}))]",
+                    mapService.Maps[mapIndexInt].Name,
+                    mapIndexInt);
 
                 break;
             }
@@ -89,9 +92,11 @@ public class ScoresCommand(
                         flags.Contains('i') ? n => n.Id : n => n.Username);
                 client.LogAndSend(
                     log,
-                    "Removed score [{Score}] from map [{Map}]",
+                    "Removed score [{Score}] from [{Map} ({Index}))] ({Division})",
                     score,
-                    mapService.Maps[mapIndexInt].Name);
+                    mapService.Maps[mapIndexInt].Name,
+                    mapIndexInt,
+                    listingService.GetDivisionName(divisionInt));
                 leaderboardService.RemoveScore(divisionInt, mapIndexInt, score);
                 if (listenerService.Clients.TryGetValue(score.Id, out IClient? target))
                 {
@@ -132,9 +137,11 @@ public class ScoresCommand(
                 leaderboardService.DropScores(divisionInt, mapIndexInt);
                 client.LogAndSend(
                     log,
-                    "Removed [{ScoreCount}] score(s) from map [{Map}]",
+                    "Removed [{ScoreCount}] score(s) from [{Map} ({Index}))] ({Division})",
                     scoresCount,
-                    mapService.Maps[mapIndexInt].Name);
+                    mapService.Maps[mapIndexInt].Name,
+                    mapIndexInt,
+                    listingService.GetDivisionName(divisionInt));
                 eventService.UpdateStatus(false);
 
                 break;
@@ -165,8 +172,7 @@ public class ScoresCommand(
             {
                 int mapIndexInt;
                 string flags = subArguments.GetFlags(out string extra);
-                extra.SplitCommand(out string mapIndex, out string subSubArguments);
-                subSubArguments.SplitCommand(out string subSubCommand, out string subSubSubArguments);
+                extra.SplitCommand(out string subSubCommand, out string subSubSubArguments);
 
                 if (!int.TryParse(subSubCommand, out int divisionInt))
                 {
@@ -176,7 +182,6 @@ public class ScoresCommand(
                 string id = subSubSubArguments.Unwrap();
                 if (string.IsNullOrWhiteSpace(id))
                 {
-                    id = mapIndex;
                     mapIndexInt = mapService.Index;
                 }
                 else if (!int.TryParse(subArguments, out mapIndexInt))
@@ -191,14 +196,22 @@ public class ScoresCommand(
                 }
 
                 string map = mapService.Maps[mapIndexInt].Name;
+                string division = listingService.GetDivisionName(divisionInt);
                 IReadOnlyList<SavedScore> scores = leaderboardService.AllScores[divisionInt][mapIndexInt];
                 if (scores.Count > 0)
                 {
-                    client.SendServerMessage("{Map} ({Index}) has {ScoresCount} scores", map, mapIndexInt, scores.Count);
+                    client.SendServerMessage("[{Map} ({Index}))] ({Division}) has {ScoresCount} scores",
+                        map,
+                        mapIndexInt,
+                        division,
+                    scores.Count);
                 }
                 else
                 {
-                    client.SendServerMessage("No scores currently submitted for [{Map}]", map);
+                    client.SendServerMessage("No scores currently submitted for [{Map} ({Index}))] ({Division})",
+                        map,
+                        mapIndexInt,
+                        division);
                 }
 
                 if (flags.Contains('v'))

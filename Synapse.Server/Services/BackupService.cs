@@ -73,13 +73,17 @@ public class BackupService : IBackupService
             for (int j = 0; j < divisionsCount; j++)
             {
                 string[] files = Directory.EnumerateFiles(_directory, $"scores{j:D2}??.json").ToArray();
-                Backup[] divisionBackups = new Backup[files.Length];
+                Backup[] divisionBackups = new Backup[mapCount];
                 for (int i = 0; i < mapCount; i++)
                 {
                     string? file = files.FirstOrDefault(n => n.EndsWith($"scores{j:D2}{i:D2}.json"));
                     if (file == null)
                     {
-                        break;
+                        divisionBackups[i] = new Backup
+                        {
+                            Scores = []
+                        };
+                        continue;
                     }
 
                     using StreamReader reader = new(file);

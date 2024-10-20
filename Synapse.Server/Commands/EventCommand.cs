@@ -154,7 +154,7 @@ public class EventCommand
 
                 flags = flags.GetFlags();
                 _playStage.SetIndex(index, client, flags.Contains('s'), flags.Contains('a'));
-                client.SendServerMessage("Map set to [{Map}] ({Index})", _mapService.CurrentMap.Name, index);
+                client.SendServerMessage("Map set to [{Map} ({Index})]", _mapService.CurrentMap.Name, index);
 
                 break;
             }

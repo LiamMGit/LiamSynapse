@@ -12,6 +12,8 @@ public interface IListingService
     public int DivisionCount { get; }
 
     public string[] GameVersion { get; }
+
+    public string GetDivisionName(int index);
 }
 
 public class ListingService : IListingService
@@ -38,6 +40,11 @@ public class ListingService : IListingService
     public int DivisionCount => Listing == null ? 1 : Math.Max(Listing.Divisions.Count, 1);
 
     public string[] GameVersion { get; private set; } = [];
+
+    public string GetDivisionName(int index)
+    {
+        return Listing?.Divisions[index].Name ?? index.ToString();
+    }
 
     private async Task<Listing?> GetListing()
     {

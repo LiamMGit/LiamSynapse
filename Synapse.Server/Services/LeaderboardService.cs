@@ -249,19 +249,6 @@ public class LeaderboardService : ILeaderboardService
                 }
             }
         }
-
-        for (int i = 0; i < divisionBackups.Count; i++)
-        {
-            IReadOnlyList<Backup> backups = divisionBackups[i];
-            for (int j = backups.Count; j < _mapService.MapCount; j++)
-            {
-                _savedIds[i][j] = new ConcurrentDictionary<string, SavedScore>();
-                _cachedScores[i][j] = null;
-                _cachedAllScores[i][j] = null;
-                _sortedAllScores[i][j] = new ConcurrentList<SavedScore>();
-                _sortedScores[i][j] = new ConcurrentList<SavedScore>();
-            }
-        }
     }
 
     private void OnLeaderboardRequested(IClient client, int index, int division, bool showEliminated)
