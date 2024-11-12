@@ -323,8 +323,13 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
             List<IDifficultyBeatmap> difficultyBeatmaps = map.Keys.Select(
                 n =>
                 {
-                    IDifficultyBeatmapSet set =
+                    IDifficultyBeatmapSet? set =
                         customBeatmapLevel.beatmapLevelData.GetDifficultyBeatmapSet(n.Characteristic);
+                    if (set == null)
+                    {
+                        throw new InvalidOperationException($"Failed to find characteristic: [{n.Characteristic}].");
+                    }
+
                     return set.difficultyBeatmaps.FirstOrDefault(m => (int)m.difficulty == n.Difficulty) ??
                            throw new InvalidOperationException($"Failed to find difficulty: [{n.Difficulty}].");
                 }).ToList();
