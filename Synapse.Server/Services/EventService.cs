@@ -51,6 +51,7 @@ public class EventService : IEventService
 
         listenerService.ClientConnected += OnClientConnected;
         leaderboardService.ScoreSubmitted += OnScoreSubmitted;
+        listenerService.StatusRequested += OnStatusRequested;
 
         Stages = stages.ToArray();
         for (int i = 0; i < Stages.Length; i++)
@@ -162,13 +163,9 @@ public class EventService : IEventService
         return _cachedStatus;
     }
 
-    private void OnClientConnected(IClient client)
-    {
-        _ = SendStatus(client);
-    }
+    private void OnClientConnected(IClient client) => _ = SendStatus(client);
 
-    private void OnScoreSubmitted(IClient client)
-    {
-        _ = SendStatus(client);
-    }
+    private void OnScoreSubmitted(IClient client) => _ = SendStatus(client);
+
+    private void OnStatusRequested(IClient client) => _ = SendStatus(client);
 }

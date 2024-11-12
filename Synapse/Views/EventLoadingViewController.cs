@@ -114,7 +114,7 @@ internal class EventLoadingViewController : BSMLAutomaticViewController
     {
         if (!success)
         {
-            Finish("Error occurred while downloading bundle");
+            Finish("Error occurred while downloading bundle, try rejoining");
             return;
         }
 

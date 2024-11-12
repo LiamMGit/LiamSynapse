@@ -12,7 +12,7 @@ public interface ITournamentService
 {
     public string GetColor(int division, int index, string id);
 
-    public bool IsEliminated(int index, string id);
+    public bool IsEliminated(int division, int index, string id);
 
     public Task SubmitScores(int index, IReadOnlyList<IReadOnlyList<IReadOnlyList<SavedScore>>> scores);
 }
@@ -101,9 +101,9 @@ public class TournamentService : ITournamentService
         return _formats[division].GetColor(index, id);
     }
 
-    public bool IsEliminated(int index, string id)
+    public bool IsEliminated(int division, int index, string id)
     {
-        return _formats.Any(n => n.IsEliminated(index, id));
+        return _formats[division].IsEliminated(index, id);
     }
 
     public async Task SubmitScores(int index, IReadOnlyList<IReadOnlyList<IReadOnlyList<SavedScore>>> scores)

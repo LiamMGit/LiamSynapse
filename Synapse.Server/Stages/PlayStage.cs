@@ -52,7 +52,7 @@ public class PlayStage : Stage
         PlayStatus playStatus = (PlayStatus)status.Stage;
         int index = playStatus.Index;
 
-        bool eliminated = _tournamentService.IsEliminated(index, client.Id);
+        bool eliminated = _tournamentService.IsEliminated(client.Division, index, client.Id);
 
         if (!_leaderboardService.TryGetScore(index, client, out SavedScore savedScore))
         {

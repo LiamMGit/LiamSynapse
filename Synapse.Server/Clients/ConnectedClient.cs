@@ -39,6 +39,8 @@ public class ConnectedClient(
 
     public event Action<ConnectedClient, ScoreSubmission>? ScoreSubmissionReceived;
 
+    public event Action<ConnectedClient>? StatusRequested;
+
     internal enum Authentication
     {
         None,
@@ -359,6 +361,7 @@ public class ConnectedClient(
 
                     case ServerOpcode.SetDivision:
                         Division = reader.ReadInt32();
+                        StatusRequested?.Invoke(this);
                         break;
 
                     case ServerOpcode.ChatMessage:

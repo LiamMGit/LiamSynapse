@@ -253,9 +253,9 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
                 url,
                 download.Hash,
                 path,
-                n => _downloadProgress = n * 0.8f,
+                n => _downloadProgress = n * 0.95f,
                 null,
-                n => _downloadProgress = 0.8f + (n * 0.15f),
+                n => _downloadProgress = 0.95f + (n * 0.02f),
                 token);
 
             _downloadProgress = 0.98f;

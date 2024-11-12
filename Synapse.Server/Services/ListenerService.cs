@@ -20,6 +20,8 @@ public interface IListenerService
 
     public event Action<IClient, ScoreSubmission>? ScoreSubmissionReceived;
 
+    public event Action<IClient>? StatusRequested;
+
     public ConcurrentDictionary<IClient, byte> Chatters { get; }
 
     public ConcurrentDictionary<string, IClient> Clients { get; }
@@ -77,6 +79,8 @@ public class ListenerService : IListenerService
     public event Action<IClient, int, int, bool>? LeaderboardRequested;
 
     public event Action<IClient, ScoreSubmission>? ScoreSubmissionReceived;
+
+    public event Action<IClient>? StatusRequested;
 
     public ConcurrentDictionary<IClient, byte> Chatters { get; } = new();
 
@@ -202,6 +206,7 @@ public class ListenerService : IListenerService
         client.CommandReceived += OnCommandReceived;
         client.ScoreSubmissionReceived += OnScoreSubmissionReceived;
         client.LeaderboardRequested += OnLeaderboardRequested;
+        client.StatusRequested += OnStatusRequested;
         await client.RunAsync();
         client.Authenticated -= OnJoined;
         client.Disconnected -= OnDisconnected;
@@ -211,6 +216,7 @@ public class ListenerService : IListenerService
         client.CommandReceived -= OnCommandReceived;
         client.ScoreSubmissionReceived -= OnScoreSubmissionReceived;
         client.LeaderboardRequested -= OnLeaderboardRequested;
+        client.StatusRequested -= OnStatusRequested;
     }
 
     private void OnChatJoined(ConnectedClient client)
@@ -280,6 +286,11 @@ public class ListenerService : IListenerService
     private void OnScoreSubmissionReceived(ConnectedClient connectedClient, ScoreSubmission scoreSubmission)
     {
         ScoreSubmissionReceived?.Invoke(connectedClient, scoreSubmission);
+    }
+
+    private void OnStatusRequested(ConnectedClient connectedClient)
+    {
+        StatusRequested?.Invoke(connectedClient);
     }
 
     private bool CheckMaxConnection(ConnectedClient client)

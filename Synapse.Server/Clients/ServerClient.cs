@@ -38,6 +38,11 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
 
     public Task SendChatMessage(ChatMessage message)
     {
+        if (message.Type == MessageType.WhisperTo)
+        {
+            return Task.CompletedTask;
+        }
+
         string id = message.Id;
         string client = $"({id}) {message.Username}";
         log.LogInformation("[{Client}] {Message}", client, message.Message);
