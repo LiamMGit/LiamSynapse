@@ -18,10 +18,20 @@ internal class HeckIntegrationManager
     private HeckIntegrationManager(DiContainer container)
     {
         Assembly assembly = PluginManager.GetPlugin("Heck").Assembly;
-        Type playViewManagerType = assembly.GetType("Heck.PlayView.PlayViewManager");
+        Type? playViewManagerType = assembly.GetType("Heck.PlayView.PlayViewManager");
+        if (playViewManagerType == null)
+        {
+            throw new InvalidOperationException("Failed to get Heck.PlayView.PlayViewManager type");
+        }
+
         _playViewManager = container.Resolve(playViewManagerType);
         _forceStart = AccessTools.Method(playViewManagerType, "ForceStart");
-        Type startStandardLevelParametersType = assembly.GetType("Heck.PlayView.StartStandardLevelParameters");
+        Type? startStandardLevelParametersType = assembly.GetType("Heck.PlayView.StartStandardLevelParameters");
+        if (startStandardLevelParametersType == null)
+        {
+            throw new InvalidOperationException("Failed to get Heck.PlayView.StartStandardLevelParameters type");
+        }
+
         _parametersConstructor = AccessTools.FirstConstructor(
             startStandardLevelParametersType,
             n => n.GetParameters().Length > 1);

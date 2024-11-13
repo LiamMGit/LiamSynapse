@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
+using HarmonyLib;
 using HMUI;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
@@ -39,6 +41,8 @@ internal class EventFlowCoordinator : FlowCoordinator
     private LevelStartManager _levelStartManager = null!;
     private NetworkManager _networkManager = null!;
     private MenuPrefabManager _menuPrefabManager = null!;
+
+    private MethodInfo _resultsViewControllerInit = null!;
 
     private bool _dirtyListing;
     private Listing? _listing;
@@ -260,6 +264,9 @@ internal class EventFlowCoordinator : FlowCoordinator
         listingManager.ListingFound += OnListingFound;
         _networkManager = networkManager;
         _menuPrefabManager = menuPrefabManager;
+#if !PRE_V1_37_1
+        _resultsViewControllerInit = AccessTools.Method(typeof(ResultsViewController), nameof(ResultsViewController.Init));
+#endif
     }
 
     private void ShowLoading(bool provide)
@@ -359,26 +366,35 @@ internal class EventFlowCoordinator : FlowCoordinator
             return;
         }
 
-#if !PRE_V1_37_1
+#if PRE_V1_37_1
+        IDifficultyBeatmap difficultyBeatmap = standardLevelScenesTransitionSetupData.difficultyBeatmap;
+#else
         BeatmapKey beatmapKey = standardLevelScenesTransitionSetupData.beatmapKey;
         BeatmapLevel beatmapLevel = standardLevelScenesTransitionSetupData.beatmapLevel;
-#else
-        IDifficultyBeatmap difficultyBeatmap = standardLevelScenesTransitionSetupData.difficultyBeatmap;
 #endif
         IReadonlyBeatmapData transformedBeatmapData = standardLevelScenesTransitionSetupData.transformedBeatmapData;
         ////this._menuLightsManager.SetColorPreset((levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared) ? this._resultsClearedLightsPreset : this._resultsFailedLightsPreset, true);
         ////levelCompletionResults.SetField(nameof(levelCompletionResults.levelEndStateType), LevelCompletionResults.LevelEndStateType.Failed);
+#if PRE_V1_37_1
         _resultsViewController.Init(
             levelCompletionResults,
             transformedBeatmapData,
-#if !PRE_V1_37_1
-            beatmapKey,
-            beatmapLevel,
-#else
             difficultyBeatmap,
-#endif
             false,
             false);
+#else
+        // calling a method with an in readonly struct parameter seems to make github ci unhappy
+        _resultsViewControllerInit.Invoke(
+            _resultsViewController,
+            [
+                levelCompletionResults,
+                transformedBeatmapData,
+                beatmapKey,
+                beatmapLevel,
+                false,
+                false
+            ]);
+#endif
         _resultsViewController._restartButton.gameObject.SetActive(false);
         TransitionFinished += () => PresentViewController(
             _resultsViewController,

@@ -37,27 +37,32 @@ internal class SongCoreLoader : IInitializable
     public void Initialize()
     {
         Assembly assembly = PluginManager.GetPlugin("SongCore").Assembly;
-        Type loaderType = assembly.GetType("SongCore.Loader");
-        PropertyInfo? instanceProperty = loaderType.GetProperty("Instance", BindingFlags.Static | BindingFlags.Public);
-        if (instanceProperty == null)
+        Type? loaderType = assembly.GetType("SongCore.Loader");
+        if (loaderType == null)
         {
-            throw new InvalidOperationException("Failed to get SongCore.Loader.Instance property");
+            throw new InvalidOperationException("Failed to get SongCore.Loader type");
         }
 
-        _loader = instanceProperty.GetValue(null);
+        FieldInfo? instanceField = loaderType.GetField("Instance", BindingFlags.Static | BindingFlags.Public);
+        if (instanceField == null)
+        {
+            throw new InvalidOperationException("Failed to get SongCore.Loader.Instance field");
+        }
+
+        _loader = instanceField.GetValue(null);
 
 #if PRE_V1_37_1
         _loadSongAndAddToDictionaries = AccessTools.Method(loaderType, "LoadSongAndAddToDictionaries");
         _loadCustomLevelSongData = AccessTools.Method(loaderType, "LoadCustomLevelSongData");
 #else
         _loadCustomLevel = AccessTools.Method(loaderType, "LoadCustomLevel");
-        PropertyInfo? loadedBeatmapSaveDataProperty = loaderType.GetProperty("LoadedBeatmapSaveData", BindingFlags.Static | BindingFlags.NonPublic);
-        if (loadedBeatmapSaveDataProperty == null)
+        FieldInfo? loadedBeatmapSaveDataField = loaderType.GetField("LoadedBeatmapSaveData", BindingFlags.Static | BindingFlags.NonPublic);
+        if (loadedBeatmapSaveDataField == null)
         {
-            throw new InvalidOperationException("Failed to get SongCore.Loader.Instance property");
+            throw new InvalidOperationException("Failed to get SongCore.Loader.LoadedBeatmapSaveData field");
         }
 
-        _loadedBeatmapSaveData = (ConcurrentDictionary<string, CustomLevelLoader.LoadedSaveData>)loadedBeatmapSaveDataProperty.GetValue(null);
+        _loadedBeatmapSaveData = (ConcurrentDictionary<string, CustomLevelLoader.LoadedSaveData>)loadedBeatmapSaveDataField.GetValue(null);
 #endif
     }
 
