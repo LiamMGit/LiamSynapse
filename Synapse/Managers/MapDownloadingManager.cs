@@ -142,6 +142,7 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
 
         string mapName = Path.GetInvalidFileNameChars().Aggregate(map.Name, (current, c) => current.Replace(c, '_'));
         string path = $"{_mapFolder}{Path.DirectorySeparatorChar}{mapName}";
+        CancellationToken token = _cancellationTokenManager.Reset();
         UnityMainThreadTaskScheduler.Factory.StartNew(
             async () =>
             {
@@ -150,15 +151,20 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
                 {
                     try
                     {
-                        await Download(index, map, path);
+                        await Download(index, map, path, token);
+                        return;
+                    }
+                    catch (TaskCanceledException)
+                    {
                         return;
                     }
                     catch
                     {
-                        await Task.Delay((++i) * 1000);
+                        await Task.Delay((++i) * 1000, token);
                     }
                 }
-            });
+            },
+            token);
     }
 
     private void OnClosed()
@@ -166,10 +172,9 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
         _cancellationTokenManager.Cancel();
     }
 
-    private async Task Download(int index, Map map, string path)
+    private async Task Download(int index, Map map, string path, CancellationToken token)
     {
         _error = null;
-        CancellationToken token = _cancellationTokenManager.Reset();
         _lastProgress = 0;
         _downloadProgress = 0;
         try
