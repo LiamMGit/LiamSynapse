@@ -2,7 +2,7 @@
 using IPA.Utilities;
 using UnityEngine;
 
-namespace Synapse.Controllers;
+namespace Synapse.KeyboardKeyer;
 
 [RequireComponent(typeof(HMUI.UIKeyboard))]
 internal class KeyboardKeyer : MonoBehaviour

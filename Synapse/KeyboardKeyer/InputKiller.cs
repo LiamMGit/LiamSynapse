@@ -1,7 +1,7 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 
-namespace Synapse.HarmonyPatches;
+namespace Synapse.KeyboardKeyer;
 
 [HarmonyPatch(typeof(Input))]
 public static class InputKiller

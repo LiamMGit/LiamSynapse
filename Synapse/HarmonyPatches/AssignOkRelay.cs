@@ -1,12 +1,11 @@
 ﻿using HarmonyLib;
 using HMUI;
 using Synapse.Controllers;
-using UnityEngine;
 
 namespace Synapse.HarmonyPatches;
 
 [HarmonyPatch(typeof(InputFieldView))]
-internal static class AssignChatKeyboard
+internal static class AssignOkRelay
 {
     [HarmonyPrefix]
     [HarmonyPatch(nameof(InputFieldView.ActivateKeyboard))]
@@ -23,9 +22,7 @@ internal static class AssignChatKeyboard
             return;
         }
 
-        InputKiller.Active = true;
         keyboard.okButtonWasPressedEvent += okRelay.KeyboardOkPressed;
-        keyboard.gameObject.AddComponent<KeyboardKeyer>();
     }
 
     [HarmonyPrefix]
@@ -43,8 +40,6 @@ internal static class AssignChatKeyboard
             return;
         }
 
-        InputKiller.Active = false;
         keyboard.okButtonWasPressedEvent -= okRelay.KeyboardOkPressed;
-        Object.Destroy(keyboard.GetComponent<KeyboardKeyer>());
     }
 }
