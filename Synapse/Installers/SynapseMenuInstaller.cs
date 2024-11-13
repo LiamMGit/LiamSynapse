@@ -17,6 +17,11 @@ internal class SynapseMenuInstaller : Installer
             Container.Bind<HeckIntegrationManager>().AsSingle();
         }
 
+        if (PluginManager.GetPlugin("SongCore") != null)
+        {
+            Container.BindInterfacesAndSelfTo<SongCoreLoader>().AsSingle();
+        }
+
         Container.BindInterfacesTo<AddEventFlowCoordinator>().AsSingle();
         Container.BindInterfacesTo<AddMainMenuEventButton>().AsSingle();
 

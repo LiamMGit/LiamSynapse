@@ -22,7 +22,7 @@ internal class LevelStartManager : IDisposable
 
     private readonly Config _config;
     private readonly GameplaySetupViewController _gameplaySetupViewController;
-    private readonly LazyInject<HeckIntegrationManager>? _heckIntegrationManager;
+    private readonly HeckIntegrationManager? _heckIntegrationManager;
     private readonly MenuTransitionsHelper _menuTransitionsHelper;
     private readonly NetworkManager _networkManager;
     private readonly NoEnergyModifier _noEnergyModifier;
@@ -41,7 +41,7 @@ internal class LevelStartManager : IDisposable
 #endif
         NetworkManager networkManager,
         NoEnergyModifier noEnergyModifier,
-        [InjectOptional] LazyInject<HeckIntegrationManager>? heckIntegrationManager)
+        [InjectOptional] HeckIntegrationManager? heckIntegrationManager)
     {
         _config = config;
         _gameplaySetupViewController = gameplaySetupViewController;
@@ -354,7 +354,7 @@ internal class LevelStartManager : IDisposable
     {
         if (_heckIntegrationManager != null)
         {
-            _heckIntegrationManager.Value.StartPlayViewInterruptedLevel(
+            _heckIntegrationManager.StartPlayViewInterruptedLevel(
                 gameMode,
 #if !PRE_V1_37_1
                 beatmapKey,

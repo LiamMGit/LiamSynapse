@@ -1,21 +1,30 @@
 ﻿using System;
-using Heck.PlayView;
+using System.Reflection;
+using HarmonyLib;
+using IPA.Loader;
 using JetBrains.Annotations;
-#if !PRE_V1_37_1
 using Zenject;
-#endif
 
 namespace Synapse.Managers;
 
-// TODO: fully remove heck and songcore references
 internal class HeckIntegrationManager
 {
-    private readonly PlayViewManager _playViewManager;
+    private readonly object _playViewManager;
+
+    private readonly ConstructorInfo _parametersConstructor;
+    private readonly MethodInfo _forceStart;
 
     [UsedImplicitly]
-    private HeckIntegrationManager(PlayViewManager playViewManager)
+    private HeckIntegrationManager(DiContainer container)
     {
-        _playViewManager = playViewManager;
+        Assembly assembly = PluginManager.GetPlugin("Heck").Assembly;
+        Type playViewManagerType = assembly.GetType("Heck.PlayView.PlayViewManager");
+        _playViewManager = container.Resolve(playViewManagerType);
+        _forceStart = AccessTools.Method(playViewManagerType, "ForceStart");
+        Type startStandardLevelParametersType = assembly.GetType("Heck.PlayView.StartStandardLevelParameters");
+        _parametersConstructor = AccessTools.FirstConstructor(
+            startStandardLevelParametersType,
+            n => n.GetParameters().Length > 1);
     }
 
     internal void StartPlayViewInterruptedLevel(
@@ -53,7 +62,7 @@ internal class HeckIntegrationManager
         Action<LevelScenesTransitionSetupDataSO, LevelCompletionResults>? levelRestartedCallback)
 #endif
     {
-        StartStandardLevelParameters parameters = new(
+        object parameters = _parametersConstructor.Invoke([
             gameMode,
 #if !PRE_V1_37_1
             beatmapKey,
@@ -83,10 +92,11 @@ internal class HeckIntegrationManager
             levelFinishedCallback,
 #if !V1_29_1
             levelRestartedCallback,
-            recordingToolData);
+            recordingToolData
 #else
-            levelRestartedCallback);
+            levelRestartedCallback
 #endif
-        _playViewManager.ForceStart(parameters);
+        ]);
+        _forceStart.Invoke(_playViewManager, [parameters]);
     }
 }

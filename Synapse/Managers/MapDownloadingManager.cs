@@ -4,21 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using IPA.Loader;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
-using SongCore;
 using Synapse.Extras;
 using Synapse.Models;
 using Synapse.Networking.Models;
 using UnityEngine;
 using Zenject;
-#if PRE_V1_37_1
-using System.Reflection;
-using HarmonyLib;
-using SongCore.Data;
-#endif
 
 namespace Synapse.Managers;
 
@@ -35,13 +28,8 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
     private readonly BeatmapLevelsModel _beatmapLevelsModel;
 #endif
     private readonly CancellationTokenManager _cancellationTokenManager;
+    private readonly SongCoreLoader? _songCoreLoader;
     private readonly DirectoryInfo _directory;
-
-#if !PRE_V1_37_1
-    private readonly bool _doSongCoreLoad;
-#else
-    private readonly MethodInfo? _songCoreLoad;
-#endif
 
     private string _lastSent = string.Empty;
     private string? _error;
@@ -59,7 +47,8 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
 #if !PRE_V1_37_1
         BeatmapLevelsModel beatmapLevelsModel,
 #endif
-        CancellationTokenManager cancellationTokenManager)
+        CancellationTokenManager cancellationTokenManager,
+        [InjectOptional] SongCoreLoader? songCoreLoader)
     {
         _log = log;
         _customLevelLoader = customLevelLoader;
@@ -68,19 +57,11 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
         _beatmapLevelsModel = beatmapLevelsModel;
 #endif
         _cancellationTokenManager = cancellationTokenManager;
+        _songCoreLoader = songCoreLoader;
         _directory = new DirectoryInfo(_mapFolder);
         _directory.Purge();
         networkManager.MapUpdated += OnMapUpdated;
         networkManager.Closed += OnClosed;
-
-        if (PluginManager.GetPlugin("SongCore") != null)
-        {
-#if !PRE_V1_37_1
-            _doSongCoreLoad = true;
-#else
-            _songCoreLoad = GetSongCoreLoadMethod();
-#endif
-        }
     }
 
     public event Action<string>? ProgressUpdated;
@@ -154,50 +135,6 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
         _cancellationTokenManager.Cancel();
     }
 
-#if !PRE_V1_37_1
-    private BeatmapLevel SongCoreLoad(string songPath)
-    {
-        (string, BeatmapLevel) customLevel = Loader.LoadCustomLevel(songPath) ??
-                                             throw new InvalidOperationException("SongCore error: failed to load.");
-        string levelId = customLevel.Item2.levelID;
-        if (!Loader.LoadedBeatmapSaveData.TryGetValue(
-                levelId,
-                out CustomLevelLoader.LoadedSaveData loadedSaveData))
-        {
-            throw new InvalidOperationException("SongCore error: failed to get loadedSaveData.");
-        }
-
-        _customLevelLoader._loadedBeatmapSaveData[levelId] = loadedSaveData;
-        return customLevel.Item2;
-    }
-#else
-    // idk why its private
-    private static MethodInfo? GetSongCoreLoadMethod()
-    {
-        return AccessTools.Method(typeof(Loader), "LoadSongAndAddToDictionaries");
-    }
-
-    // needed for other mods like BeatTogether/Camera2
-    private CustomPreviewBeatmapLevel SongCoreLoad(string songPath)
-    {
-        SongData? songData = Loader.Instance.LoadCustomLevelSongData(songPath);
-        if (songData == null)
-        {
-            throw new InvalidOperationException("SongCore error: invalid song data.");
-        }
-
-        object? result = _songCoreLoad!.Invoke(
-            Loader.Instance,
-            [CancellationToken.None, songData, songPath, null]);
-        if (result == null)
-        {
-            throw new InvalidOperationException("SongCore error: failed to load.");
-        }
-
-        return (CustomPreviewBeatmapLevel)result;
-    }
-#endif
-
     private void OnMapUpdated(int index, Map map)
     {
         MapDownloadedOnceBacking = null;
@@ -261,9 +198,9 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
             _downloadProgress = 0.98f;
 #if !PRE_V1_37_1
             BeatmapLevel beatmapLevel;
-            if (_doSongCoreLoad)
+            if (_songCoreLoader != null)
             {
-                beatmapLevel = SongCoreLoad(path);
+                beatmapLevel = _songCoreLoader.Load(path);
             }
             else
             {
@@ -303,9 +240,9 @@ internal sealed class MapDownloadingManager : IDisposable, ITickable
                 }).ToList();
 #else
             CustomPreviewBeatmapLevel beatmapLevel;
-            if (_songCoreLoad != null)
+            if (_songCoreLoader != null)
             {
-                beatmapLevel = SongCoreLoad(path);
+                beatmapLevel = _songCoreLoader.Load(path);
             }
             else
             {
