@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using HMUI;
 using IPA.Loader;
+using JetBrains.Annotations;
 using Synapse.Controllers;
 
 namespace Synapse.KeyboardKeyer;
@@ -8,6 +9,13 @@ namespace Synapse.KeyboardKeyer;
 [HarmonyPatch(typeof(InputFieldView))]
 internal static class AssignChatKeyboard
 {
+    [UsedImplicitly]
+    [HarmonyPrepare]
+    private static bool CheckKeyboardKeyer()
+    {
+        return PluginManager.GetPlugin("KeyboardKeyer") == null;
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(nameof(InputFieldView.ActivateKeyboard))]
     private static void ActivateKeyboard(InputFieldView __instance, UIKeyboard keyboard)
@@ -17,8 +25,7 @@ internal static class AssignChatKeyboard
             return;
         }
 
-        if (PluginManager.GetPlugin("KeyboardKeyer") != null ||
-            __instance.GetComponent<OkRelay>() == null)
+        if (__instance.GetComponent<OkRelay>() == null)
         {
             return;
         }
