@@ -26,7 +26,7 @@ internal class PauseHijack : IAffinity, IInitializable
     public void Initialize()
     {
         const string warning =
-            "<color=\"red\">WARNING\nQuitting will result in disqualification.\nAre you sure you want to quit?</color>";
+            "<color=\"red\">WARNING\nQuitting will submit your current score.\nAre you sure you want to quit?</color>";
         TextMeshProUGUI textMesh = BeatSaberUI.CreateText(
             (RectTransform)_pauseMenuManager.transform.Find("Wrapper/MenuWrapper/Canvas"),
             warning,
@@ -84,5 +84,12 @@ internal class PauseHijack : IAffinity, IInitializable
     {
         _warningShown = false;
         _warningText.SetActive(false);
+    }
+
+    [AffinityPostfix]
+    [AffinityPatch(typeof(PauseController), nameof(PauseController.HandlePauseMenuManagerDidPressContinueButton))]
+    private void InstantResume(GamePause ____gamePause)
+    {
+        ____gamePause.Resume();
     }
 }
