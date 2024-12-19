@@ -73,7 +73,7 @@ internal class NotificationManager : MonoBehaviour
             return;
         }
 
-        TimeSpan timeSpan = _listing.Time.ToTimeSpan();
+        TimeSpan timeSpan = _listing.UtcTime.ToTimeSpan();
         if (timeSpan.Ticks < 0)
         {
             OnStarted();
@@ -92,7 +92,7 @@ internal class NotificationManager : MonoBehaviour
 
     private void Update()
     {
-        if (!_active && _listing != null && _listing.Time.ToTimeSpan().Ticks < 0)
+        if (!_active && _listing != null && _listing.UtcTime.ToTimeSpan().Ticks < 0)
         {
             OnStarted();
         }
@@ -153,7 +153,7 @@ internal class NotificationManager : MonoBehaviour
             textMesh.fontSize = 15;
             gameObject.transform.position = new Vector3(0, 3f, 4f);
 
-            return _instantiator.InstantiateComponent<NotificationManager>(gameObject, new object[] { textMesh });
+            return _instantiator.InstantiateComponent<NotificationManager>(gameObject, [textMesh]);
         }
     }
 }

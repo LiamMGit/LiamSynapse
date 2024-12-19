@@ -21,6 +21,8 @@ public record Listing
 
     public DateTime Time { get; init; }
 
+    public DateTime UtcTime => Time.ToUniversalTime();
+
     public List<Division> Divisions { get; init; } = [];
 
     public List<BundleInfo> Bundles { get; init; } = [];
