@@ -109,6 +109,8 @@ public class Client
 
     private readonly List<byte[]> _queuedPackets = [];
 
+    private readonly int _division = _random.Next(2);
+
     private string _address = string.Empty;
     private AsyncTcpLocalClient? _client;
 
@@ -252,12 +254,14 @@ public class Client
         if (Status.Stage is PlayStatus playStatus)
         {
             int index = playStatus.Index;
-            int score = _random.Next(999999);
+            const int maxScore = 15000;
+            int score = _random.Next(maxScore);
             ScoreSubmission scoreSubmission = new()
             {
+                Division = _division,
                 Index = index,
                 Score = score,
-                Percentage = _random.NextSingle()
+                Percentage = (float)score / maxScore
             };
             string scoreJson = JsonSerializer.Serialize(scoreSubmission, JsonSettings.Settings);
             await Task.Delay(_random.Next(10, 100), token);
@@ -372,10 +376,6 @@ public class Client
             }
 
             case ClientOpcode.ChatMessage:
-            {
-                break;
-            }
-
             case ClientOpcode.UserBanned:
             {
                 break;
@@ -390,16 +390,15 @@ public class Client
                 break;
             }
 
+            case ClientOpcode.InvalidateScores:
             case ClientOpcode.LeaderboardScores:
+            case ClientOpcode.StopLevel:
             {
                 break;
             }
 
-            case ClientOpcode.StopLevel:
-                break;
-
             default:
-                _log.LogWarning("[{Client}] Unhandled opcode: ({Opcode})", this, opcode);
+                _log.LogWarning("[{Client}] Unhandled opcode: ({Opcode})", this, (ClientOpcode)opcode);
                 return;
         }
     }
