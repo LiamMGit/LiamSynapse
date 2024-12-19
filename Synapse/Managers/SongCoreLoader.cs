@@ -15,8 +15,7 @@ namespace Synapse.Managers;
 [UsedImplicitly]
 internal class SongCoreLoader : IInitializable
 {
-    private object _loader = null!;
-
+    private FieldInfo _loaderInstanceField = null!;
 #if PRE_V1_37_1
     private MethodInfo _loadSongAndAddToDictionaries = null!;
     private MethodInfo _loadCustomLevelSongData = null!;
@@ -33,34 +32,31 @@ internal class SongCoreLoader : IInitializable
     }
 #endif
 
+    private object Loader => _loaderInstanceField.GetValue(null) ??
+                              throw new InvalidOperationException("SongCore error: failed to get loader.");
+
     // could do zenject di in 1.35+ versions, but i dont wanna set up that up
     public void Initialize()
     {
         Assembly assembly = PluginManager.GetPlugin("SongCore").Assembly;
-        Type? loaderType = assembly.GetType("SongCore.Loader");
-        if (loaderType == null)
-        {
-            throw new InvalidOperationException("Failed to get SongCore.Loader type");
-        }
+        Type loaderType = assembly.GetType("SongCore.Loader") ??
+                           throw new InvalidOperationException("Failed to get SongCore.Loader type");
 
-        FieldInfo? instanceField = loaderType.GetField("Instance", BindingFlags.Static | BindingFlags.Public);
-        if (instanceField == null)
-        {
-            throw new InvalidOperationException("Failed to get SongCore.Loader.Instance field");
-        }
+        FieldInfo instanceField = loaderType.GetField("Instance", BindingFlags.Static | BindingFlags.Public) ??
+                                  throw new InvalidOperationException("Failed to get SongCore.Loader.Instance field");
 
-        _loader = instanceField.GetValue(null);
+        _loaderInstanceField = instanceField;
 
 #if PRE_V1_37_1
         _loadSongAndAddToDictionaries = AccessTools.Method(loaderType, "LoadSongAndAddToDictionaries");
         _loadCustomLevelSongData = AccessTools.Method(loaderType, "LoadCustomLevelSongData");
 #else
         _loadCustomLevel = AccessTools.Method(loaderType, "LoadCustomLevel");
-        FieldInfo? loadedBeatmapSaveDataField = loaderType.GetField("LoadedBeatmapSaveData", BindingFlags.Static | BindingFlags.NonPublic);
-        if (loadedBeatmapSaveDataField == null)
-        {
-            throw new InvalidOperationException("Failed to get SongCore.Loader.LoadedBeatmapSaveData field");
-        }
+        FieldInfo loadedBeatmapSaveDataField = loaderType.GetField(
+                                                   "LoadedBeatmapSaveData",
+                                                   BindingFlags.Static | BindingFlags.NonPublic) ??
+                                               throw new InvalidOperationException(
+                                                   "Failed to get SongCore.Loader.LoadedBeatmapSaveData field");
 
         _loadedBeatmapSaveData = (ConcurrentDictionary<string, CustomLevelLoader.LoadedSaveData>)loadedBeatmapSaveDataField.GetValue(null);
 #endif
@@ -70,14 +66,16 @@ internal class SongCoreLoader : IInitializable
     // needed for other mods like BeatTogether/Camera2
     internal CustomPreviewBeatmapLevel Load(string songPath)
     {
-        object? songData = _loadCustomLevelSongData.Invoke(_loader, [songPath]);
+        object loader = Loader;
+
+        object? songData = _loadCustomLevelSongData.Invoke(loader, [songPath]);
         if (songData == null)
         {
             throw new InvalidOperationException("SongCore error: invalid song data.");
         }
 
         object? result = _loadSongAndAddToDictionaries.Invoke(
-            _loader,
+            loader,
             [CancellationToken.None, songData, songPath, null]);
         if (result == null)
         {
@@ -89,7 +87,9 @@ internal class SongCoreLoader : IInitializable
 #else
     internal BeatmapLevel Load(string songPath)
     {
-        (string, BeatmapLevel) customLevel = ((string, BeatmapLevel)?)_loadCustomLevel.Invoke(_loader, [songPath]) ??
+        object loader = Loader;
+
+        (string, BeatmapLevel) customLevel = ((string, BeatmapLevel)?)_loadCustomLevel.Invoke(loader, [songPath]) ??
                                              throw new InvalidOperationException("SongCore error: failed to load.");
         string levelId = customLevel.Item2.levelID;
         if (!_loadedBeatmapSaveData.TryGetValue(
