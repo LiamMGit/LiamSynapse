@@ -19,7 +19,7 @@ public class Config
 
     public bool ShowEliminated { get; set; } = true;
 
-    public string Url { get; set; } = "https://event.aeroluna.dev/api/v1/directory";
+    public string Url { get; set; } = "https://synapse.totalbs.dev/api/v1/directory";
 }
 
 public class EventInfo
