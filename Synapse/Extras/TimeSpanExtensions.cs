@@ -15,6 +15,6 @@ internal static class TimeSpanExtensions
 
     internal static TimeSpan ToTimeSpan(this DateTime dateTime)
     {
-        return dateTime - DateTime.UtcNow;
+        return dateTime - DateTime.Now;
     }
 }

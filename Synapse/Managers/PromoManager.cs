@@ -82,7 +82,7 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
             return;
         }
 
-        TimeSpan span = _listing.UtcTime.ToTimeSpan();
+        TimeSpan span = _listing.Time.ToTimeSpan();
 
         if (span.Ticks < 0)
         {

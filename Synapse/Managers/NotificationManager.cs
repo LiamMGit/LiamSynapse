@@ -73,7 +73,7 @@ internal class NotificationManager : MonoBehaviour
             return;
         }
 
-        TimeSpan timeSpan = _listing.UtcTime.ToTimeSpan();
+        TimeSpan timeSpan = _listing.Time.ToTimeSpan();
         if (timeSpan.Ticks < 0)
         {
             OnStarted();
@@ -92,7 +92,7 @@ internal class NotificationManager : MonoBehaviour
 
     private void Update()
     {
-        if (!_active && _listing != null && _listing.UtcTime.ToTimeSpan().Ticks < 0)
+        if (!_active && _listing != null && _listing.Time.ToTimeSpan().Ticks < 0)
         {
             OnStarted();
         }
