@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "master" ]
     paths:
-    - .github/workflows/build.yml
+    - .github/workflows/build-listing.yml
     - Synapse.Networking/**
     - Synapse.Listing/**
     - Synapse.sln
@@ -16,5 +16,5 @@ jobs:
     with:
       registry: ghcr.io
       image-name: synapse-listing
-      context: Synapse.Listing
+      dockerfile: Synapse.Listing/Dockerfile
     secrets: inherit
