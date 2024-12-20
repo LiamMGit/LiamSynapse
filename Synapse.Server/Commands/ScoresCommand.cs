@@ -133,7 +133,7 @@ public class ScoresCommand(
                     throw new CommandInvalidMapIndexException(mapIndexInt, mapService.MapCount);
                 }
 
-                int scoresCount = leaderboardService.AllScores[mapIndexInt].Count;
+                int scoresCount = leaderboardService.AllScores[divisionInt][mapIndexInt].Count;
                 leaderboardService.DropScores(divisionInt, mapIndexInt);
                 client.LogAndSend(
                     log,
