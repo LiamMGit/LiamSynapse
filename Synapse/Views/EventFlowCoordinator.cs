@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
-using HarmonyLib;
 using HMUI;
+using IPA.Utilities;
 using IPA.Utilities.Async;
 using JetBrains.Annotations;
 using Newtonsoft.Json;
@@ -16,6 +15,10 @@ using Synapse.Models;
 using Synapse.Networking.Models;
 using UnityEngine;
 using Zenject;
+#if !PRE_V1_37_1
+using System.Reflection;
+using HarmonyLib;
+#endif
 
 namespace Synapse.Views;
 
@@ -42,7 +45,9 @@ internal class EventFlowCoordinator : FlowCoordinator
     private NetworkManager _networkManager = null!;
     private MenuPrefabManager _menuPrefabManager = null!;
 
+#if !PRE_V1_37_1
     private MethodInfo _resultsViewControllerInit = null!;
+#endif
 
     private bool _dirtyListing;
     private Listing? _listing;
@@ -360,12 +365,6 @@ internal class EventFlowCoordinator : FlowCoordinator
         TransitionDidFinish();
         _menuPrefabManager.HideParticles();
 
-        if (levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Incomplete &&
-            levelCompletionResults.levelEndAction != LevelCompletionResults.LevelEndAction.Quit)
-        {
-            return;
-        }
-
 #if PRE_V1_37_1
         IDifficultyBeatmap difficultyBeatmap = standardLevelScenesTransitionSetupData.difficultyBeatmap;
 #else
@@ -374,7 +373,12 @@ internal class EventFlowCoordinator : FlowCoordinator
 #endif
         IReadonlyBeatmapData transformedBeatmapData = standardLevelScenesTransitionSetupData.transformedBeatmapData;
         ////this._menuLightsManager.SetColorPreset((levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared) ? this._resultsClearedLightsPreset : this._resultsFailedLightsPreset, true);
-        ////levelCompletionResults.SetField(nameof(levelCompletionResults.levelEndStateType), LevelCompletionResults.LevelEndStateType.Failed);
+        bool showFail = levelCompletionResults.levelEndStateType != LevelCompletionResults.LevelEndStateType.Cleared;
+        if (showFail)
+        {
+            levelCompletionResults.SetField(nameof(levelCompletionResults.levelEndStateType), LevelCompletionResults.LevelEndStateType.Cleared);
+        }
+
 #if PRE_V1_37_1
         _resultsViewController.Init(
             levelCompletionResults,
@@ -398,7 +402,16 @@ internal class EventFlowCoordinator : FlowCoordinator
         _resultsViewController._restartButton.gameObject.SetActive(false);
         TransitionFinished += () => PresentViewController(
             _resultsViewController,
-            null,
+            () =>
+            {
+                if (!showFail)
+                {
+                    return;
+                }
+
+                _resultsViewController._failedBannerGo.SetActive(true);
+                _resultsViewController._clearedBannerGo.SetActive(false);
+            },
             ViewController.AnimationDirection.Horizontal,
             true);
 
