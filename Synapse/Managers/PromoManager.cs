@@ -111,9 +111,9 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
 
     private Button CreateButton()
     {
-        Button orignalButton = _mainMenuViewController._musicPackPromoButton;
-        GameObject original = orignalButton.gameObject;
-        Button newButton = Object.Instantiate(orignalButton, original.transform.parent);
+        Button originalButton = _mainMenuViewController._musicPackPromoButton;
+        GameObject original = originalButton.gameObject;
+        Button newButton = Object.Instantiate(originalButton, original.transform.parent);
         GameObject newObject = newButton.gameObject;
         _promoBanner = newObject;
         _originalBanner = original;

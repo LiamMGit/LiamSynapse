@@ -261,6 +261,9 @@ internal class LevelStartManager : IDisposable
 #endif
             null, // no environment override
             overrideColorScheme,
+#if LATEST
+            _gameplaySetupViewController.colorSchemesSettings.ShouldOverrideLightshowColors(),
+#endif
 #if !V1_29_1
             beatmapOverrideColorScheme,
 #endif
@@ -328,6 +331,9 @@ internal class LevelStartManager : IDisposable
 #endif
         OverrideEnvironmentSettings? overrideEnvironmentSettings,
         ColorScheme? overrideColorScheme,
+#if LATEST
+        bool playerOverrideLightshowColors,
+#endif
 #if !V1_29_1
         ColorScheme? beatmapOverrideColorScheme,
 #endif
@@ -365,6 +371,9 @@ internal class LevelStartManager : IDisposable
 #endif
                 overrideEnvironmentSettings,
                 overrideColorScheme,
+#if LATEST
+                playerOverrideLightshowColors,
+#endif
 #if !V1_29_1
                 beatmapOverrideColorScheme,
 #endif
@@ -402,6 +411,9 @@ internal class LevelStartManager : IDisposable
 #endif
                 overrideEnvironmentSettings,
                 overrideColorScheme,
+#if LATEST
+                playerOverrideLightshowColors,
+#endif
 #if !V1_29_1
                 beatmapOverrideColorScheme,
 #endif
