@@ -65,7 +65,7 @@ internal class MenuTakeoverManager : IDisposable, ITickable
             Transform menuTransform = menu.transform;
             logoObjects.AddRange(
                 from Transform childTransform in menuTransform
-                where childTransform.name == "Logo" || childTransform.name.StartsWith("GlowLines")
+                where childTransform.name.Contains("Logo") || childTransform.name.StartsWith("GlowLines")
                 select childTransform.gameObject);
 
             _menuLogo = logoObjects.ToArray();
