@@ -23,9 +23,23 @@ public record Listing
 
     public List<Division> Divisions { get; init; } = [];
 
+    public TakeoverInfo Takeover { get; init; } = new();
+
     public List<BundleInfo> Bundles { get; init; } = [];
 
     public List<RequiredMods> RequiredMods { get; init; } = [];
+}
+
+[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+public class TakeoverInfo
+{
+    public bool DisableDust { get; init; }
+
+    public string CountdownTMP { get; init; } = string.Empty;
+
+    public bool DisableLogo { get; init; }
+
+    public List<BundleInfo> Bundles { get; init; } = [];
 }
 
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]

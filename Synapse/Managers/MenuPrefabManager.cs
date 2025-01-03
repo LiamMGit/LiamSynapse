@@ -85,7 +85,7 @@ internal class MenuPrefabManager : IDisposable
 
     internal float DownloadProgress { get; private set; }
 
-    private ParticleSystem? DustParticles => _dustParticles ??=
+    internal ParticleSystem? DustParticles => _dustParticles ??=
         Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(n => n.name == "DustPS");
 
     public void Dispose()
@@ -229,9 +229,9 @@ internal class MenuPrefabManager : IDisposable
         if (_active)
         {
             SetPrefabActive(false);
-            DustParticles?.Stop();
             SetPrefabActive(true);
             _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.None);
+            DustParticles?.Stop();
             _songPreviewPlayer.FadeOut(1);
         }
         else

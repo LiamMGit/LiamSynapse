@@ -2,6 +2,7 @@
 using JetBrains.Annotations;
 using Synapse.HarmonyPatches;
 using Synapse.Managers;
+using Synapse.Settings;
 using Synapse.Views;
 using Zenject;
 
@@ -36,6 +37,11 @@ internal class SynapseMenuInstaller : Installer
         Container.Bind<EventLobbySongInfoViewController>().FromNewComponentAsViewController().AsSingle();
         Container.Bind<EventLeaderboardViewController>().FromNewComponentAsViewController().AsSingle();
         ////Container.Bind<EventMapDownloadingViewController>().FromNewComponentAsViewController().AsSingle();
+
+        Container.BindInterfacesTo<SettingsMenu>().AsSingle();
+
+        Container.BindInterfacesTo<OverrideMenuManager>().AsSingle();
+        Container.BindInterfacesAndSelfTo<MenuTakeoverManager>().AsSingle();
 
         Container.BindInterfacesAndSelfTo<MenuPrefabManager>().AsSingle();
 

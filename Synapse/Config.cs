@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using IPA.Config.Stores;
 using JetBrains.Annotations;
 
@@ -6,9 +7,14 @@ using JetBrains.Annotations;
 
 namespace Synapse;
 
+// ReSharper disable once ClassWithVirtualMembersNeverInherited.Global
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]
 public class Config
 {
+    public event Action? Updated;
+
+    public virtual bool DisableMenuTakeover { get; set; }
+
     public bool? JoinChat { get; set; }
 
     public EventInfo LastEvent { get; set; } = new();
@@ -20,6 +26,11 @@ public class Config
     public bool ShowEliminated { get; set; } = true;
 
     public string Url { get; set; } = "https://synapse.totalbs.dev/api/v1/directory";
+
+    public virtual void Changed()
+    {
+        Updated?.Invoke();
+    }
 }
 
 public class EventInfo
