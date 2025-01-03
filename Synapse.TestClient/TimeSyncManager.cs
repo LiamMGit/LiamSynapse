@@ -5,23 +5,16 @@ using Synapse.Networking.Models;
 namespace Synapse.TestClient;
 
 [UsedImplicitly]
-internal class TimeSyncManager : IDisposable
+internal class TimeSyncManager(Client client) : IDisposable
 {
     private static readonly Random _random = new();
     private static readonly Stopwatch _stopwatch = new();
 
     private const int MAX_TIMEOUT = 10000;
 
-    private readonly Client _client;
-
     private CancellationTokenSource _cancelPingTimeout = new();
     private CancellationTokenSource _cancelPingLoop = new();
     private TaskCompletionSource<object?>? _pingTask;
-
-    public TimeSyncManager(Client client)
-    {
-        _client = client;
-    }
 
     internal static float ElapsedSeconds => _stopwatch.ElapsedMilliseconds * 0.001f;
 
@@ -41,7 +34,7 @@ internal class TimeSyncManager : IDisposable
         _cancelPingTimeout = new CancellationTokenSource();
         _pingTask?.SetResult(null);
         _pingTask = new TaskCompletionSource<object?>();
-        _ = _client.Send(ServerOpcode.Ping, ElapsedSeconds);
+        _ = client.Send(ServerOpcode.Ping, ElapsedSeconds);
         _ = Timeout(MAX_TIMEOUT, _cancelPingTimeout.Token);
         await _pingTask.Task;
     }

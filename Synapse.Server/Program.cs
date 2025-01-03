@@ -6,7 +6,6 @@ using Serilog.Sinks.SystemConsole.Themes;
 using Synapse.Server.Clients;
 using Synapse.Server.Services;
 using Synapse.Server.Stages;
-using Synapse.Server.TournamentFormats;
 using ListenerService = Synapse.Server.Services.ListenerService;
 
 Log.Logger.Information("Starting...");

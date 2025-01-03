@@ -46,10 +46,8 @@ internal class EventLobbyNavigationViewController : NavigationController
             _networkManager.IntroStartTimeUpdated += OnIntroStartTimeUpdated;
             _chatViewController.IntroStarted += OnIntroStarted;
             SetChildViewControllers(
-            [
                 _chatViewController,
-                _songInfoViewController
-            ]);
+                _songInfoViewController);
         }
     }
 

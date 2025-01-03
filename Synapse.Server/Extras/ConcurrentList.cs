@@ -46,7 +46,7 @@ public sealed class ConcurrentList<T>(List<T> list) : IList<T>, IReadOnlyList<T>
 
     public void Clear()
     {
-        Write(() => list.Clear());
+        Write(list.Clear);
     }
 
     public bool Contains(T item)
@@ -72,7 +72,7 @@ public sealed class ConcurrentList<T>(List<T> list) : IList<T>, IReadOnlyList<T>
 
     public IEnumerator<T> GetEnumerator()
     {
-        return Read(() => list.GetEnumerator());
+        return Read(list.GetEnumerator);
     }
 
     public int IndexOf(T item)
@@ -125,7 +125,7 @@ public sealed class ConcurrentList<T>(List<T> list) : IList<T>, IReadOnlyList<T>
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return Read(() => list.GetEnumerator());
+        return Read(list.GetEnumerator);
     }
 
     private void Read(Action action)

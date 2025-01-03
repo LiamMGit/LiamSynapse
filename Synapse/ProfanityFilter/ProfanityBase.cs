@@ -30,7 +30,7 @@ public partial class ProfanityBase
     /// </summary>
     protected ProfanityBase()
     {
-        Profanities = new List<string>(_wordList);
+        Profanities = [.._wordList];
     }
 
     protected List<string> Profanities { get; }

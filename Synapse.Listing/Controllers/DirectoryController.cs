@@ -5,18 +5,11 @@ namespace Synapse.Listing.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-public class DirectoryController : ControllerBase
+public class DirectoryController(ListingService listingService) : ControllerBase
 {
-    private readonly ListingService _listingService;
-
-    public DirectoryController(ListingService listingService)
-    {
-        _listingService = listingService;
-    }
-
     [HttpGet]
     public JsonResult Get()
     {
-        return _listingService.Listing;
+        return listingService.Listing;
     }
 }

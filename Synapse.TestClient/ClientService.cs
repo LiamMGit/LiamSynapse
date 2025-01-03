@@ -4,27 +4,18 @@ using Synapse.Networking.Models;
 
 namespace Synapse.TestClient;
 
-public class ClientService
+public class ClientService(
+    ILogger<ClientService> log,
+    IServiceProvider provider)
 {
     private readonly HashSet<Client> _clients = [];
 
-    private readonly ILogger<ClientService> _log;
-    private readonly IServiceProvider _provider;
-
-    public ClientService(
-        ILogger<ClientService> log,
-        IServiceProvider provider)
-    {
-        _log = log;
-        _provider = provider;
-    }
-
     public async Task Deploy(int duration, CancellationToken token)
     {
-        Client instance = ActivatorUtilities.CreateInstance<Client>(_provider);
+        Client instance = ActivatorUtilities.CreateInstance<Client>(provider);
         try
         {
-            _log.LogInformation(
+            log.LogInformation(
                 "Deploying [{Client}] for [{Duration}] seconds",
                 instance,
                 duration < 0 ? "permanently" : duration * 0.001f);
@@ -62,7 +53,7 @@ public class ClientService
         }
         catch (Exception e)
         {
-            _log.LogError(e, "Failed to deploy");
+            log.LogError(e, "Failed to deploy");
         }
     }
 

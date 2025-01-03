@@ -281,7 +281,6 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
                 _startButton.text = "rescore";
                 _startObject.SetActive(true);
                 _scoreObject.SetActive(false);
-                _countdownObject.SetActive(false);
             }
             else
             {
@@ -289,8 +288,9 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
                 _percentage.text = $"{EventLeaderboardVisuals.FormatPercentage(_playerScore.Percentage)}";
                 _startObject.SetActive(false);
                 _scoreObject.SetActive(true);
-                _countdownObject.SetActive(false);
             }
+
+            _countdownObject.SetActive(false);
         }
         else
         {

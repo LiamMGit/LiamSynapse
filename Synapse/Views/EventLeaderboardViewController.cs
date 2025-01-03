@@ -193,7 +193,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         {
             List<LeaderboardTableView.ScoreData> data = cells
                 .Select(
-                    n =>
+                    LeaderboardTableView.ScoreData (n) =>
                     {
                         string colorText = n.Color;
                         Color? color = null;
@@ -202,7 +202,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
                             color = parsedColor;
                         }
 
-                        return (LeaderboardTableView.ScoreData)new EventScoreData(
+                        return new EventScoreData(
                             n.Score,
                             n.PlayerName,
                             n.Rank + 1,

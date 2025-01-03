@@ -98,12 +98,27 @@ public class CommandService : ICommandService
         }
     }
 
-    private readonly struct CommandInfo(object instance, MethodInfo methodInfo, CommandAttribute attribute)
+    private readonly struct CommandInfo(object instance, MethodInfo methodInfo, CommandAttribute attribute) : IEquatable<CommandInfo>
     {
         public object Instance { get; } = instance;
 
         public MethodInfo MethodInfo { get; } = methodInfo;
 
         public CommandAttribute Attribute { get; } = attribute;
+
+        public bool Equals(CommandInfo other)
+        {
+            return Instance.Equals(other.Instance) && MethodInfo.Equals(other.MethodInfo) && Attribute.Equals(other.Attribute);
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is CommandInfo other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Instance, MethodInfo, Attribute);
+        }
     }
 }

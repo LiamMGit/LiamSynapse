@@ -68,7 +68,6 @@ internal class MenuTakeoverManager : IDisposable, ITickable
                 where childTransform.name == "Logo" || childTransform.name.StartsWith("GlowLines")
                 select childTransform.gameObject);
 
-            Plugin.Log.Info($"penis: {string.Join(", ", logoObjects.Select(n => n.name))}");
             _menuLogo = logoObjects.ToArray();
         }
         else

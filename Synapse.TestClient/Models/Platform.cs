@@ -1,6 +1,7 @@
 ﻿namespace Synapse.TestClient.Models;
 
 // ReSharper disable InconsistentNaming
+// ReSharper disable UnusedMember.Global
 public enum Platform : byte
 {
     Test,
