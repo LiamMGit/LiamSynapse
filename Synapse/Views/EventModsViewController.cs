@@ -9,6 +9,7 @@ using Hive.Versioning;
 using IPA.Loader;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
+using Synapse.Extras;
 using Synapse.Managers;
 using Synapse.Networking.Models;
 using TMPro;
@@ -44,6 +45,8 @@ internal class EventModsViewController : BSMLAutomaticViewController
 
     internal event Action? Finished;
 
+    public List<ModInfo>? MissingMods { get; private set; }
+
     private static string ContentBsml
     {
         get
@@ -74,54 +77,29 @@ internal class EventModsViewController : BSMLAutomaticViewController
     }
 
 #pragma warning disable SA1202
-    internal List<ModInfo>? Init(List<ModInfo> modInfos)
+    internal List<ModInfo>? Init()
 #pragma warning restore SA1202
     {
-        if (_listing == null)
-        {
-            return null;
-        }
-
-        List<ModInfo> modsToDownload = [];
         _contents.Clear();
-        PluginMetadata[] plugins =
-            PluginManager.EnabledPlugins.ToArray();
-        foreach (ModInfo mod in modInfos)
-        {
-            try
-            {
-                // i'll never understand why hive.versioning even exists
-                VersionRange range = new(mod.Version);
-                PluginMetadata? match = plugins.FirstOrDefault(n => n.Id == mod.Id && range.Matches(n.HVersion));
-
-                if (match != null)
-                {
-                    continue;
-                }
-
-                modsToDownload.Add(mod);
-                _contents.Add(new ListObject(mod.Id, mod.Version));
-                _log.Debug($"Missing required mod: {mod}");
-            }
-            catch (Exception e)
-            {
-                _log.Error($"Error checking mod version for [{mod}]\n{e}");
-                _notificationManager.Notify("Unexpected error, please send your log to Aeroluna!", Color.red);
-            }
-        }
-
-        if (modsToDownload.Count == 0)
-        {
-            return null;
-        }
 
         if (_contentObject != null)
         {
             Destroy(_contentObject);
         }
 
+        if (MissingMods == null)
+        {
+            return null;
+        }
+
+        foreach (ModInfo mod in MissingMods)
+        {
+            _contents.Add(new ListObject(mod.Id, mod.Version));
+        }
+
         _bsmlParser.Parse(ContentBsml, gameObject, this);
-        return modsToDownload;
+
+        return MissingMods;
     }
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
@@ -166,6 +144,48 @@ internal class EventModsViewController : BSMLAutomaticViewController
     private void OnListingFound(Listing? listing)
     {
         _listing = listing;
+
+        MissingMods = GetMissingMods(listing);
+    }
+
+    private List<ModInfo>? GetMissingMods(Listing? listing)
+    {
+        RequiredMods? versionMods =
+            listing?.RequiredMods.FirstOrDefault(n => n.GameVersion.MatchesGameVersion());
+
+        if (versionMods == null)
+        {
+            return null;
+        }
+
+        List<ModInfo> modsToDownload = [];
+        PluginMetadata[] plugins =
+            PluginManager.EnabledPlugins.ToArray();
+
+        foreach (ModInfo mod in versionMods.Mods)
+        {
+            try
+            {
+                // i'll never understand why hive.versioning even exists
+                VersionRange range = new(mod.Version);
+                PluginMetadata? match = plugins.FirstOrDefault(n => n.Id == mod.Id && range.Matches(n.HVersion));
+
+                if (match != null)
+                {
+                    continue;
+                }
+
+                modsToDownload.Add(mod);
+                _log.Debug($"Missing required mod: {mod}");
+            }
+            catch (Exception e)
+            {
+                _log.Error($"Error checking mod version for [{mod}]\n{e}");
+                _notificationManager.Notify("Unexpected error!", Color.red);
+            }
+        }
+
+        return modsToDownload.Count == 0 ? null : modsToDownload;
     }
 
     private readonly struct ListObject

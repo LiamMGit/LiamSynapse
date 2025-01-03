@@ -132,22 +132,31 @@ internal class EventFlowCoordinator : FlowCoordinator
                         return;
                     }
 
-                    RequiredMods? versionMods =
-                        _listing.RequiredMods.FirstOrDefault(n => n.GameVersion.MatchesGameVersion());
-                    if (versionMods != null)
+                    List<ModInfo>? modsToDownload = _modsViewController.Init();
+                    if (modsToDownload != null)
                     {
-                        List<ModInfo>? modsToDownload = _modsViewController.Init(versionMods.Mods);
-                        if (modsToDownload != null)
-                        {
-                            _modsDownloadingViewController.Init(modsToDownload);
-                            _modsViewController.Finished += OnAcceptModsDownload;
-                            ProvideInitialViewControllers(_modsViewController);
-                            return;
-                        }
+                        _modsDownloadingViewController.Init(modsToDownload);
+                        _modsViewController.Finished += OnAcceptModsDownload;
+                        ProvideInitialViewControllers(_modsViewController);
+                        return;
                     }
                 }
 
                 _dirtyListing = false;
+
+                if (_listing.Time.ToTimeSpan().Ticks > 0)
+                {
+                    SetTitle(null);
+                    showBackButton = false;
+                    _simpleDialogPromptViewController.Init(
+                        "Error",
+                        $"{_listing.Title} has not started yet!",
+                        "Ok",
+                        _ => { Finished?.Invoke(this); });
+                    ProvideInitialViewControllers(_simpleDialogPromptViewController);
+                    return;
+                }
+
                 _menuPrefabManager.Reset(false);
                 _ = _menuPrefabManager.Download();
                 _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;

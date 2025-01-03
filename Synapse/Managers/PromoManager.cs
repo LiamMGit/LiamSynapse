@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Synapse.Controllers;
 using Synapse.Extras;
 using Synapse.Networking.Models;
+using Synapse.Views;
 using TMPro;
 using Tweening;
 using UnityEngine;
@@ -27,6 +28,7 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
             FieldAccessor<SelectableStateController, TimeTweeningManager>.GetAccessor("_tweeningManager");
 
     private readonly IInstantiator _instantiator;
+    private readonly EventModsViewController _eventModsViewController;
 
     private readonly ListingManager _listingManager;
 
@@ -45,14 +47,18 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
     private TextMeshProUGUI _textMesh = null!;
     private CanvasGroupTransitionSO _transition = null!;
 
+    private bool _finished;
+
     [UsedImplicitly]
     private PromoManager(
         MainMenuViewController mainMenuViewController,
         ListingManager listingManager,
         TimeTweeningManager tweeningManager,
-        IInstantiator instantiator)
+        IInstantiator instantiator,
+        EventModsViewController eventModsViewController)
     {
         _instantiator = instantiator;
+        _eventModsViewController = eventModsViewController;
         _mainMenuViewController = mainMenuViewController;
         _listingManager = listingManager;
         _tweeningManager = tweeningManager;
@@ -77,7 +83,7 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
 
     public void Tick()
     {
-        if (Active || _listing == null)
+        if (_finished || _listing == null)
         {
             return;
         }
@@ -87,6 +93,7 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
         if (span.Ticks < 0)
         {
             Active = true;
+            _finished = true;
             _rainbow.enabled = true;
             _transition._normalAlpha = 0.8f;
             _transition._highlightedAlpha = 1;
@@ -95,6 +102,17 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
                 _promoBanner.GetComponent<NoTransitionButtonSelectableStateController>();
             controller.ResolveSelectionState(controller._component.selectionState, false);
             _textMesh.text = $"{_listing.Title}\n<size=120%>LIVE NOW</size>";
+        }
+        else if (span.TotalHours < 1 && _eventModsViewController.MissingMods is { Count: > 0 })
+        {
+            Active = true;
+            _transition._normalAlpha = 0.8f;
+            _transition._highlightedAlpha = 1;
+            Button.enabled = true;
+            NoTransitionButtonSelectableStateController controller =
+                _promoBanner.GetComponent<NoTransitionButtonSelectableStateController>();
+            controller.ResolveSelectionState(controller._component.selectionState, false);
+            _textMesh.text = $"{_listing.Title}\nREADY TO DOWNLOAD";
         }
         else
         {
@@ -178,6 +196,7 @@ internal class PromoManager : IInitializable, ITickable, IDisposable
         }
         else
         {
+            _finished = false;
             Active = false;
             _rainbow.enabled = false;
             _transition._normalAlpha = 0.6f;
