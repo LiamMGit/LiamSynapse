@@ -4,6 +4,7 @@ using HMUI;
 using JetBrains.Annotations;
 using Synapse.Extras;
 using Synapse.Networking.Models;
+using Synapse.Views;
 using TMPro;
 using UnityEngine;
 using Zenject;
@@ -16,6 +17,7 @@ internal class NotificationManager : MonoBehaviour
     private Color? _color;
 
     private Listing? _listing;
+    private EventModsViewController _eventModsViewController = null!;
     private ListingManager _listingManager = null!;
     private NetworkManager _networkManager = null!;
     private RainbowString _rainbowString = null!;
@@ -42,8 +44,10 @@ internal class NotificationManager : MonoBehaviour
         RainbowString rainbowString,
         ListingManager listingManager,
         NetworkManager networkManager,
+        EventModsViewController eventModsViewController,
         TextMeshProUGUI textMesh)
     {
+        _eventModsViewController = eventModsViewController;
         _rainbowString = rainbowString;
         _textMesh = textMesh;
         _listingManager = listingManager;
@@ -81,6 +85,10 @@ internal class NotificationManager : MonoBehaviour
         else if (timeSpan.TotalMinutes < 30)
         {
             Notify($"{_listing.Title} is starting soon!");
+        }
+        else if (timeSpan.TotalHours < 1 && _eventModsViewController.MissingMods is { Count: > 0 })
+        {
+            Notify($"{_listing.Title} mods are ready for download!");
         }
     }
 
