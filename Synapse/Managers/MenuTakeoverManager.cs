@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using SiraUtil.Logging;
+using Synapse.Controllers;
 using Synapse.Extras;
 using Synapse.Networking.Models;
 using TMPro;
@@ -23,6 +24,7 @@ internal class MenuTakeoverManager : IDisposable, ITickable
 
     private readonly SiraLog _log;
     private readonly Config _config;
+    private readonly IInstantiator _instantiator;
     private readonly ListingManager _listingManager;
     private readonly MenuPrefabManager _menuPrefabManager;
     private readonly CancellationTokenManager _cancellationTokenManager;
@@ -43,6 +45,7 @@ internal class MenuTakeoverManager : IDisposable, ITickable
     private MenuTakeoverManager(
         SiraLog log,
         Config config,
+        IInstantiator instantiator,
         ListingManager listingManager,
         MenuPrefabManager menuPrefabManager,
         MenuEnvironmentManager menuEnvironmentManager,
@@ -50,6 +53,7 @@ internal class MenuTakeoverManager : IDisposable, ITickable
     {
         _log = log;
         _config = config;
+        _instantiator = instantiator;
         config.Updated += OnConfigUpdated;
         _listingManager = listingManager;
         _menuPrefabManager = menuPrefabManager;
@@ -218,7 +222,8 @@ internal class MenuTakeoverManager : IDisposable, ITickable
         }
 
         GameObject obj = await bundle.LoadAssetAsyncTask<GameObject>(prefabNames[0]);
-        _prefab = Object.Instantiate(obj);
+        _prefab = _instantiator.InstantiatePrefab(obj);
+        _instantiator.InstantiateComponent<PrefabSyncController>(_prefab);
 
         string? countdownPath = listing?.Takeover.CountdownTMP;
         if (!string.IsNullOrEmpty(countdownPath))
