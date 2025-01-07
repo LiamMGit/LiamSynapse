@@ -1,4 +1,6 @@
 ﻿<settings-container>
-  <bool-setting text='Disable Menu Takeover' value='menu-takeover'
+  <bool-setting text='Disable Menu Takeover' value='menu-takeover' apply-on-change='true'
                 hover-hint='Disables event menu takeovers.'/>
+  <bool-setting text='Disable Takeover Audio' value='menu-takeover-audio' apply-on-change='true'
+                hover-hint='Disables audio of menu takeovers.'/>
 </settings-container>

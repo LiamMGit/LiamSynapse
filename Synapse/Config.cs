@@ -15,11 +15,13 @@ public class Config
 
     public virtual bool DisableMenuTakeover { get; set; }
 
+    public virtual bool DisableMenuTakeoverAudio { get; set; }
+
     public bool? JoinChat { get; set; }
 
     public EventInfo LastEvent { get; set; } = new();
 
-    public bool MuteMusic { get; set; }
+    public bool DisableLobbyAudio { get; set; }
 
     public bool ProfanityFilter { get; set; } = true;
 

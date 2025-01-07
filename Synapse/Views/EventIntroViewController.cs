@@ -94,7 +94,7 @@ internal class EventIntroViewController : BSMLAutomaticViewController
 
     private void Finish()
     {
-        _config.MuteMusic = _doMute;
+        _config.DisableLobbyAudio = _doMute;
         _config.LastEvent.SeenIntro = true;
         Finished?.Invoke();
     }
@@ -102,8 +102,8 @@ internal class EventIntroViewController : BSMLAutomaticViewController
     private IEnumerator PlayAndWaitForEnd(Animator animator)
     {
         animator.SetTrigger(_intro);
-        _doMute = _config.MuteMusic;
-        _config.MuteMusic = false;
+        _doMute = _config.DisableLobbyAudio;
+        _config.DisableLobbyAudio = false;
 
         // not super elegant but should catch any edge cases
         yield return new WaitForSeconds(0.1f);

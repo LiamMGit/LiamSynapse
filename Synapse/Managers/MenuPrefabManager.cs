@@ -206,7 +206,7 @@ internal class MenuPrefabManager : IDisposable
 
         GameObject obj = await bundle.LoadAssetAsyncTask<GameObject>(prefabNames[0]);
         _prefab = _instantiator.InstantiatePrefab(obj);
-        _instantiator.InstantiateComponent<PrefabSyncController>(_prefab);
+        _instantiator.InstantiateComponent<LobbyPrefabAudioController>(_prefab);
         Animator = _prefab.GetComponent<Animator>();
         bundle.Unload(false);
         if (Animator == null)

@@ -77,10 +77,10 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
     [UsedImplicitly]
     [UIValue("muteMusic")]
-    private bool MuteMusic
+    private bool DisableLobbyAudio
     {
-        get => _config.MuteMusic;
-        set => _config.MuteMusic = value;
+        get => _config.DisableLobbyAudio;
+        set => _config.DisableLobbyAudio = value;
     }
 
     [UsedImplicitly]

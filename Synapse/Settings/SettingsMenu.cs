@@ -26,6 +26,22 @@ internal class SettingsMenu : IInitializable, IDisposable
 #endif
     }
 
+    [UsedImplicitly]
+    [UIValue("menu-takeover")]
+    public bool DisableMenuTakeover
+    {
+        get => _config.DisableMenuTakeover;
+        set => _config.DisableMenuTakeover = value;
+    }
+
+    [UsedImplicitly]
+    [UIValue("menu-takeover-audio")]
+    public bool DisableMenuTakeoverAudio
+    {
+        get => _config.DisableMenuTakeoverAudio;
+        set => _config.DisableMenuTakeoverAudio = value;
+    }
+
     public void Initialize()
     {
         _bsmlSettings.AddSettingsMenu("Synapse", "Synapse.Resources.Settings.bsml", this);
@@ -35,16 +51,4 @@ internal class SettingsMenu : IInitializable, IDisposable
     {
         _bsmlSettings.RemoveSettingsMenu(this);
     }
-
-#pragma warning disable CA1822
-    [UsedImplicitly]
-    [UIValue("menu-takeover")]
-#pragma warning disable SA1201
-    public bool TechnicolorEnabled
-#pragma warning restore SA1201
-    {
-        get => _config.DisableMenuTakeover;
-        set => _config.DisableMenuTakeover = value;
-    }
-#pragma warning restore CA1822
 }

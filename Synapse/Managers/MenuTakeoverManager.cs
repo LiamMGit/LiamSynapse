@@ -223,7 +223,7 @@ internal class MenuTakeoverManager : IDisposable, ITickable
 
         GameObject obj = await bundle.LoadAssetAsyncTask<GameObject>(prefabNames[0]);
         _prefab = _instantiator.InstantiatePrefab(obj);
-        _instantiator.InstantiateComponent<PrefabSyncController>(_prefab);
+        _instantiator.InstantiateComponent<TakeoverPrefabAudioController>(_prefab);
 
         string? countdownPath = listing?.Takeover.CountdownTMP;
         if (!string.IsNullOrEmpty(countdownPath))
