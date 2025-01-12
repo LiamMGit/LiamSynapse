@@ -9,9 +9,6 @@ namespace Synapse.Server.TournamentFormats;
 public class ShowcaseFormat : ITournamentFormat
 {
     private readonly int _mapCount;
-    private int _finalists;
-
-    private int _semifinalists;
 
     public ShowcaseFormat(
         IMapService mapService)
@@ -93,8 +90,6 @@ public class ShowcaseFormat : ITournamentFormat
             {
                 ////_log.LogInformation("{PlayerCount} players qualified, glhf!", playerCount);
                 SendBroadcast("{PlayerCount} players qualified, glhf!", playerCount);
-                _semifinalists = playerCount > 20 ? 10 : playerCount > 8 ? 4 : playerCount >= 2 ? 2 : 1;
-                _finalists = (int)Math.Ceiling(_semifinalists / 2f);
             }
             else
             {
@@ -120,22 +115,25 @@ public class ShowcaseFormat : ITournamentFormat
                 return;
             }
 
+            int targetPlayerCount = playerCount switch
+            {
+                > 20 => 10,
+                > 8 => 4,
+                >= 3 => 3,
+                _ => 2
+            };
+
             if (index <= _mapCount - 3)
             {
-                while (_semifinalists > playerCount && _semifinalists > 2)
-                {
-                    _semifinalists = (int)Math.Ceiling(_semifinalists / 2f);
-                }
-
                 int playersKept;
-                if (playerCount <= _semifinalists)
+                if (playerCount <= targetPlayerCount)
                 {
                     playersKept = playerCount;
                 }
                 else
                 {
                     int placesAway = _mapCount - 2 - index;
-                    float cutoff = (float)Math.Pow((float)_semifinalists / playerCount, 1f / placesAway);
+                    float cutoff = (float)Math.Pow((float)targetPlayerCount / playerCount, 1f / placesAway);
                     if (index < _mapCount - 3)
                     {
                         float safetyCurve = (1 - ((float)index / _mapCount)) * 0.6f;
@@ -150,20 +148,17 @@ public class ShowcaseFormat : ITournamentFormat
                 LogElimination(currPlayers, playersKept);
                 SendLog(
                     LogLevel.Debug,
-                    "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}, playersKept: {PlayersKept}, semifinalists: {Semifinalists}]",
+                    "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}, playersKept: {PlayersKept}, targetPlayerCount: {TargetPlayerCount}]",
                     index,
                     playerCount,
                     playersKept,
-                    _semifinalists);
+                    targetPlayerCount);
             }
             else if (index == _mapCount - 2)
             {
-                while (_finalists > playerCount && _finalists > 2)
-                {
-                    _finalists = (int)Math.Ceiling(_finalists / 2f);
-                }
+                targetPlayerCount = (int)Math.Ceiling(targetPlayerCount / 2f);
 
-                int playersKept = Math.Min(playerCount, _finalists);
+                int playersKept = Math.Min(playerCount, targetPlayerCount);
                 SavedScore[] currPlayers = activeScores[..playersKept];
                 ActivePlayers[index] = currPlayers;
                 LogElimination(currPlayers, playersKept);
@@ -171,11 +166,11 @@ public class ShowcaseFormat : ITournamentFormat
                 // TODO: remove these debug messages
                 SendLog(
                     LogLevel.Debug,
-                    "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}, playersKept: {PlayersKept}, finalists: {Finalists}]",
+                    "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}, playersKept: {PlayersKept}, targetPlayerCount: {TargetPlayerCount}]",
                     index,
                     playerCount,
                     playersKept,
-                    _finalists);
+                    targetPlayerCount);
             }
             else
             {
