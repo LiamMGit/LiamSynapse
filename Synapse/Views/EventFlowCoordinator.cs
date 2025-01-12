@@ -374,6 +374,13 @@ internal class EventFlowCoordinator : FlowCoordinator
         TransitionDidFinish();
         _menuPrefabManager.HideParticles();
 
+        // do not submit when server forces a stop
+        if (levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Incomplete &&
+            levelCompletionResults.levelEndAction != LevelCompletionResults.LevelEndAction.Quit)
+        {
+            return;
+        }
+
 #if PRE_V1_37_1
         IDifficultyBeatmap difficultyBeatmap = standardLevelScenesTransitionSetupData.difficultyBeatmap;
 #else
