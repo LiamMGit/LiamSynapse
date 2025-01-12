@@ -89,7 +89,7 @@ internal class SongCoreLoader : IInitializable
     {
         object loader = Loader;
 
-        (string, BeatmapLevel) customLevel = ((string, BeatmapLevel)?)_loadCustomLevel.Invoke(loader, [songPath]) ??
+        (string, BeatmapLevel) customLevel = ((string, BeatmapLevel)?)_loadCustomLevel.Invoke(loader, [songPath, null]) ??
                                              throw new InvalidOperationException("SongCore error: failed to load.");
         string levelId = customLevel.Item2.levelID;
         if (!_loadedBeatmapSaveData.TryGetValue(
