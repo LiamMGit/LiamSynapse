@@ -86,6 +86,9 @@ internal class HeckIntegrationManager
 #endif
             overrideEnvironmentSettings,
             overrideColorScheme,
+#if LATEST
+            playerOverrideLightshowColors,
+#endif
 #if !V1_29_1
             beatmapOverrideColorScheme,
 #endif
