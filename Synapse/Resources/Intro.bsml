@@ -2,7 +2,7 @@
   <image id='circle' src='#Circle' preserve-aspect='true'
          anchor-pos-x='72' anchor-pos-y='-36' ignore-layout='true'
          anchor-min-x='0.5' anchor-min-y='0.5' anchor-max-x='0.5' anchor-max-y='0.5'/>
-  <button id='skip' text='>>' anchor-pos-x='72' anchor-pos-y='-36' ignore-layout='true'
+  <button id='skip' text='Skip Intro >>' anchor-pos-x='72' anchor-pos-y='-36' ignore-layout='true' all-uppercase='true'
           anchor-min-x='0.5' anchor-min-y='0.5' anchor-max-x='0.5' anchor-max-y='0.5'
           size-delta-y='8'/>
 </bg>
