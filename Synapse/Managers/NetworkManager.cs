@@ -25,6 +25,9 @@ internal enum ConnectingStage
 
 internal class NetworkManager : IDisposable
 {
+    private const int AUTH_SUBMISSION_INTERVAL = 2000;
+    private const int AUTH_SUBMISSION_ATTEMPTS = 4;
+
     private readonly Config _config;
     private readonly ListingManager _listingManager;
     private readonly SiraLog _log;
@@ -32,9 +35,10 @@ internal class NetworkManager : IDisposable
 
     private readonly List<byte[]> _queuedPackets = [];
     private readonly Task<AuthenticationToken> _tokenTask;
-    private string _address = string.Empty;
 
+    private string _address = string.Empty;
     private AsyncTcpClient? _client;
+    private bool _authenticated;
 
     [UsedImplicitly]
     private NetworkManager(
@@ -180,6 +184,7 @@ internal class NetworkManager : IDisposable
             return;
         }
 
+        _authenticated = false;
         Status = new Status();
         int portIdx = stringAddress.LastIndexOf(':');
         IPAddress address = IPAddress.Parse(stringAddress.Substring(0, portIdx));
@@ -244,6 +249,23 @@ internal class NetworkManager : IDisposable
             _log.Debug($"Successfully connected to {_address}");
             Connecting?.Invoke(ConnectingStage.Authenticating, -1);
 
+            _ = SubmitAuth(cancelToken);
+        }
+        catch (Exception e)
+        {
+            await Disconnect(DisconnectCode.UnexpectedException, e);
+        }
+    }
+
+    private async Task SubmitAuth(CancellationToken cancelToken)
+    {
+        try
+        {
+            if (_client is not { IsConnected: true })
+            {
+                throw new InvalidOperationException("Client not connected.");
+            }
+
             AuthenticationToken authToken = await _tokenTask;
             using PacketBuilder packetBuilder = new((byte)ServerOpcode.Authentication);
             packetBuilder.Write(authToken.userId);
@@ -253,14 +275,35 @@ internal class NetworkManager : IDisposable
             packetBuilder.Write(Plugin.GameVersion);
             packetBuilder.Write(
                 _listingManager.Listing?.Guid ?? throw new InvalidOperationException("No listing loaded."));
-            await _client.Send(packetBuilder.ToBytes(), cancelToken);
+            byte[] bytes = packetBuilder.ToBytes();
 
-            byte[][] queued = _queuedPackets.ToArray();
-            _queuedPackets.Clear();
-            foreach (byte[] data in queued)
+            int submissionTry = 0;
+            while (!cancelToken.IsCancellationRequested)
             {
-                _ = _client.Send(data, cancelToken);
+                await _client.Send(bytes, cancelToken);
+                await Task.Delay(AUTH_SUBMISSION_INTERVAL, cancelToken);
+                cancelToken.ThrowIfCancellationRequested();
+                if (++submissionTry >= AUTH_SUBMISSION_ATTEMPTS)
+                {
+                    break;
+                }
+
+                if (!_authenticated)
+                {
+                    continue;
+                }
+
+                byte[][] queued = _queuedPackets.ToArray();
+                _queuedPackets.Clear();
+                foreach (byte[] data in queued)
+                {
+                    _ = _client.Send(data, cancelToken);
+                }
+
+                return;
             }
+
+            throw new InvalidOperationException($"Failed to authenticate, attempted [{submissionTry}] times.");
         }
         catch (Exception e)
         {
@@ -322,6 +365,7 @@ internal class NetworkManager : IDisposable
             case ClientOpcode.Authenticated:
             {
                 _log.Debug($"Authenticated {_address}");
+                _authenticated = true;
                 Connecting?.Invoke(ConnectingStage.ReceivingData, -1);
                 if (_config.JoinChat ?? false)
                 {
