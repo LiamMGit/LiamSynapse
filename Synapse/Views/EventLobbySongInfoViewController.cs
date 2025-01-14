@@ -253,7 +253,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         else if (_beatmapLevel != null)
         {
 #if !PRE_V1_37_1
-#if LATEST
+#if !PRE_V1_39_1
             Task<Sprite> spriteTask = _beatmapLevel.previewMediaData.GetCoverSpriteAsync();
 #else
             Task<Sprite> spriteTask = _beatmapLevel.previewMediaData.GetCoverSpriteAsync(token);

@@ -173,7 +173,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
                 DivisionChoices = [0];
             }
 
-#if LATEST
+#if !PRE_V1_39_1
             _divisionSetting.Values = DivisionChoices;
 #else
             _divisionSetting.values = DivisionChoices;
