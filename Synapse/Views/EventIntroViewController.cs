@@ -5,6 +5,7 @@ using BeatSaberMarkupLanguage.ViewControllers;
 using HMUI;
 using JetBrains.Annotations;
 using Synapse.Managers;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
@@ -14,8 +15,9 @@ namespace Synapse.Views;
 [ViewDefinition("Synapse.Resources.Intro.bsml")]
 internal class EventIntroViewController : BSMLAutomaticViewController
 {
-    private static readonly int _cancel = Animator.StringToHash("cancel");
-    private static readonly int _intro = Animator.StringToHash("intro");
+    private static readonly int _cancelTrigger = Animator.StringToHash("cancel");
+    private static readonly int _introTrigger = Animator.StringToHash("intro");
+    private static readonly int _outroTrigger = Animator.StringToHash("outro");
 
     [UIComponent("circle")]
     private readonly ImageView _circle = null!;
@@ -23,15 +25,25 @@ internal class EventIntroViewController : BSMLAutomaticViewController
     [UIObject("skip")]
     private readonly GameObject _skipButton = null!;
 
+    [UIComponent("skip")]
+    private readonly TextMeshProUGUI _skipText = null!;
+
     private Config _config = null!;
 
     private Coroutine? _coroutine;
+
+    private bool _intro;
 
     private bool _doMute;
     private HeldButton _heldButton = null!;
     private MenuPrefabManager _menuPrefabManager = null!;
 
     internal event Action? Finished;
+
+    internal void Init(bool intro)
+    {
+        _intro = intro;
+    }
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
@@ -52,6 +64,7 @@ internal class EventIntroViewController : BSMLAutomaticViewController
         // ReSharper disable once InvertIf
         if (addedToHierarchy)
         {
+            _skipText.text = _intro ? "Skip Intro >>" : "Skip Outro >>";
             Animator? animator = _menuPrefabManager.Animator;
             if (animator == null)
             {
@@ -79,7 +92,7 @@ internal class EventIntroViewController : BSMLAutomaticViewController
             Animator? animator = _menuPrefabManager.Animator;
             if (animator != null)
             {
-                animator.SetTrigger(_cancel);
+                animator.SetTrigger(_cancelTrigger);
             }
         }
     }
@@ -95,13 +108,22 @@ internal class EventIntroViewController : BSMLAutomaticViewController
     private void Finish()
     {
         _config.DisableLobbyAudio = _doMute;
-        _config.LastEvent.SeenIntro = true;
+        if (_intro)
+        {
+            _config.LastEvent.SeenIntro = true;
+        }
+        else
+        {
+            _config.LastEvent.SeenOutro = true;
+        }
+
         Finished?.Invoke();
     }
 
     private IEnumerator PlayAndWaitForEnd(Animator animator)
     {
-        animator.SetTrigger(_intro);
+        animator.SetTrigger(_intro ? _introTrigger : _outroTrigger);
+        Plugin.Log.Info($"Triggered >> {(_intro ? "intro" : "outro")}");
         _doMute = _config.DisableLobbyAudio;
         _config.DisableLobbyAudio = false;
 

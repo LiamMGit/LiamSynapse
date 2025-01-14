@@ -41,5 +41,7 @@ public class EventInfo
 
     public bool SeenIntro { get; set; }
 
+    public bool SeenOutro { get; set; }
+
     public int? Division { get; set; }
 }

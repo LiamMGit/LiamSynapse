@@ -22,6 +22,8 @@ internal class EventLobbyNavigationViewController : NavigationController
 
     public event Action? IntroStarted;
 
+    public event Action? OutroStarted;
+
     public override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
         base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
@@ -29,22 +31,31 @@ internal class EventLobbyNavigationViewController : NavigationController
         // ReSharper disable once InvertIf
         if (addedToHierarchy)
         {
-            if (_config.LastEvent.SeenIntro)
-            {
-                switch (_networkManager.Status.Stage)
-                {
-                    case PlayStatus:
-                        IntroStarted?.Invoke();
-                        break;
+            IStageStatus stage = _networkManager.Status.Stage;
 
-                    case IntroStatus introStatus:
-                        _ = DelayedIntro(introStatus.StartTime);
-                        break;
-                }
+            switch (stage)
+            {
+                case PlayStatus:
+                    if (!_config.LastEvent.SeenIntro)
+                    {
+                        IntroStarted?.Invoke();
+                    }
+
+                    break;
+
+                case IntroStatus introStatus:
+                    _ = DelayedIntro(introStatus.StartTime);
+                    break;
+
+                case FinishStatus:
+                    OutroStarted?.Invoke();
+                    break;
             }
 
             _networkManager.IntroStartTimeUpdated += OnIntroStartTimeUpdated;
+            _networkManager.StageUpdated += OnStageUpdated;
             _chatViewController.IntroStarted += OnIntroStarted;
+            _chatViewController.OutroStarted += OnOutroStarted;
             SetChildViewControllers(
                 _chatViewController,
                 _songInfoViewController);
@@ -58,7 +69,9 @@ internal class EventLobbyNavigationViewController : NavigationController
         // ReSharper disable once InvertIf
         if (removedFromHierarchy)
         {
+            _startCancel?.Cancel();
             _networkManager.IntroStartTimeUpdated -= OnIntroStartTimeUpdated;
+            _networkManager.StageUpdated -= OnStageUpdated;
             _chatViewController.IntroStarted -= OnIntroStarted;
             ClearChildViewControllers();
         }
@@ -93,10 +106,21 @@ internal class EventLobbyNavigationViewController : NavigationController
         IntroStarted?.Invoke();
     }
 
+    private void OnStageUpdated(IStageStatus _)
+    {
+        _startCancel?.Cancel();
+    }
+
     private void OnIntroStarted()
     {
         _startCancel?.Cancel();
         IntroStarted?.Invoke();
+    }
+
+    private void OnOutroStarted()
+    {
+        _startCancel?.Cancel();
+        OutroStarted?.Invoke();
     }
 
     private void OnIntroStartTimeUpdated(float startTime)

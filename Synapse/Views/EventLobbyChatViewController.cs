@@ -42,6 +42,9 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIObject("replay-intro-button")]
     private readonly GameObject _replayIntroObject = null!;
 
+    [UIObject("replay-outro-button")]
+    private readonly GameObject _replayOutroObject = null!;
+
     [UIComponent("scrollview")]
     private readonly ScrollView _scrollView = null!;
 
@@ -62,6 +65,8 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private OkRelay _okRelay = null!;
 
     internal event Action? IntroStarted;
+
+    internal event Action? OutroStarted;
 
     [UsedImplicitly]
     [UIValue("joinChat")]
@@ -250,9 +255,21 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         IntroStarted?.Invoke();
     }
 
+    [UsedImplicitly]
+    [UIAction("replay-outro")]
+    private void OnReplayOutroClick()
+    {
+        OutroStarted?.Invoke();
+    }
+
     private void OnStageUpdated(IStageStatus stageStatus)
     {
-        UnityMainThreadTaskScheduler.Factory.StartNew(() => _replayIntroObject.SetActive(stageStatus is not IntroStatus));
+        UnityMainThreadTaskScheduler.Factory.StartNew(
+            () =>
+            {
+                _replayIntroObject.SetActive(stageStatus is not IntroStatus);
+                _replayOutroObject.SetActive(stageStatus is FinishStatus);
+            });
     }
 
     [UsedImplicitly]

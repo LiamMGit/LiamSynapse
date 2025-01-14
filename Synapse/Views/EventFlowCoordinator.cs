@@ -162,6 +162,7 @@ internal class EventFlowCoordinator : FlowCoordinator
                 _resultsViewController.continueButtonPressedEvent += HandleResultsViewControllerContinueButtonPressed;
                 _countdownManager.LevelStarted += OnLevelStarted;
                 _lobbyNavigationViewController.IntroStarted += OnIntroStarted;
+                _lobbyNavigationViewController.OutroStarted += OnOutroStarted;
                 _loadingViewController.Finished += OnLoadingFinished;
                 _introViewController.Finished += OnIntroFinished;
                 _networkManager.Disconnected += OnDisconnected;
@@ -181,7 +182,9 @@ internal class EventFlowCoordinator : FlowCoordinator
             _modsViewController.Finished -= OnAcceptModsDownload;
             _countdownManager.LevelStarted -= OnLevelStarted;
             _lobbyNavigationViewController.IntroStarted -= OnIntroStarted;
+            _lobbyNavigationViewController.OutroStarted -= OnOutroStarted;
             _loadingViewController.Finished -= OnLoadingFinished;
+            _introViewController.Finished -= OnIntroFinished;
             _networkManager.Disconnected -= OnDisconnected;
             _ = _networkManager.Disconnect(DisconnectCode.DisconnectedByUser);
             _menuPrefabManager.Hide();
@@ -491,10 +494,27 @@ internal class EventFlowCoordinator : FlowCoordinator
     {
         TransitionFinished += () =>
         {
-            if (topViewController == _lobbyNavigationViewController)
+            if (topViewController != _lobbyNavigationViewController)
             {
-                PresentViewController(_introViewController, null, ViewController.AnimationDirection.Vertical);
+                return;
             }
+
+            _introViewController.Init(true);
+            PresentViewController(_introViewController, null, ViewController.AnimationDirection.Vertical);
+        };
+    }
+
+    private void OnOutroStarted()
+    {
+        TransitionFinished += () =>
+        {
+            if (topViewController != _lobbyNavigationViewController)
+            {
+                return;
+            }
+
+            _introViewController.Init(false);
+            PresentViewController(_introViewController, null, ViewController.AnimationDirection.Vertical);
         };
     }
 
