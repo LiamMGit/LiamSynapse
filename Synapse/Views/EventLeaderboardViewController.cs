@@ -23,6 +23,8 @@ namespace Synapse.Views;
 [ViewDefinition("Synapse.Resources.Leaderboard.bsml")]
 internal class EventLeaderboardViewController : BSMLAutomaticViewController
 {
+    private const string MISSING_TITLE = "???";
+
     private static readonly string[] _randomMotivationals =
     [
         "glhf!",
@@ -187,7 +189,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
                       _networkManager.Status.Stage is PlayStatus playStatus &&
                       scores.Index >= playStatus.Index &&
                       playStatus.PlayerScore == null;
-        _titleMapText.text = useAlt ? "???" : scores.Title;
+        _titleMapText.text = useAlt ? MISSING_TITLE : scores.Title;
         IReadOnlyList<LeaderboardCell> cells = scores.Scores;
         if (cells.Count > 0)
         {
@@ -281,6 +283,11 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     {
         _altCover = true;
         _maxIndex = index;
+        if (_index > index)
+        {
+            ChangeView(index);
+        }
+
         _textSegmentTexts = Enumerable.Range(1, index + 1).Select(n => n.ToString()).ToArray();
         _dirtyTextSegments = true;
     }
@@ -314,6 +321,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     private void Refresh()
     {
         _loadingControl.ShowLoading();
+        _titleMapText.text = MISSING_TITLE;
         _leaderboardTable.SetScores(null, -1);
         _ = SendLeaderboardRequest(_index, _config.LastEvent.Division ?? 0, ShowEliminated);
     }
