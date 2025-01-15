@@ -229,7 +229,9 @@ internal class MenuPrefabManager : IDisposable
         {
             SetPrefabActive(false);
             SetPrefabActive(true);
-            _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.None);
+
+            // None is actually used on 1.40 for some reason?
+            _menuEnvironmentManager.ShowEnvironmentType((MenuEnvironmentManager.MenuEnvironmentType)99);
             DustParticles?.Stop();
             _songPreviewPlayer.FadeOut(1);
         }
