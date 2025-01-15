@@ -123,7 +123,6 @@ internal class EventIntroViewController : BSMLAutomaticViewController
     private IEnumerator PlayAndWaitForEnd(Animator animator)
     {
         animator.SetTrigger(_intro ? _introTrigger : _outroTrigger);
-        Plugin.Log.Info($"Triggered >> {(_intro ? "intro" : "outro")}");
         _doMute = _config.DisableLobbyAudio;
         _config.DisableLobbyAudio = false;
 

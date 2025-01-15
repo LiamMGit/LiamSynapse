@@ -73,6 +73,7 @@ internal class EventLobbyNavigationViewController : NavigationController
             _networkManager.IntroStartTimeUpdated -= OnIntroStartTimeUpdated;
             _networkManager.StageUpdated -= OnStageUpdated;
             _chatViewController.IntroStarted -= OnIntroStarted;
+            _chatViewController.OutroStarted -= OnOutroStarted;
             ClearChildViewControllers();
         }
     }
@@ -106,9 +107,13 @@ internal class EventLobbyNavigationViewController : NavigationController
         IntroStarted?.Invoke();
     }
 
-    private void OnStageUpdated(IStageStatus _)
+    private void OnStageUpdated(IStageStatus stage)
     {
         _startCancel?.Cancel();
+        if (stage is FinishStatus)
+        {
+            OutroStarted?.Invoke();
+        }
     }
 
     private void OnIntroStarted()
