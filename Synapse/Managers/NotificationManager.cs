@@ -54,6 +54,7 @@ internal class NotificationManager : MonoBehaviour
         listingManager.ListingFound += OnListingFound;
         _networkManager = networkManager;
         networkManager.Connecting += OnConnecting;
+        networkManager.EliminatedUpdated += OnEliminatedUpdated;
     }
 
     // Dont need notification if we are already connecting
@@ -62,10 +63,19 @@ internal class NotificationManager : MonoBehaviour
         _timer = 0;
     }
 
+    private void OnEliminatedUpdated()
+    {
+        if (_networkManager.Status.Stage is PlayStatus { Eliminated: true })
+        {
+            Notify("You were eliminated", Color.red);
+        }
+    }
+
     private void OnDestroy()
     {
         _listingManager.ListingFound -= OnListingFound;
         _networkManager.Connecting -= OnConnecting;
+        _networkManager.EliminatedUpdated -= OnEliminatedUpdated;
     }
 
     private void OnListingFound(Listing? listing)
