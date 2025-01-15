@@ -10,12 +10,14 @@ internal sealed class MessageManager : IDisposable
 {
     private readonly NetworkManager _networkManager;
     private readonly TimeSyncManager _timeSyncManager;
+    private readonly Config _config;
 
     [UsedImplicitly]
-    private MessageManager(SiraLog log, NetworkManager networkManager, TimeSyncManager timeSyncManager)
+    private MessageManager(SiraLog log, NetworkManager networkManager, TimeSyncManager timeSyncManager, Config config)
     {
         _networkManager = networkManager;
         _timeSyncManager = timeSyncManager;
+        _config = config;
         networkManager.Closed += OnClosed;
         networkManager.Connecting += OnConnecting;
         networkManager.ChatReceived += OnChatMessageReceived;
@@ -73,7 +75,14 @@ internal sealed class MessageManager : IDisposable
         }
         else
         {
-            await _networkManager.Send(ServerOpcode.ChatMessage, message);
+            if (_config.JoinChat ?? false)
+            {
+                await _networkManager.Send(ServerOpcode.ChatMessage, message);
+            }
+            else
+            {
+                RelaySystemMessage("You must join chat from the settings to send messages!");
+            }
         }
     }
 
