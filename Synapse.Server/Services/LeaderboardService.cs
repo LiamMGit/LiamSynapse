@@ -284,7 +284,9 @@ public class LeaderboardService : ILeaderboardService
             Index = index,
             Title = _mapService.Maps[index].Name,
             PlayerScoreIndex = leaderboardSpecialIndex,
-            Scores = scores
+            Scores = scores,
+            AliveCount = _sortedScores[division][index].Count,
+            ScoreCount = _sortedAllScores[division][index].Count,
         };
 
         await client.Send(

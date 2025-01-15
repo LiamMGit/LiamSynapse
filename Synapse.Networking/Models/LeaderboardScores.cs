@@ -13,6 +13,10 @@ public record LeaderboardScores
     public int PlayerScoreIndex { get; init; } = -1;
 
     public IReadOnlyList<LeaderboardCell> Scores { get; init; } = [];
+
+    public int ScoreCount { get; init; }
+
+    public int AliveCount { get; init; }
 }
 
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]

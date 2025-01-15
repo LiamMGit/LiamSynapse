@@ -66,6 +66,9 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     [UIComponent("titlelayout")]
     private readonly LayoutElement _titleLayout = null!;
 
+    [UIComponent("score-count")]
+    private readonly TextMeshProUGUI _scoreCountText = null!;
+
     [UIComponent("titlemap")]
     private readonly TextMeshProUGUI _titleMapText = null!;
 
@@ -190,6 +193,7 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
                       scores.Index >= playStatus.Index &&
                       playStatus.PlayerScore == null;
         _titleMapText.text = useAlt ? MISSING_TITLE : scores.Title;
+        _scoreCountText.text = $"\u2691 {scores.AliveCount} / \ud83d\udc64 {scores.ScoreCount}";
         IReadOnlyList<LeaderboardCell> cells = scores.Scores;
         if (cells.Count > 0)
         {

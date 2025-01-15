@@ -14,7 +14,9 @@
       </horizontal>
       <vertical preferred-width='90' child-expand-height='false'>
         <horizontal id='titlelayout' preferred-height='5'>
+          <text id='score-count' text='' font-size='3' align='Left'/>
           <text id='titlemap' text='' italics='true' font-size='6' align='Center'/>
+          <text text='' font-size='0'/>
         </horizontal>
         <horizontal preferred-height='72' id='noscore'>
           <leaderboard id='leaderboard'/>
@@ -26,7 +28,7 @@
       </vertical>
     </horizontal>
   </vertical>
-  <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='50' anchor-pos-y='30'
+  <clickable-image src='Synapse.Resources.settings.png' on-click='show-modal' anchor-pos-x='54' anchor-pos-y='30'
                    size-delta-x='4' size-delta-y='4'/>
   <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='12'>
     <vertical horizontal-fit='PreferredSize' pref-width='78'>

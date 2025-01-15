@@ -13,7 +13,7 @@
                    size-delta-x='4' size-delta-y='4'/>
   <modal id='modal' clickerino-offerino-closerino='true' size-delta-x='84' size-delta-y='40'>
     <vertical horizontal-fit='PreferredSize' pref-width='78' pad='2'>
-      <text id='player-count' align='Right' hover-hint='Chatters / Online'/>
+      <text id='player-count' align='Center' hover-hint='Chatters / Online'/>
       <checkbox-setting text='Join chat' value='join-chat' apply-on-change='true' bind-value='true'/>
       <checkbox-setting text='Profanity filter' value='profanity-filter' apply-on-change='true' bind-value='true'/>
       <checkbox-setting text='Mute music' value='mute-music' apply-on-change='true' bind-value='true'/>
