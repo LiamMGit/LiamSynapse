@@ -34,6 +34,8 @@ internal abstract class PrefabAudioController : MonoBehaviour
         {
             Config.Updated += OnConfigUpdated;
         }
+
+        OnConfigUpdated();
     }
 
     private void OnDisable()
@@ -51,6 +53,6 @@ internal abstract class PrefabAudioController : MonoBehaviour
             audioSource.outputAudioMixerGroup = _audioMixerGroup;
         }
 
-        OnConfigUpdated();
+        OnEnable();
     }
 }

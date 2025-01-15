@@ -21,7 +21,7 @@ public class Config
 
     public EventInfo LastEvent { get; set; } = new();
 
-    public bool DisableLobbyAudio { get; set; }
+    public virtual bool DisableLobbyAudio { get; set; }
 
     public bool ProfanityFilter { get; set; } = true;
 

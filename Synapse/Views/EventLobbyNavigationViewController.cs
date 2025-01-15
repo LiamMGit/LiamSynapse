@@ -48,7 +48,11 @@ internal class EventLobbyNavigationViewController : NavigationController
                     break;
 
                 case FinishStatus:
-                    OutroStarted?.Invoke();
+                    if (!_config.LastEvent.SeenOutro)
+                    {
+                        OutroStarted?.Invoke();
+                    }
+
                     break;
             }
 
