@@ -34,7 +34,7 @@ internal class NetworkManager : IDisposable
     private readonly IPlatformUserModel _platformUserModel;
 
     private readonly List<byte[]> _queuedPackets = [];
-    private readonly Task<AuthenticationToken> _tokenTask;
+    private readonly Task<AuthenticationToken?> _tokenTask;
 
     private string _address = string.Empty;
     private AsyncTcpClient? _client;
@@ -79,6 +79,8 @@ internal class NetworkManager : IDisposable
     internal event Action<PlayerScore?>? PlayerScoreUpdated;
 
     internal event Action? EliminatedUpdated;
+
+    internal event Action<int, int>? PlayerCountUpdated;
 
     internal event Action<float, float>? PongReceived;
 
@@ -221,16 +223,16 @@ internal class NetworkManager : IDisposable
         client.ReceivedCallback = null;
     }
 
-    private async Task<AuthenticationToken> GetToken()
+    private async Task<AuthenticationToken?> GetToken()
     {
 #if !V1_29_1
-        UserInfo userInfo = await _platformUserModel.GetUserInfo(CancellationToken.None);
+        UserInfo? userInfo = await _platformUserModel.GetUserInfo(CancellationToken.None);
 #else
-        UserInfo userInfo = await _platformUserModel.GetUserInfo();
+        UserInfo? userInfo = await _platformUserModel.GetUserInfo();
 #endif
         if (userInfo == null)
         {
-            throw new InvalidOperationException("No authentication token provider could be created");
+            return null;
         }
 
         PlatformAuthenticationTokenProvider provider = new(_platformUserModel, userInfo);
@@ -266,7 +268,14 @@ internal class NetworkManager : IDisposable
                 throw new InvalidOperationException("Client not connected.");
             }
 
-            AuthenticationToken authToken = await _tokenTask;
+            AuthenticationToken? authTokenResult = await _tokenTask;
+            if (authTokenResult == null)
+            {
+                await Disconnect(DisconnectCode.Unauthenticated);
+                return;
+            }
+
+            AuthenticationToken authToken = authTokenResult.Value;
             using PacketBuilder packetBuilder = new((byte)ServerOpcode.Authentication);
             packetBuilder.Write(authToken.userId);
             packetBuilder.Write(authToken.userName);
@@ -401,6 +410,12 @@ internal class NetworkManager : IDisposable
                 break;
             }
 
+            case ClientOpcode.PlayerCount:
+                ushort chatterCount = reader.ReadUInt16();
+                ushort totalCount = reader.ReadUInt16();
+                PlayerCountUpdated?.Invoke(chatterCount, totalCount);
+                break;
+
             case ClientOpcode.Ping:
                 float clientTime = reader.ReadSingle();
                 float serverTime = reader.ReadSingle();
@@ -413,7 +428,6 @@ internal class NetworkManager : IDisposable
                 Status status = JsonConvert.DeserializeObject<Status>(fullStatus, JsonSettings.Settings)!;
                 Status lastStatus = Status;
                 Status = status;
-                _log.Info(fullStatus);
 
                 if (lastStatus.Motd != status.Motd)
                 {

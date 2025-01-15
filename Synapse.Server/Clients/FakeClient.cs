@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Buffers;
+using System.Net;
 using System.Text;
 using Synapse.Networking.Models;
 using Synapse.Server.Models;
@@ -112,6 +113,8 @@ public class FakeClient(string id, string username) : IClient
         return false;
     }
 
+    public Task Send(ReadOnlySequence<byte> data, CancellationToken token) => Task.CompletedTask;
+
     public Task SendChatMessage(ChatMessage message) => Task.CompletedTask;
 
     public Task SendOpcode(ClientOpcode opcode) => Task.CompletedTask;
@@ -120,9 +123,9 @@ public class FakeClient(string id, string username) : IClient
 
     public Task SendServerMessage(string message, params object?[] args) => Task.CompletedTask;
 
-    public Task SendString(ClientOpcode opcode, string message) => Task.CompletedTask;
+    public Task Send(ClientOpcode opcode, string value) => Task.CompletedTask;
 
-    public Task SendInt(ClientOpcode opcode, int value) => Task.CompletedTask;
+    public Task Send(ClientOpcode opcode, byte value) => Task.CompletedTask;
 
     public override string ToString()
     {

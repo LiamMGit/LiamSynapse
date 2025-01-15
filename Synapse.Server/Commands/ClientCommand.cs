@@ -133,7 +133,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
             int totalPlayers = listenerService.Clients.Count;
             int totalChatters = listenerService.Chatters.Count;
             client.SendServerMessage(
-                "({Players}) currently online, ({Chatters}) currently chatting",
+                "({Chatters}) currently chatting, ({Players}) currently online",
                 totalPlayers,
                 totalChatters);
             query = listenerService.Chatters.Keys.ToArray();

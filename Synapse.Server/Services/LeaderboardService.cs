@@ -101,7 +101,7 @@ public class LeaderboardService : ILeaderboardService
     public void BroadcastLeaderboard(int index)
     {
         RateLimiter.Timeout(
-            () => _listenerService.AllClients(n => n.SendInt(ClientOpcode.InvalidateScores, index)),
+            () => _listenerService.AllClients(n => n.Send(ClientOpcode.InvalidateScores, (byte)index)),
             4000);
     }
 
@@ -287,7 +287,7 @@ public class LeaderboardService : ILeaderboardService
             Scores = scores
         };
 
-        await client.SendString(
+        await client.Send(
             ClientOpcode.LeaderboardScores,
             JsonSerializer.Serialize(leaderboardScores, JsonUtils.Settings));
     }

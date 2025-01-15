@@ -12,7 +12,8 @@ public enum ClientOpcode
     AcknowledgeScore,
     InvalidateScores,
     LeaderboardScores,
-    StopLevel
+    StopLevel,
+    PlayerCount
 }
 
 public enum ServerOpcode

@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Buffers;
+using System.Collections.Concurrent;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,8 +36,6 @@ public interface IListenerService
     public void BroadcastChatMessage(string id, string username, string? color, string message);
 
     public void BroadcastServerMessage([StructuredMessageTemplate] string message, params object?[] args);
-
-    public void BroadcastString(ClientOpcode clientOpcode, string message);
 
     public Task RunAsync();
 
@@ -132,7 +131,7 @@ public class ListenerService : IListenerService
         string username = client.DisplayUsername;
         _blacklistService.AddBlacklist(id, username, reason, banTime);
         _ = client.Disconnect(DisconnectCode.Banned); // TODO: pass reason / bantime to this
-        BroadcastString(ClientOpcode.UserBanned, id);
+        AllClients(n => n.Send(ClientOpcode.UserBanned, id));
     }
 
     public void BroadcastChatMessage(string id, string username, string? color, string message)
@@ -149,11 +148,6 @@ public class ListenerService : IListenerService
     {
         AllClients(n => n.Send(new ArraySegment<byte>(bytes, 0, bytes.Length)));
     }*/
-
-    public void BroadcastString(ClientOpcode opcode, string message)
-    {
-        AllClients(n => n.SendString(opcode, message));
-    }
 
     public async Task Stop()
     {
@@ -223,12 +217,14 @@ public class ListenerService : IListenerService
     {
         Chatters.TryAdd(client, 0);
         BroadcastServerMessage("{Username} has joined.", client.DisplayUsername);
+        BroadcastPlayerCount();
     }
 
     private void OnChatLeft(ConnectedClient client)
     {
         Chatters.TryRemove(client, out _);
         BroadcastServerMessage("{Username} has left.", client.DisplayUsername);
+        BroadcastPlayerCount();
     }
 
     private void OnChatMessageReceived(ConnectedClient connectedClient, string message)
@@ -302,5 +298,18 @@ public class ListenerService : IListenerService
 
         _ = client.Disconnect(DisconnectCode.MaximumConnections);
         return true;
+    }
+
+    private void BroadcastPlayerCount()
+    {
+        RateLimiter.Timeout(
+            () =>
+            {
+                using PacketBuilder packetBuilder = new((byte)ClientOpcode.PlayerCount);
+                packetBuilder.Write((ushort)Chatters.Count);
+                packetBuilder.Write((ushort)Clients.Count);
+                ReadOnlySequence<byte> bytes = packetBuilder.ToBytes();
+                AllClients(n => n.Send(bytes));
+            }, 4000);
     }
 }

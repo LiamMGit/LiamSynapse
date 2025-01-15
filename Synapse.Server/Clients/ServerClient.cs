@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Buffers;
+using System.Net;
 using Microsoft.Extensions.Logging;
 using Synapse.Networking.Models;
 using Synapse.Server.Models;
@@ -36,6 +37,8 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
         return true;
     }
 
+    public Task Send(ReadOnlySequence<byte> data, CancellationToken token) => Task.CompletedTask;
+
     public Task SendChatMessage(ChatMessage message)
     {
         if (message.Type == MessageType.WhisperTo)
@@ -62,9 +65,9 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
         return Task.CompletedTask;
     }
 
-    public Task SendString(ClientOpcode opcode, string message) => Task.CompletedTask;
+    public Task Send(ClientOpcode opcode, string value) => Task.CompletedTask;
 
-    public Task SendInt(ClientOpcode opcode, int value) => Task.CompletedTask;
+    public Task Send(ClientOpcode opcode, byte value) => Task.CompletedTask;
 
     public override string ToString()
     {

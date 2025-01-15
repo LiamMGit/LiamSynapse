@@ -30,11 +30,11 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIComponent("chat")]
     private readonly VerticalLayoutGroup _chatObject = null!;
 
-    private readonly List<ChatMessage> _messageQueue = [];
-    private readonly LinkedList<(ChatMessage ChatMessage, TextMeshProUGUI TextMesh)> _messages = [];
-
     [UIComponent("modal")]
     private readonly ModalView _modal = null!;
+
+    [UIComponent("player-count")]
+    private readonly TextMeshProUGUI _playerCount = null!;
 
     [UIComponent("division-setting")]
     private readonly DropDownListSetting _divisionSetting = null!;
@@ -54,6 +54,9 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIObject("toend")]
     private readonly GameObject _toEndObject = null!;
 
+    private readonly List<ChatMessage> _messageQueue = [];
+    private readonly LinkedList<(ChatMessage ChatMessage, TextMeshProUGUI TextMesh)> _messages = [];
+
     private SiraLog _log = null!;
     private Config _config = null!;
     private MessageManager _messageManager = null!;
@@ -64,12 +67,14 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private InputFieldView _input = null!;
     private OkRelay _okRelay = null!;
 
+    private string _playerCountText = string.Empty;
+
     internal event Action? IntroStarted;
 
     internal event Action? OutroStarted;
 
     [UsedImplicitly]
-    [UIValue("joinChat")]
+    [UIValue("join-chat")]
     private bool JoinChat
     {
         get => _config.JoinChat ?? false;
@@ -81,7 +86,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     }
 
     [UsedImplicitly]
-    [UIValue("muteMusic")]
+    [UIValue("mute-music")]
     private bool DisableLobbyAudio
     {
         get => _config.DisableLobbyAudio;
@@ -89,7 +94,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     }
 
     [UsedImplicitly]
-    [UIValue("profanityFilter")]
+    [UIValue("profanity-filter")]
     private bool ProfanityFilter
     {
         get => _config.ProfanityFilter;
@@ -112,6 +117,16 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UsedImplicitly]
     [UIValue("division-choices")]
     private List<object> DivisionChoices { get; set; } = [0];
+
+#if !V1_29_1
+    protected override void OnDestroy()
+#else
+    public override void OnDestroy()
+#endif
+    {
+        base.OnDestroy();
+        _networkManager.PlayerCountUpdated -= OnPlayerCountUpdated;
+    }
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
@@ -226,6 +241,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         _listingManager = listingManager;
         _instantiator = instantiator;
         _leaderboardViewController = leaderboardViewController;
+        networkManager.PlayerCountUpdated += OnPlayerCountUpdated;
     }
 
     private void OnMessageReceived(ChatMessage message)
@@ -260,6 +276,11 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private void OnReplayOutroClick()
     {
         OutroStarted?.Invoke();
+    }
+
+    private void OnPlayerCountUpdated(int chatters, int online)
+    {
+        _playerCountText = $"\ud83d\udcac {chatters} / \ud83d\udc64 {online}";
     }
 
     private void OnStageUpdated(IStageStatus stageStatus)
@@ -337,6 +358,11 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
     private void Update()
     {
+        if (_playerCountText != _playerCount.text)
+        {
+            _playerCount.text = _playerCountText;
+        }
+
         if (_messageQueue.Count == 0)
         {
             return;

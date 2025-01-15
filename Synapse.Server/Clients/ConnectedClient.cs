@@ -108,7 +108,7 @@ public class ConnectedClient(
         return false;
     }
 
-    private async Task Send(ReadOnlySequence<byte> data, CancellationToken token = default)
+    public async Task Send(ReadOnlySequence<byte> data, CancellationToken token = default)
     {
         await client.Send(data, token);
     }
@@ -120,7 +120,7 @@ public class ConnectedClient(
             return;
         }
 
-        await SendString(ClientOpcode.ChatMessage, JsonSerializer.Serialize(message, JsonUtils.Settings));
+        await Send(ClientOpcode.ChatMessage, JsonSerializer.Serialize(message, JsonUtils.Settings));
     }
 
     public async Task SendOpcode(ClientOpcode opcode)
@@ -145,7 +145,7 @@ public class ConnectedClient(
 
     public async Task SendServerMessage(string message, params object?[] args)
     {
-        await SendString(
+        await Send(
             ClientOpcode.ChatMessage,
             JsonSerializer.Serialize(
                 new ChatMessage(
@@ -157,14 +157,14 @@ public class ConnectedClient(
                 JsonUtils.Settings));
     }
 
-    public async Task SendString(ClientOpcode opcode, string value)
+    public async Task Send(ClientOpcode opcode, string value)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);
         await Send(packetBuilder.ToBytes());
     }
 
-    public async Task SendInt(ClientOpcode opcode, int value)
+    public async Task Send(ClientOpcode opcode, byte value)
     {
         using PacketBuilder packetBuilder = new((byte)opcode);
         packetBuilder.Write(value);

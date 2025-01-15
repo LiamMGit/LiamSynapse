@@ -92,4 +92,9 @@ public sealed class PacketBuilder : IDisposable
     {
         _writer.Write(value);
     }
+
+    public void Write(ushort value)
+    {
+        _writer.Write(value);
+    }
 }

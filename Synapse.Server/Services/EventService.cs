@@ -104,7 +104,7 @@ public class EventService : IEventService
         Status status = GetStatus();
         string message =
             JsonSerializer.Serialize(CurrentStage.AdjustStatus(status, client), JsonUtils.Settings);
-        await client.SendString(ClientOpcode.Status, message);
+        await client.Send(ClientOpcode.Status, message);
     }
 
     public async Task SetStage(int index, IClient client)

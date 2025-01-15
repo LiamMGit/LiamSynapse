@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Buffers;
+using System.Net;
 using JetBrains.Annotations;
 using Synapse.Networking.Models;
 using Synapse.Server.Models;
@@ -27,6 +28,8 @@ public interface IClient
 
     public bool HasPermission(Permission permission);
 
+    public Task Send(ReadOnlySequence<byte> data, CancellationToken token = default);
+
     public Task SendChatMessage(ChatMessage message);
 
     public Task SendOpcode(ClientOpcode opcode);
@@ -35,7 +38,7 @@ public interface IClient
 
     public Task SendServerMessage([StructuredMessageTemplate] string message, params object?[] args);
 
-    public Task SendString(ClientOpcode opcode, string message);
+    public Task Send(ClientOpcode opcode, string value);
 
-    public Task SendInt(ClientOpcode opcode, int value);
+    public Task Send(ClientOpcode opcode, byte value);
 }
