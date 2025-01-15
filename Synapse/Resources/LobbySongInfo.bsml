@@ -41,7 +41,7 @@
           </vertical>
           <vertical size-delta-x='20' horizontal-fit='Unconstrained' child-expand-height='false'
                     child-control-height='false'>
-            <text text='percentage' align='Center' font-size='4' color='#808080' size-delta-y='4'
+            <text text='accuracy' align='Center' font-size='4' color='#808080' size-delta-y='4'
                   all-uppercase='true' italics='true'/>
             <text id='percentagetext' align='Center' font-size='4' size-delta-y='4' italics='true'/>
           </vertical>
