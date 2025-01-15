@@ -27,6 +27,8 @@ public record IntroStatus : IStageStatus
 {
     public string Name => "intro";
 
+    public string Url { get; init; } = string.Empty;
+
     public float StartTime { get; init; } = float.MinValue;
 }
 

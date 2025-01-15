@@ -17,6 +17,7 @@ public class IntroStage : Stage
 {
     private readonly TimeSpan _duration;
     private readonly TimeSpan _intermission;
+    private readonly string _url;
     private readonly IListingService _listingService;
     private readonly ILogger<IntroStage> _log;
     private readonly string _motd;
@@ -44,6 +45,7 @@ public class IntroStage : Stage
         _motd = introSection.GetRequiredSection("Motd").Get<string>() ?? string.Empty;
         _intermission = introSection.GetRequiredSection("Intermission").Get<TimeSpan>();
         _duration = introSection.GetRequiredSection("Duration").Get<TimeSpan>();
+        _url = introSection.GetRequiredSection("Url").Get<string>() ?? string.Empty;
     }
 
     public void AutoPlay(IClient client)
@@ -84,7 +86,8 @@ public class IntroStage : Stage
             Motd = _motd,
             Stage = new IntroStatus
             {
-                StartTime = _startTime
+                StartTime = _startTime,
+                Url = _url
             }
         };
     }

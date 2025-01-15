@@ -31,7 +31,7 @@ internal class SynapseAppInstaller : Installer
         Container.BindInterfacesAndSelfTo<NetworkManager>().AsSingle();
         Container.BindInterfacesAndSelfTo<ListingManager>().AsSingle();
         Container.BindInterfacesAndSelfTo<MessageManager>().AsSingle();
-        Container.BindInterfacesAndSelfTo<FinishManager>().AsSingle();
+        Container.BindInterfacesAndSelfTo<InfoSpriteManager>().AsSingle();
         Container.BindInterfacesAndSelfTo<TimeSyncManager>().AsSingle();
 
         Container.BindInterfacesAndSelfTo<NoEnergyModifier>().AsSingle();

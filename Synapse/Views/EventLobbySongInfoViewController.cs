@@ -108,11 +108,14 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     private CountdownManager _countdownManager = null!;
     private MapDownloadingManager _mapDownloadingManager = null!;
     private CancellationTokenManager _cancellationTokenManager = null!;
-    private FinishManager _finishManager = null!;
+    private InfoSpriteManager _infoSpriteManager = null!;
     private TimeSyncManager _timeSyncManager = null!;
     private RainbowString _rainbowString = null!;
 
     private Sprite _coverPlaceholder = null!;
+
+    private Sprite? _introSprite;
+    private Sprite? _finishSprite;
 
     private float _angle;
 #if !PRE_V1_37_1
@@ -123,6 +126,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     private float _startTime;
     private PlayerScore? _playerScore;
     private Map _map = new();
+    private IStageStatus? _stage;
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
     {
@@ -155,7 +159,8 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         {
             rectTransform.sizeDelta = new Vector2(-120, 0);
 
-            _finishManager.FinishImageCreated += OnFinishImageCreated;
+            _infoSpriteManager.IntroImageCreated += OnIntroImageCreated;
+            _infoSpriteManager.FinishImageCreated += OnFinishImageCreated;
 
             if (_networkManager.Status.Stage is PlayStatus playStatus)
             {
@@ -186,7 +191,8 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         // ReSharper disable once InvertIf
         if (removedFromHierarchy)
         {
-            _finishManager.FinishImageCreated -= OnFinishImageCreated;
+            _infoSpriteManager.IntroImageCreated -= OnIntroImageCreated;
+            _infoSpriteManager.FinishImageCreated -= OnFinishImageCreated;
             _networkManager.StageUpdated -= OnStageUpdated;
             _networkManager.PlayerScoreUpdated -= OnPlayerScoreUpdated;
             _networkManager.StartTimeUpdated -= OnStartTimeUpdated;
@@ -205,7 +211,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         MapDownloadingManager mapDownloadingManager,
         CancellationTokenManager cancellationTokenManager,
         CountdownManager countdownManager,
-        FinishManager finishManager,
+        InfoSpriteManager infoSpriteManager,
         TimeSyncManager timeSyncManager,
         RainbowString rainbowString)
     {
@@ -213,7 +219,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         _mapDownloadingManager = mapDownloadingManager;
         _cancellationTokenManager = cancellationTokenManager;
         _countdownManager = countdownManager;
-        _finishManager = finishManager;
+        _infoSpriteManager = infoSpriteManager;
         _timeSyncManager = timeSyncManager;
         _rainbowString = rainbowString;
     }
@@ -344,21 +350,19 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
 
     private void RefreshStage(IStageStatus stage)
     {
+        _stage = stage;
         switch (stage)
         {
-            case IntroStatus:
-                _mapInfo.SetActive(false);
-                _finish.SetActive(false);
-                break;
-
             case PlayStatus:
                 _mapInfo.SetActive(true);
                 _finish.SetActive(false);
                 break;
 
+            case IntroStatus:
             case FinishStatus:
                 _mapInfo.SetActive(false);
                 _finish.SetActive(true);
+                RefreshInfoSprite();
                 break;
         }
     }
@@ -370,6 +374,24 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         _songInfo.SetActive(false);
         _loadingGroup.SetActive(true);
         RefreshSongInfo();
+    }
+
+    private void RefreshInfoSprite()
+    {
+        if (_finishPlaceholder == null ||
+            (_stage is not IntroStatus &&
+            _stage is not FinishStatus))
+        {
+            return;
+        }
+
+        Sprite? image = _stage switch
+        {
+            IntroStatus => _introSprite,
+            FinishStatus => _finishSprite,
+            _ => null
+        };
+        _finishImage.sprite = image != null ? image : _finishPlaceholder;
     }
 
     private void OnStartTimeUpdated(float startTime)
@@ -388,14 +410,16 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
         _progress.text = message;
     }
 
+    private void OnIntroImageCreated(Sprite? image)
+    {
+        _introSprite = image;
+        RefreshInfoSprite();
+    }
+
     private void OnFinishImageCreated(Sprite? image)
     {
-        if (_finishPlaceholder == null)
-        {
-            return;
-        }
-
-        _finishImage.sprite = image != null ? image : _finishPlaceholder;
+        _finishSprite = image;
+        RefreshInfoSprite();
     }
 
     [UsedImplicitly]

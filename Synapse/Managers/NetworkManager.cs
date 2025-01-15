@@ -64,6 +64,8 @@ internal class NetworkManager : IDisposable
 
     internal event Action<string>? Disconnected;
 
+    internal event Action<string>? IntroUrlUpdated;
+
     internal event Action<string>? FinishUrlUpdated;
 
     internal event Action<float>? IntroStartTimeUpdated;
@@ -426,6 +428,7 @@ internal class NetworkManager : IDisposable
             {
                 string fullStatus = reader.ReadString();
                 Status status = JsonConvert.DeserializeObject<Status>(fullStatus, JsonSettings.Settings)!;
+                Plugin.Log.Info(fullStatus);
                 Status lastStatus = Status;
                 Status = status;
 
@@ -445,6 +448,11 @@ internal class NetworkManager : IDisposable
                         if (lastStatus.Stage is not IntroStatus lastIntroStatus)
                         {
                             lastIntroStatus = new IntroStatus();
+                        }
+
+                        if (lastIntroStatus.Url != introStatus.Url)
+                        {
+                            IntroUrlUpdated?.Invoke(introStatus.Url);
                         }
 
                         if (Math.Abs(lastIntroStatus.StartTime - introStatus.StartTime) > 0.001)
