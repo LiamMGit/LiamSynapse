@@ -33,7 +33,7 @@ public static class DisconnectCodeExtensions
             DisconnectCode.DuplicateConnection => "Connected from another client",
             DisconnectCode.MaximumConnections => "Server is full",
             DisconnectCode.RateLimited => "Too many connections",
-            DisconnectCode.Unauthenticated => "Failed to authenticate, try restarting your game",
+            DisconnectCode.Unauthenticated => "Authentication failed, verify your connection and try restarting your game",
             DisconnectCode.Banned => "Banned",
             DisconnectCode.NotWhitelisted => "Not whitelisted",
             DisconnectCode.ListingMismatch => "Listing mismatch, try rejoining",
