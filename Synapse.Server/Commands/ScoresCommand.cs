@@ -184,9 +184,9 @@ public class ScoresCommand(
                 {
                     mapIndexInt = mapService.Index;
                 }
-                else if (!int.TryParse(subArguments, out mapIndexInt))
+                else if (!int.TryParse(id, out mapIndexInt))
                 {
-                    throw new CommandParseException(subArguments);
+                    throw new CommandParseException(id);
                 }
 
                 if (mapIndexInt < 0 ||

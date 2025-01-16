@@ -11,6 +11,7 @@ namespace Synapse.Managers;
 internal class TimeSyncManager : IDisposable
 {
     private const int MAX_TIMEOUT = 10000;
+    private const int PING_INTERVAL = 10000;
 
     private readonly CancellationTokenManager _cancellationTokenManager;
     private readonly RollingAverage _latency = new(30);
@@ -108,7 +109,7 @@ internal class TimeSyncManager : IDisposable
 
         if (success)
         {
-            _ = PingLoop(10000, _cancellationTokenManager.Reset());
+            _ = PingLoop(PING_INTERVAL, _cancellationTokenManager.Reset());
         }
     }
 

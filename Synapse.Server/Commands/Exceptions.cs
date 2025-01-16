@@ -16,4 +16,4 @@ public class CommandUnrecognizedSubcommandException(string group, string subComm
 
 public class CommandParseException(object obj) : CommandException($"Could not parse [{obj}]");
 
-public class CommandInvalidMapIndexException(int index, int max) : CommandException($"Invalid map index [{index}], must be within 0 - [{max - 1}]");
+public class CommandInvalidMapIndexException(int index, int max) : CommandException($"Invalid map index [{index}], must be within [0 - {max - 1}]");

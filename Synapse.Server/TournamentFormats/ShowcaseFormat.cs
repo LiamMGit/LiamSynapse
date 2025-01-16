@@ -125,10 +125,10 @@ public class ShowcaseFormat : ITournamentFormat
 
             if (index <= _mapCount - 3)
             {
-                int playersKept;
+                int places;
                 if (playerCount <= targetPlayerCount)
                 {
-                    playersKept = playerCount;
+                    places = playerCount;
                 }
                 else
                 {
@@ -140,12 +140,13 @@ public class ShowcaseFormat : ITournamentFormat
                         cutoff = Math.Max(safetyCurve, cutoff);
                     }
 
-                    playersKept = (int)Math.Ceiling(playerCount * Math.Min(cutoff, 1));
+                    places = (int)Math.Ceiling(playerCount * Math.Min(cutoff, 1));
                 }
 
-                SavedScore[] currPlayers = activeScores[..playersKept];
+                SavedScore[] currPlayers = GetTopScores(activeScores, places);
+                int playersKept = currPlayers.Length;
                 ActivePlayers[index] = currPlayers;
-                LogElimination(currPlayers, playersKept);
+                LogElimination(prevScores, currPlayers, playersKept);
                 SendLog(
                     LogLevel.Debug,
                     "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}, playersKept: {PlayersKept}, targetPlayerCount: {TargetPlayerCount}]",
@@ -158,10 +159,11 @@ public class ShowcaseFormat : ITournamentFormat
             {
                 targetPlayerCount = (int)Math.Ceiling(targetPlayerCount / 2f);
 
-                int playersKept = Math.Min(playerCount, targetPlayerCount);
-                SavedScore[] currPlayers = activeScores[..playersKept];
+                int places = Math.Min(playerCount, targetPlayerCount);
+                SavedScore[] currPlayers = GetTopScores(activeScores, places);
+                int playersKept = currPlayers.Length;
                 ActivePlayers[index] = currPlayers;
-                LogElimination(currPlayers, playersKept);
+                LogElimination(prevScores, currPlayers, playersKept);
 
                 // TODO: remove these debug messages
                 SendLog(
@@ -174,62 +176,102 @@ public class ShowcaseFormat : ITournamentFormat
             }
             else
             {
-                ActivePlayers[index] = activeScores[..1];
-                SavedScore winner = activeScores[0];
+                SavedScore[] currPlayers = GetTopScores(activeScores, 1);
+                ActivePlayers[index] = currPlayers;
+                string[] winners = currPlayers.Select(n => n.Username).ToArray();
+                string winnerNames = winners.Length switch
+                {
+                    2 => $"{winners[0]} and {winners[1]}",
+                    > 1 => string.Join(", ", winners, 0, winners.Length - 1) +
+                           ", and " +
+                           winners.Last(),
+                    _ => winners[0]
+                };
                 ////_log.LogInformation("{Winner} won!", winner.Username);
-                SendBroadcast("{Winner} won!", winner.Username);
+                SendBroadcast("{Winner} win!", winnerNames);
                 SendLog(
                     LogLevel.Debug,
                     "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}",
                     index,
                     playerCount);
             }
+        }
 
-            return;
+        return;
 
-            void LogElimination(IEnumerable<SavedScore> currPlayers, int playersKept)
+        SavedScore[] GetTopScores(SavedScore[] activeScores, int places)
+        {
+            SavedScore[] currPlayers = activeScores[..places];
+
+            // check for ties
+            List<SavedScore>? tieScores = null;
+            SavedScore lastPlace = currPlayers[^1];
+            for (int i = places; i < activeScores.Length; i++)
             {
-                int playersEliminated = prevScores.Length - playersKept;
-                string keptString = $"{playersKept} player" + (playersKept != 1 ? "s remain!" : " remains!");
-                switch (playersEliminated)
+                SavedScore score = activeScores[i];
+                if (score.Score < lastPlace.Score)
                 {
-                    case <= 0:
-                        ////_log.LogInformation("Nobody was eliminated, {PlayersKept} remain!", playersKept);
-                        SendBroadcast("Nobody was eliminated, {PlayersKept}", keptString);
-                        break;
-
-                    case <= 5:
-                    {
-                        string[] eliminated = prevScores
-                            .ExceptBy(currPlayers.Select(n => n.Id), n => n.Id)
-                            .Select(n => n.Username)
-                            .ToArray();
-                        string eliminatedNames = eliminated.Length switch
-                        {
-                            2 => $"{eliminated[0]} and {eliminated[1]} were",
-                            > 1 => string.Join(", ", eliminated, 0, eliminated.Length - 1) +
-                                   ", and " +
-                                   eliminated.Last() +
-                                   " were",
-                            _ => eliminated[0] + " was"
-                        };
-
-                        ////_log.LogInformation("{EliminatedNames} were eliminated, {PlayersKept} remain!", eliminatedNames, playersKept);
-                        SendBroadcast(
-                            "{EliminatedNames} eliminated, {PlayersKept}",
-                            eliminatedNames,
-                            keptString);
-                    }
-                        break;
-
-                    default:
-                        ////_log.LogInformation("{PlayersEliminated} players were eliminated, {PlayersKept} remain!", playersEliminated, playersKept);
-                        SendBroadcast(
-                            "{PlayersEliminated} players were eliminated, {PlayersKept}",
-                            playersEliminated,
-                            keptString);
-                        break;
+                    break;
                 }
+
+                tieScores ??= [];
+                tieScores.Add(score);
+            }
+
+            if (tieScores == null)
+            {
+                return currPlayers;
+            }
+
+            SavedScore[] result = new SavedScore[currPlayers.Length + tieScores.Count];
+            currPlayers.CopyTo(result, 0);
+            tieScores.CopyTo(result, currPlayers.Length);
+            return result;
+
+        }
+
+        void LogElimination(SavedScore[] prevScores, IEnumerable<SavedScore> currPlayers, int playersKept)
+        {
+            int playersEliminated = prevScores.Length - playersKept;
+            string keptString = $"{playersKept} player" + (playersKept != 1 ? "s remain!" : " remains!");
+            switch (playersEliminated)
+            {
+                case <= 0:
+                    ////_log.LogInformation("Nobody was eliminated, {PlayersKept} remain!", playersKept);
+                    SendBroadcast("Nobody was eliminated, {PlayersKept}", keptString);
+                    break;
+
+                case <= 5:
+                {
+                    string[] eliminated = prevScores
+                        .ExceptBy(currPlayers.Select(n => n.Id), n => n.Id)
+                        .Select(n => n.Username)
+                        .ToArray();
+                    string eliminatedNames = eliminated.Length switch
+                    {
+                        2 => $"{eliminated[0]} and {eliminated[1]} were",
+                        > 1 => string.Join(", ", eliminated, 0, eliminated.Length - 1) +
+                               ", and " +
+                               eliminated.Last() +
+                               " were",
+                        _ => eliminated[0] + " was"
+                    };
+
+                    ////_log.LogInformation("{EliminatedNames} were eliminated, {PlayersKept} remain!", eliminatedNames, playersKept);
+                    SendBroadcast(
+                        "{EliminatedNames} eliminated, {PlayersKept}",
+                        eliminatedNames,
+                        keptString);
+                }
+                    break;
+
+                default:
+                    ////_log.LogInformation("{PlayersEliminated} players were eliminated, {PlayersKept} remain!", playersEliminated, playersKept);
+                    SendBroadcast(
+                        "{PlayersEliminated} players were eliminated, {PlayersKept}",
+                        playersEliminated,
+                        keptString);
+                    break;
             }
         }
     }

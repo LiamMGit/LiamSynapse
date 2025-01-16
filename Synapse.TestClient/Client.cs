@@ -110,6 +110,7 @@ public class Client
     private readonly List<byte[]> _queuedPackets = [];
 
     private readonly int _division = _random.Next(2);
+    private readonly string _id = $"{_random.Next(9999999):D7}";
 
     private string _address = string.Empty;
     private AsyncTcpLocalClient? _client;
@@ -255,13 +256,14 @@ public class Client
         {
             int index = playStatus.Index;
             const int maxScore = 15000;
-            int score = _random.Next(maxScore);
+            //int score = 1;
+            int score = _random.Next(maxScore + 1);
             ScoreSubmission scoreSubmission = new()
             {
                 Division = _division,
                 Index = index,
                 Score = score,
-                Percentage = (float)score / maxScore
+                Percentage = (float)score / (maxScore)
             };
             string scoreJson = JsonSerializer.Serialize(scoreSubmission, JsonSettings.Settings);
             await Task.Delay(_random.Next(10, 100), token);
@@ -302,7 +304,7 @@ public class Client
             _log.LogDebug("[{Client}] Successfully connected to {Address}", this, _address);
 
             using PacketBuilder packetBuilder = new((byte)ServerOpcode.Authentication);
-            packetBuilder.Write($"{_random.Next(9999999):D7}");
+            packetBuilder.Write(_id);
             packetBuilder.Write(Username);
             packetBuilder.Write((byte)Platform.Test);
             packetBuilder.Write("token");
@@ -390,6 +392,7 @@ public class Client
                 break;
             }
 
+            case ClientOpcode.PlayerCount:
             case ClientOpcode.InvalidateScores:
             case ClientOpcode.LeaderboardScores:
             case ClientOpcode.StopLevel:
