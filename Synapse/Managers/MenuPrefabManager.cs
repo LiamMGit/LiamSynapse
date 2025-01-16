@@ -26,6 +26,7 @@ internal class MenuPrefabManager : IDisposable
     private readonly IInstantiator _instantiator;
     private readonly ListingManager _listingManager;
     private readonly NetworkManager _networkManager;
+    private readonly CameraDepthTextureManager _cameraDepthTextureManager;
 
     private readonly SiraLog _log;
     private readonly MenuEnvironmentManager _menuEnvironmentManager;
@@ -34,6 +35,7 @@ internal class MenuPrefabManager : IDisposable
     private bool _active;
     private bool _lastActive;
     private uint _lastHash;
+    private LobbyInfo? _lobbyInfo;
     private BundleInfo? _bundleInfo;
 
     private bool? _didLoadSucceed;
@@ -48,6 +50,7 @@ internal class MenuPrefabManager : IDisposable
         IInstantiator instantiator,
         ListingManager listingManager,
         NetworkManager networkManager,
+        CameraDepthTextureManager cameraDepthTextureManager,
         MenuEnvironmentManager menuEnvironmentManager,
         SongPreviewPlayer songPreviewPlayer,
         CancellationTokenManager cancellationTokenManager)
@@ -56,6 +59,7 @@ internal class MenuPrefabManager : IDisposable
         _instantiator = instantiator;
         _listingManager = listingManager;
         _networkManager = networkManager;
+        _cameraDepthTextureManager = cameraDepthTextureManager;
         _menuEnvironmentManager = menuEnvironmentManager;
         _songPreviewPlayer = songPreviewPlayer;
         _cancellationTokenManager = cancellationTokenManager;
@@ -225,6 +229,7 @@ internal class MenuPrefabManager : IDisposable
         }
 
         _lastActive = _active;
+        _cameraDepthTextureManager.Enabled = _active;
         if (_active)
         {
             SetPrefabActive(false);
@@ -232,7 +237,11 @@ internal class MenuPrefabManager : IDisposable
 
             // None is actually used on 1.40 for some reason?
             _menuEnvironmentManager.ShowEnvironmentType((MenuEnvironmentManager.MenuEnvironmentType)99);
-            DustParticles?.Stop();
+            if (_lobbyInfo?.DisableDust ?? false)
+            {
+                DustParticles?.Stop();
+            }
+
             _songPreviewPlayer.FadeOut(1);
         }
         else
@@ -261,7 +270,8 @@ internal class MenuPrefabManager : IDisposable
 
     private void OnListingFound(Listing? listing)
     {
-        _bundleInfo = listing?.Bundles.FirstOrDefault(b => b.GameVersion.MatchesGameVersion());
+        _lobbyInfo = listing?.Lobby;
+        _bundleInfo = _lobbyInfo?.Bundles.FirstOrDefault(b => b.GameVersion.MatchesGameVersion());
         if (_bundleInfo == null)
         {
             Reset(true);
@@ -274,6 +284,8 @@ internal class MenuPrefabManager : IDisposable
         }
 
         _lastHash = _bundleInfo.Hash;
+
+        _cameraDepthTextureManager.DepthTextureMode = (DepthTextureMode)_lobbyInfo!.DepthTextureMode;
 
         Reset(true);
 

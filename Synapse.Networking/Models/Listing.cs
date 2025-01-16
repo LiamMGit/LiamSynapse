@@ -25,7 +25,7 @@ public record Listing
 
     public TakeoverInfo Takeover { get; init; } = new();
 
-    public List<BundleInfo> Bundles { get; init; } = [];
+    public LobbyInfo Lobby { get; init; } = new();
 
     public List<RequiredMods> RequiredMods { get; init; } = [];
 }
@@ -38,6 +38,16 @@ public class TakeoverInfo
     public string CountdownTMP { get; init; } = string.Empty;
 
     public bool DisableLogo { get; init; }
+
+    public List<BundleInfo> Bundles { get; init; } = [];
+}
+
+[UsedImplicitly(ImplicitUseTargetFlags.Members)]
+public class LobbyInfo
+{
+    public bool DisableDust { get; init; }
+
+    public int DepthTextureMode { get; init; }
 
     public List<BundleInfo> Bundles { get; init; } = [];
 }

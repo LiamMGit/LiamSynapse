@@ -33,6 +33,8 @@ internal class SynapseAppInstaller : Installer
         Container.BindInterfacesAndSelfTo<MessageManager>().AsSingle();
         Container.BindInterfacesAndSelfTo<InfoSpriteManager>().AsSingle();
         Container.BindInterfacesAndSelfTo<TimeSyncManager>().AsSingle();
+        Container.Bind<CameraDepthTextureManager>().AsSingle();
+        Container.BindInterfacesTo<AddComponentsToCamera>().AsSingle();
 
         Container.BindInterfacesAndSelfTo<NoEnergyModifier>().AsSingle();
     }
