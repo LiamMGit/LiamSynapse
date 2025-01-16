@@ -6,7 +6,8 @@ namespace Synapse.Server.Models;
 public enum Permission
 {
     Coordinator = 0b1,
-    Moderator = 0b10
+    Moderator = 0b10,
+    NoQualify = 0b100
 }
 
 [UsedImplicitly(ImplicitUseTargetFlags.Members)]

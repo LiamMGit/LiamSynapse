@@ -349,7 +349,7 @@ public class LeaderboardService : ILeaderboardService
                 _savedIds[division][index][id] = savedScore;
                 _sortedAllScores[division][index].InsertIntoSortedList(savedScore);
                 _cachedAllScores[division][index] = null;
-                if (!_tournamentService.IsEliminated(division, index, id))
+                if (!_tournamentService.IsEliminated(division, index, id) && !client.HasPermission(Permission.NoQualify))
                 {
                     _sortedScores[division][index].InsertIntoSortedList(savedScore);
                     _cachedScores[division][index] = null;
