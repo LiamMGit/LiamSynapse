@@ -148,8 +148,7 @@ internal class CountdownManager : ITickable, IInitializable, IDisposable
         else
         {
             _levelStarted = true;
-            if (playStatus.PlayerScore == null ||
-                (playStatus.Map.Ruleset?.AllowResubmission ?? false))
+            if (playStatus.PlayerScore == null)
             {
                 LevelStarted?.Invoke();
             }
