@@ -46,7 +46,7 @@ public class ClientService(
             for (int i = 0; i < count; i++)
             {
                 tasks.Add(Deploy(duration, token));
-                //await Task.Delay(_random.Next(100, 2000), token);
+                await Task.Delay(10, token);
             }
 
             await Task.WhenAll(tasks);
