@@ -428,7 +428,6 @@ internal class NetworkManager : IDisposable
             {
                 string fullStatus = reader.ReadString();
                 Status status = JsonConvert.DeserializeObject<Status>(fullStatus, JsonSettings.Settings)!;
-                Plugin.Log.Info(fullStatus);
                 Status lastStatus = Status;
                 Status = status;
 
