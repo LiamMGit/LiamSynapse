@@ -190,7 +190,11 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
             _input.gameObject.AddComponent<LayoutElement>().minHeight = 10;
 
+#if PRE_V1_39_1
             ImageView priorityBg = (ImageView)_priorityBg.background;
+#else
+            ImageView priorityBg = (ImageView)_priorityBg.Background;
+#endif
             priorityBg._skew = 0;
             priorityBg._gradientDirection = ImageView.GradientDirection.Vertical;
             priorityBg.gradient = true;
