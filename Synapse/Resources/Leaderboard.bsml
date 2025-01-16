@@ -3,7 +3,7 @@
     <horizontal preferred-width='120' horizontal-fit='PreferredSize' pad-bottom='3'>
       <horizontal id='header' bg='panel-fade-gradient' preferred-width='90' preferred-height='8'
                   horizontal-fit='PreferredSize'>
-        <text text='highscores' all-uppercase='true' italics='true' font-size='6' align='Center'/>
+        <text id='header-title' text='highscores' all-uppercase='true' italics='true' font-size='6' align='Center'/>
       </horizontal>
     </horizontal>
     <horizontal horizontal-fit='PreferredSize' child-expand-width='false' child-control-width='false'>

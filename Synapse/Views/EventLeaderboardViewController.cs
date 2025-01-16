@@ -45,6 +45,9 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     [UIComponent("header")]
     private readonly ImageView _header = null!;
 
+    [UIComponent("header-title")]
+    private readonly TextMeshProUGUI _headerText = null!;
+
     [UIObject("leaderboard")]
     private readonly GameObject _leaderboardObject = null!;
 
@@ -83,10 +86,10 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     private LeaderboardTableView _leaderboardTable = null!;
     private LoadingControl _loadingControl = null!;
     private MapDownloadingManager _mapDownloadingManager = null!;
+    private NetworkManager _networkManager = null!;
+    private ListingManager _listingManager = null!;
 
     private int _maxIndex;
-
-    private NetworkManager _networkManager = null!;
     private string[] _textSegmentTexts = [];
 
     [UsedImplicitly]
@@ -245,10 +248,12 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
     [Inject]
     private void Construct(
         NetworkManager networkManager,
+        ListingManager listingManager,
         MapDownloadingManager mapDownloadingManager,
         Config config)
     {
         _networkManager = networkManager;
+        _listingManager = listingManager;
         networkManager.LeaderboardReceived += OnLeaderboardReceived;
         networkManager.MapUpdated += OnMapUpdated;
         _mapDownloadingManager = mapDownloadingManager;
@@ -327,7 +332,10 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
         _loadingControl.ShowLoading();
         _titleMapText.text = MISSING_TITLE;
         _leaderboardTable.SetScores(null, -1);
-        _ = SendLeaderboardRequest(_index, _config.LastEvent.Division ?? 0, ShowEliminated);
+        int division = _config.LastEvent.Division ?? 0;
+        Listing? listing = _listingManager.Listing;
+        _headerText.text = listing is { Divisions.Count: > 0 } ? listing.Divisions[division].Name : "highscores";
+        _ = SendLeaderboardRequest(_index, division, ShowEliminated);
     }
 
     private async Task SendLeaderboardRequest(int index, int division, bool showEliminated)
