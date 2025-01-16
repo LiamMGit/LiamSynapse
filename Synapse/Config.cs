@@ -25,6 +25,8 @@ public class Config
 
     public bool ProfanityFilter { get; set; } = true;
 
+    public bool ShowPriorityMessages { get; set; } = true;
+
     public bool ShowEliminated { get; set; } = true;
 
     public string Url { get; set; } = "https://synapse.totalbs.dev/api/v1/directory";

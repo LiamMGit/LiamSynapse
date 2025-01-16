@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using BeatSaberMarkupLanguage;
 using BeatSaberMarkupLanguage.Attributes;
+using BeatSaberMarkupLanguage.Components;
 using BeatSaberMarkupLanguage.Components.Settings;
 using BeatSaberMarkupLanguage.ViewControllers;
 using HarmonyLib;
@@ -54,8 +55,17 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     [UIObject("toend")]
     private readonly GameObject _toEndObject = null!;
 
+    [UIComponent("priority-bg")]
+    private readonly Backgroundable _priorityBg = null!;
+
+    [UIComponent("priority-bg")]
+    private readonly VerticalLayoutGroup _priorityVertical = null!;
+
     private readonly List<ChatMessage> _messageQueue = [];
     private readonly LinkedList<(ChatMessage ChatMessage, TextMeshProUGUI TextMesh)> _messages = [];
+
+    private readonly Stack<PriorityMessage> _disabledPriorityMessages = [];
+    private readonly List<PriorityMessage> _priorityMessages = [];
 
     private SiraLog _log = null!;
     private Config _config = null!;
@@ -99,6 +109,18 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     {
         get => _config.ProfanityFilter;
         set => _config.ProfanityFilter = value;
+    }
+
+    [UsedImplicitly]
+    [UIValue("priority-messages")]
+    private bool ShowPriorityMessages
+    {
+        get => _config.ShowPriorityMessages;
+        set
+        {
+            _config.ShowPriorityMessages = value;
+            _priorityVertical.gameObject.SetActive(value && _priorityMessages.Count > 0);
+        }
     }
 
     [UsedImplicitly]
@@ -167,6 +189,16 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _okRelay.OkPressed += OnOkPressed;
 
             _input.gameObject.AddComponent<LayoutElement>().minHeight = 10;
+
+            ImageView priorityBg = (ImageView)_priorityBg.background;
+            priorityBg._skew = 0;
+            priorityBg._gradientDirection = ImageView.GradientDirection.Vertical;
+            priorityBg.gradient = true;
+            priorityBg.color = Color.white;
+            priorityBg.color0 = new Color(0.13f, 0.01f, 0.09f);
+            priorityBg.color1 = new Color(0.09f, 0.01f, 0.13f);
+            ((RectTransform)_priorityVertical.transform).pivot = new Vector2(0.5f, 1);
+            _priorityVertical.gameObject.SetActive(false);
         }
 
         // ReSharper disable once InvertIf
@@ -210,6 +242,13 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         // ReSharper disable once InvertIf
         if (removedFromHierarchy)
         {
+            _priorityMessages.Clear();
+            _disabledPriorityMessages.Clear();
+            foreach (Transform obj in _priorityVertical.transform)
+            {
+                Destroy(obj.gameObject);
+            }
+
             _messageQueue.Clear();
             _messages.Clear();
             foreach (Transform obj in _textObject.transform)
@@ -363,6 +402,29 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _playerCount.text = _playerCountText;
         }
 
+        if (_priorityMessages.Count > 0)
+        {
+            float dTime = Time.deltaTime;
+            for (int i = _priorityMessages.Count - 1; i >= 0; i--)
+            {
+                PriorityMessage priorityMessage = _priorityMessages[i];
+                priorityMessage.Time -= dTime;
+                if (priorityMessage.Time > 0)
+                {
+                    continue;
+                }
+
+                priorityMessage.Text.gameObject.SetActive(false);
+                _disabledPriorityMessages.Push(priorityMessage);
+                _priorityMessages.Remove(priorityMessage);
+            }
+
+            if (_priorityMessages.Count == 0)
+            {
+                _priorityVertical.gameObject.SetActive(false);
+            }
+        }
+
         if (_messageQueue.Count == 0)
         {
             return;
@@ -410,6 +472,51 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
                         content = $"[{Colorize(NoParse(usernameString), colorString)}] {NoParse(messageString)}";
                         color = Color.white;
                         break;
+                }
+
+                if (message.Type == MessageType.System)
+                {
+                    if (_config.ShowPriorityMessages)
+                    {
+                        _priorityVertical.gameObject.SetActive(true);
+                    }
+
+                    PriorityMessage priorityMessage;
+                    if (_priorityMessages.Count >= 5)
+                    {
+                        priorityMessage = _priorityMessages.First();
+                        TextMeshProUGUI text = priorityMessage.Text;
+                        text.color = color;
+                        text.text = content;
+                        text.transform.SetAsLastSibling();
+                    }
+                    else if (_disabledPriorityMessages.Count == 0)
+                    {
+                        TextMeshProUGUI prio =
+                            BeatSaberUI.CreateText(
+                                (RectTransform)_priorityBg.transform,
+                                content,
+                                Vector2.zero);
+                        prio.enableWordWrapping = true;
+                        prio.richText = true;
+                        prio.color = color;
+                        prio.alignment = TextAlignmentOptions.Left;
+                        prio.fontSize = 4;
+                        priorityMessage = new PriorityMessage(prio);
+                        _priorityMessages.Add(priorityMessage);
+                    }
+                    else
+                    {
+                        priorityMessage = _disabledPriorityMessages.Pop();
+                        TextMeshProUGUI text = priorityMessage.Text;
+                        text.gameObject.SetActive(true);
+                        text.color = color;
+                        text.text = content;
+                        text.transform.SetAsLastSibling();
+                        _priorityMessages.Add(priorityMessage);
+                    }
+
+                    priorityMessage.Time = 20;
                 }
 
                 if (_messages.Count > 100)
@@ -477,5 +584,17 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
             return color[0] != '#' ? $"<color=\"{color}\">{message}</color>" : $"<color={color}>{message}</color>";
         }
+    }
+
+    private class PriorityMessage
+    {
+        internal PriorityMessage(TextMeshProUGUI text)
+        {
+            Text = text;
+        }
+
+        internal TextMeshProUGUI Text { get; }
+
+        internal float Time { get; set; }
     }
 }
