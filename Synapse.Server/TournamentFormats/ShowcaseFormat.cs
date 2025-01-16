@@ -1,5 +1,6 @@
 ﻿using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
+using Synapse.Server.Clients;
 using Synapse.Server.Extras;
 using Synapse.Server.Models;
 using Synapse.Server.Services;
@@ -8,11 +9,16 @@ namespace Synapse.Server.TournamentFormats;
 
 public class ShowcaseFormat : ITournamentFormat
 {
+    private const string RICH_COLOR = "<color=#ff6464>";
+
+    private readonly IListenerService _listenerService;
     private readonly int _mapCount;
 
     public ShowcaseFormat(
+        IListenerService listenerService,
         IMapService mapService)
     {
+        _listenerService = listenerService;
         _mapCount = mapService.Maps.Count;
         if (_mapCount < 3)
         {
@@ -89,7 +95,7 @@ public class ShowcaseFormat : ITournamentFormat
             if (playerCount > 0)
             {
                 ////_log.LogInformation("{PlayerCount} players qualified, glhf!", playerCount);
-                SendBroadcast("{PlayerCount} players qualified, glhf!", playerCount);
+                SendBroadcast(RICH_COLOR + "{PlayerCount} players qualified, glhf!", playerCount);
             }
             else
             {
@@ -188,7 +194,7 @@ public class ShowcaseFormat : ITournamentFormat
                     _ => winners[0]
                 };
                 ////_log.LogInformation("{Winner} won!", winner.Username);
-                SendBroadcast("{Winner} win!", winnerNames);
+                SendBroadcast(RICH_COLOR + "{Winner} win!", winnerNames);
                 SendLog(
                     LogLevel.Debug,
                     "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}",
@@ -233,18 +239,18 @@ public class ShowcaseFormat : ITournamentFormat
         void LogElimination(SavedScore[] prevScores, IEnumerable<SavedScore> currPlayers, int playersKept)
         {
             int playersEliminated = prevScores.Length - playersKept;
+            SavedScore[] eliminatedScores = prevScores.ExceptBy(currPlayers.Select(n => n.Id), n => n.Id).ToArray();
             string keptString = $"{playersKept} player" + (playersKept != 1 ? "s remain!" : " remains!");
             switch (playersEliminated)
             {
                 case <= 0:
                     ////_log.LogInformation("Nobody was eliminated, {PlayersKept} remain!", playersKept);
-                    SendBroadcast("Nobody was eliminated, {PlayersKept}", keptString);
+                    SendBroadcast(RICH_COLOR + "Nobody was eliminated, {PlayersKept}", keptString);
                     break;
 
                 case <= 5:
                 {
-                    string[] eliminated = prevScores
-                        .ExceptBy(currPlayers.Select(n => n.Id), n => n.Id)
+                    string[] eliminated = eliminatedScores
                         .Select(n => n.Username)
                         .ToArray();
                     string eliminatedNames = eliminated.Length switch
@@ -259,7 +265,7 @@ public class ShowcaseFormat : ITournamentFormat
 
                     ////_log.LogInformation("{EliminatedNames} were eliminated, {PlayersKept} remain!", eliminatedNames, playersKept);
                     SendBroadcast(
-                        "{EliminatedNames} eliminated, {PlayersKept}",
+                        RICH_COLOR + "{EliminatedNames} eliminated, {PlayersKept}",
                         eliminatedNames,
                         keptString);
                 }
@@ -268,10 +274,16 @@ public class ShowcaseFormat : ITournamentFormat
                 default:
                     ////_log.LogInformation("{PlayersEliminated} players were eliminated, {PlayersKept} remain!", playersEliminated, playersKept);
                     SendBroadcast(
-                        "{PlayersEliminated} players were eliminated, {PlayersKept}",
+                        RICH_COLOR + "{PlayersEliminated} players were eliminated, {PlayersKept}",
                         playersEliminated,
                         keptString);
                     break;
+            }
+
+            string[] eliminatedIds = eliminatedScores.Select(n => n.Id).ToArray();
+            foreach (IClient client in _listenerService.Clients.Values.Where(n => eliminatedIds.Contains(n.Id)))
+            {
+                client.SendServerMessage("<color=red>You were eliminated!");
             }
         }
     }

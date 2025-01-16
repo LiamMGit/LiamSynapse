@@ -80,7 +80,7 @@ public class PlayStage : Stage
 
     public override void Enter()
     {
-        SetIndex(_mapService.Index, _serverClient, false, true);
+        _ = SetIndex(_mapService.Index, _serverClient, false, true);
     }
 
     public override Status GetStatus()
@@ -132,7 +132,7 @@ public class PlayStage : Stage
         }
 
         await Task.Delay(timer, (_cancellationTokenSource = new CancellationTokenSource()).Token);
-        SetIndex(_mapService.Index + 1, _serverClient, true, true);
+        await SetIndex(_mapService.Index + 1, _serverClient, true, true);
     }
 
     public override Task Prepare()
@@ -166,13 +166,13 @@ public class PlayStage : Stage
         }
     }
 
-    public void SetIndex(int index, IClient client, bool submit, bool autostart)
+    public async Task SetIndex(int index, IClient client, bool submit, bool autostart)
     {
-        _cancellationTokenSource.Cancel();
+        await _cancellationTokenSource.CancelAsync();
 
         if (submit)
         {
-            _ = _leaderboardService.SubmitTournamentScores(_mapService.Index);
+            await _leaderboardService.SubmitTournamentScores(_mapService.Index);
         }
 
         if (index >= _mapService.MapCount)
@@ -227,7 +227,7 @@ public class PlayStage : Stage
 
     public void Stop(IClient client)
     {
-        SetIndex(_mapService.Index, client, false, false);
+        _ = SetIndex(_mapService.Index, client, false, false);
         client.LogAndSend(_log, "Stopped {Map}", _mapService.CurrentMap.Name);
     }
 
