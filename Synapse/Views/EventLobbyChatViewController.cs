@@ -154,6 +154,8 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     {
         base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
 
+        rectTransform.sizeDelta = new Vector2(-40, 0);
+
         if (firstActivation)
         {
             InputFieldView original =
@@ -208,8 +210,6 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         // ReSharper disable once InvertIf
         if (addedToHierarchy)
         {
-            rectTransform.sizeDelta = new Vector2(-40, 0);
-
             _messageManager.MessageReceived += OnMessageReceived;
             _messageManager.RefreshMotd();
             _networkManager.UserBanned += OnUserBanned;

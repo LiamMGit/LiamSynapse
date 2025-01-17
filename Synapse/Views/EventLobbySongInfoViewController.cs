@@ -132,6 +132,8 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     {
         base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
 
+        //rectTransform.sizeDelta = new Vector2(-120, 0);
+
         if (firstActivation)
         {
             _coverImage.material = Resources.FindObjectsOfTypeAll<Material>().First(n => n.name == "UINoGlowRoundEdge");
@@ -157,8 +159,6 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
 
         if (addedToHierarchy)
         {
-            rectTransform.sizeDelta = new Vector2(-120, 0);
-
             _infoSpriteManager.IntroImageCreated += OnIntroImageCreated;
             _infoSpriteManager.FinishImageCreated += OnFinishImageCreated;
 
