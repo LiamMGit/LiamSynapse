@@ -23,6 +23,7 @@ internal class MenuPrefabManager : IDisposable
     private static readonly int _eliminated = Animator.StringToHash("eliminated");
 
     private readonly CancellationTokenManager _cancellationTokenManager;
+    private readonly GlobalDustManager.DustHold _dustHold;
     private readonly IInstantiator _instantiator;
     private readonly ListingManager _listingManager;
     private readonly NetworkManager _networkManager;
@@ -39,7 +40,6 @@ internal class MenuPrefabManager : IDisposable
     private BundleInfo? _bundleInfo;
 
     private bool? _didLoadSucceed;
-    private ParticleSystem? _dustParticles;
     private string _filePath = string.Empty;
 
     private GameObject? _prefab;
@@ -53,7 +53,8 @@ internal class MenuPrefabManager : IDisposable
         CameraDepthTextureManager cameraDepthTextureManager,
         MenuEnvironmentManager menuEnvironmentManager,
         SongPreviewPlayer songPreviewPlayer,
-        CancellationTokenManager cancellationTokenManager)
+        CancellationTokenManager cancellationTokenManager,
+        GlobalDustManager.DustHold dustHold)
     {
         _log = log;
         _instantiator = instantiator;
@@ -63,6 +64,7 @@ internal class MenuPrefabManager : IDisposable
         _menuEnvironmentManager = menuEnvironmentManager;
         _songPreviewPlayer = songPreviewPlayer;
         _cancellationTokenManager = cancellationTokenManager;
+        _dustHold = dustHold;
         listingManager.ListingFound += OnListingFound;
         networkManager.EliminatedUpdated += Refresh;
     }
@@ -88,9 +90,6 @@ internal class MenuPrefabManager : IDisposable
     internal Animator? Animator { get; private set; }
 
     internal float DownloadProgress { get; private set; }
-
-    internal ParticleSystem? DustParticles => _dustParticles ??=
-        Resources.FindObjectsOfTypeAll<ParticleSystem>().FirstOrDefault(n => n.name == "DustPS");
 
     public void Dispose()
     {
@@ -172,11 +171,6 @@ internal class MenuPrefabManager : IDisposable
         Refresh();
     }
 
-    internal void HideParticles()
-    {
-        DustParticles?.Stop();
-    }
-
     internal void Show()
     {
         _active = true;
@@ -230,6 +224,7 @@ internal class MenuPrefabManager : IDisposable
 
         _lastActive = _active;
         _cameraDepthTextureManager.Enabled = _active;
+        _dustHold.Enabled = _active && (_lobbyInfo?.DisableDust ?? false);
         if (_active)
         {
             SetPrefabActive(false);
@@ -237,16 +232,11 @@ internal class MenuPrefabManager : IDisposable
 
             // None is actually used on 1.40 for some reason?
             _menuEnvironmentManager.ShowEnvironmentType((MenuEnvironmentManager.MenuEnvironmentType)99);
-            if (_lobbyInfo?.DisableDust ?? false)
-            {
-                DustParticles?.Stop();
-            }
 
             _songPreviewPlayer.FadeOut(1);
         }
         else
         {
-            DustParticles?.Play();
             _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
             _songPreviewPlayer.CrossfadeToDefault();
             SetPrefabActive(false);

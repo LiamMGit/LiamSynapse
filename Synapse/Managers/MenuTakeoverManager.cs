@@ -26,7 +26,7 @@ internal class MenuTakeoverManager : IDisposable, ITickable
     private readonly Config _config;
     private readonly IInstantiator _instantiator;
     private readonly ListingManager _listingManager;
-    private readonly MenuPrefabManager _menuPrefabManager;
+    private readonly GlobalDustManager.DustHold _dustHold;
     private readonly CancellationTokenManager _cancellationTokenManager;
 
     private readonly GameObject[] _menuLogo;
@@ -47,8 +47,8 @@ internal class MenuTakeoverManager : IDisposable, ITickable
         Config config,
         IInstantiator instantiator,
         ListingManager listingManager,
-        MenuPrefabManager menuPrefabManager,
         MenuEnvironmentManager menuEnvironmentManager,
+        GlobalDustManager.DustHold dustHold,
         CancellationTokenManager cancellationTokenManager)
     {
         _log = log;
@@ -56,7 +56,7 @@ internal class MenuTakeoverManager : IDisposable, ITickable
         _instantiator = instantiator;
         config.Updated += OnConfigUpdated;
         _listingManager = listingManager;
-        _menuPrefabManager = menuPrefabManager;
+        _dustHold = dustHold;
         _cancellationTokenManager = cancellationTokenManager;
         listingManager.ListingFound += OnListingFound;
 
@@ -127,14 +127,7 @@ internal class MenuTakeoverManager : IDisposable, ITickable
 
         _prefab.SetActive(doEnable);
 
-        if (doEnable && _disableDust)
-        {
-            _menuPrefabManager.DustParticles?.Stop();
-        }
-        else
-        {
-            _menuPrefabManager.DustParticles?.Play();
-        }
+        _dustHold.Enabled = doEnable && _disableDust;
 
         foreach (GameObject gameObject in _menuLogo)
         {

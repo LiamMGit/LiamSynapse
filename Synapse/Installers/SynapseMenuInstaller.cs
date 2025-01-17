@@ -51,5 +51,8 @@ internal class SynapseMenuInstaller : Installer
 
         Container.BindInterfacesAndSelfTo<PromoManager>().AsSingle();
         Container.Bind<NotificationManager>().FromFactory<NotificationManager.NotificationManagerFactory>().NonLazy();
+
+        Container.Bind<GlobalDustManager>().AsSingle();
+        Container.Bind<GlobalDustManager.DustHold>().FromFactory<GlobalDustManager.DustHoldFactory>().AsTransient();
     }
 }

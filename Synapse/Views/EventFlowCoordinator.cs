@@ -44,6 +44,7 @@ internal class EventFlowCoordinator : FlowCoordinator
     private LevelStartManager _levelStartManager = null!;
     private NetworkManager _networkManager = null!;
     private MenuPrefabManager _menuPrefabManager = null!;
+    private GlobalDustManager _globalDustManager = null!;
 
 #if !PRE_V1_37_1
     private MethodInfo _resultsViewControllerInit = null!;
@@ -261,7 +262,8 @@ internal class EventFlowCoordinator : FlowCoordinator
         LevelStartManager levelStartManager,
         ListingManager listingManager,
         NetworkManager networkManager,
-        MenuPrefabManager menuPrefabManager)
+        MenuPrefabManager menuPrefabManager,
+        GlobalDustManager globalDustManager)
     {
         _log = log;
         _config = config;
@@ -281,6 +283,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         listingManager.ListingFound += OnListingFound;
         _networkManager = networkManager;
         _menuPrefabManager = menuPrefabManager;
+        _globalDustManager = globalDustManager;
 #if !PRE_V1_37_1
         _resultsViewControllerInit = AccessTools.Method(typeof(ResultsViewController), nameof(ResultsViewController.Init));
 #endif
@@ -375,7 +378,7 @@ internal class EventFlowCoordinator : FlowCoordinator
         LevelCompletionResults levelCompletionResults)
     {
         TransitionDidFinish();
-        _menuPrefabManager.HideParticles();
+        _globalDustManager.Refresh();
 
         // do not submit when server forces a stop
         if (levelCompletionResults.levelEndStateType == LevelCompletionResults.LevelEndStateType.Incomplete &&

@@ -258,6 +258,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _networkManager.StageUpdated -= OnStageUpdated;
         }
 
+        _priorityVertical.gameObject.SetActive(false);
         _priorityMessages.Clear();
         _disabledPriorityMessages.Clear();
         foreach (Transform obj in _priorityVertical.transform)
