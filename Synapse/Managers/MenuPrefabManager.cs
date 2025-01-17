@@ -23,7 +23,7 @@ internal class MenuPrefabManager : IDisposable
     private static readonly int _eliminated = Animator.StringToHash("eliminated");
 
     private readonly CancellationTokenManager _cancellationTokenManager;
-    private readonly GlobalDustManager.DustHold _dustHold;
+    private readonly GlobalParticleManager.ParticleHold _particleHold;
     private readonly IInstantiator _instantiator;
     private readonly ListingManager _listingManager;
     private readonly NetworkManager _networkManager;
@@ -54,7 +54,7 @@ internal class MenuPrefabManager : IDisposable
         MenuEnvironmentManager menuEnvironmentManager,
         SongPreviewPlayer songPreviewPlayer,
         CancellationTokenManager cancellationTokenManager,
-        GlobalDustManager.DustHold dustHold)
+        GlobalParticleManager.ParticleHold particleHold)
     {
         _log = log;
         _instantiator = instantiator;
@@ -64,7 +64,7 @@ internal class MenuPrefabManager : IDisposable
         _menuEnvironmentManager = menuEnvironmentManager;
         _songPreviewPlayer = songPreviewPlayer;
         _cancellationTokenManager = cancellationTokenManager;
-        _dustHold = dustHold;
+        _particleHold = particleHold;
         listingManager.ListingFound += OnListingFound;
         networkManager.EliminatedUpdated += Refresh;
     }
@@ -224,7 +224,8 @@ internal class MenuPrefabManager : IDisposable
 
         _lastActive = _active;
         _cameraDepthTextureManager.Enabled = _active;
-        _dustHold.Enabled = _active && (_lobbyInfo?.DisableDust ?? false);
+        _particleHold.DustDisabled = _active && (_lobbyInfo?.DisableDust ?? false);
+        _particleHold.SmokeDisabled = _active && (_lobbyInfo?.DisableSmoke ?? false);
         if (_active)
         {
             SetPrefabActive(false);

@@ -47,6 +47,8 @@ public class LobbyInfo
 {
     public bool DisableDust { get; init; }
 
+    public bool DisableSmoke { get; init; }
+
     public int DepthTextureMode { get; init; }
 
     public List<BundleInfo> Bundles { get; init; } = [];
