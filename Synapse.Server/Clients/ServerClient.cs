@@ -56,7 +56,7 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
 
     public Task SendRefusal(string reason) => Task.CompletedTask;
 
-    public Task SendServerMessage(string message, params object?[] args)
+    public Task SendPriorityServerMessage(string message, params object?[] args)
     {
         // ReSharper disable once TemplateIsNotCompileTimeConstantProblem
 #pragma warning disable CA2254
@@ -64,6 +64,9 @@ public class ServerClient(ILogger<ServerClient> log) : IClient
 #pragma warning restore CA2254
         return Task.CompletedTask;
     }
+
+    public Task SendServerMessage(string message, params object?[] args) => SendPriorityServerMessage(message, args);
+
 
     public Task Send(ClientOpcode opcode, string value) => Task.CompletedTask;
 

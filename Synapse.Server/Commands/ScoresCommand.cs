@@ -25,7 +25,7 @@ public class ScoresCommand(
             case "test":
                 subArguments.TooMany();
                 leaderboardService.GenerateTestScores();
-                client.SendServerMessage("Generated test scores");
+                client.SendPriorityServerMessage("Generated test scores");
 
                 break;
 
@@ -49,7 +49,7 @@ public class ScoresCommand(
                 }
 
                 leaderboardService.BroadcastLeaderboard(mapIndexInt);
-                client.SendServerMessage("Refreshed leaderboards for [{Map} ({Index}))]",
+                client.SendPriorityServerMessage("Refreshed leaderboards for [{Map} ({Index}))]",
                     mapService.Maps[mapIndexInt].Name,
                     mapIndexInt);
 
@@ -200,7 +200,7 @@ public class ScoresCommand(
                 IReadOnlyList<SavedScore> scores = leaderboardService.AllScores[divisionInt][mapIndexInt];
                 if (scores.Count > 0)
                 {
-                    client.SendServerMessage("[{Map} ({Index}))] ({Division}) has {ScoresCount} scores",
+                    client.SendPriorityServerMessage("[{Map} ({Index}))] ({Division}) has {ScoresCount} scores",
                         map,
                         mapIndexInt,
                         division,
@@ -208,7 +208,7 @@ public class ScoresCommand(
                 }
                 else
                 {
-                    client.SendServerMessage("No scores currently submitted for [{Map} ({Index}))] ({Division})",
+                    client.SendPriorityServerMessage("No scores currently submitted for [{Map} ({Index}))] ({Division})",
                         map,
                         mapIndexInt,
                         division);
@@ -224,7 +224,7 @@ public class ScoresCommand(
                         scoresMessage += ", ...";
                     }
 
-                    client.SendServerMessage("{VerboseScores}", scoresMessage);
+                    client.SendPriorityServerMessage("{VerboseScores}", scoresMessage);
                 }
 
                 break;

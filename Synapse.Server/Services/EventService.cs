@@ -91,7 +91,7 @@ public class EventService : IEventService
 
     public void PrintStage(IClient client)
     {
-        client.SendServerMessage("Active stage: {Stage}", CurrentStage.GetType().Name);
+        client.SendPriorityServerMessage("Active stage: {Stage}", CurrentStage.GetType().Name);
     }
 
     public void PrintStatus(IClient client)

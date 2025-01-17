@@ -89,12 +89,12 @@ public class CommandService : ICommandService
             }
             catch (Exception e)
             {
-                client.SendServerMessage("{ExceptionMessage}", e.InnerException?.Message ?? e.Message);
+                client.SendPriorityServerMessage("{ExceptionMessage}", e.InnerException?.Message ?? e.Message);
             }
         }
         else
         {
-            client.SendServerMessage("Did not recognize command [{Message}]", message);
+            client.SendPriorityServerMessage("Did not recognize command [{Message}]", message);
         }
     }
 

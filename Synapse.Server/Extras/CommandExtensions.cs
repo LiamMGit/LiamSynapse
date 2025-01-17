@@ -87,7 +87,7 @@ public static class CommandExtensions
     {
         if (client is not ServerClient)
         {
-            _ = client.SendServerMessage(message, args);
+            _ = client.SendPriorityServerMessage(message, args);
         }
     }
 

@@ -2,6 +2,7 @@
 
 public enum MessageType
 {
+    PrioritySystem,
     System,
     Say,
     WhisperFrom,

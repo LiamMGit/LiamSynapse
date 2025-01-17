@@ -75,14 +75,14 @@ public class TournamentService : ITournamentService
                     {
                         foreach (IClient client in listenerService.Clients.Values.Where(n => n.Division == i1))
                         {
-                            _ = client.SendServerMessage(message, args);
+                            _ = client.SendPriorityServerMessage(message, args);
                         }
 
                         log.LogInformation("[{Division}] " + message, args.Prepend(divisionName).ToArray());
                     }
                     else
                     {
-                        listenerService.BroadcastServerMessage(message, args);
+                        listenerService.BroadcastPriorityServerMessage(message, args);
                     }
                 }
                 catch (Exception e)

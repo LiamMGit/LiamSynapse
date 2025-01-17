@@ -96,7 +96,7 @@ public class IntroStage : Stage
     {
         if (!Active)
         {
-            await client.SendServerMessage("Cannot play, unstaged");
+            await client.SendPriorityServerMessage("Cannot play, unstaged");
             return;
         }
 
@@ -123,11 +123,11 @@ public class IntroStage : Stage
         switch (_state)
         {
             case IntroState.Waiting:
-                client.SendServerMessage("Waiting to play intro in {Time} seconds", _startTime - _timeService.Time);
+                client.SendPriorityServerMessage("Waiting to play intro in {Time} seconds", _startTime - _timeService.Time);
                 break;
 
             case IntroState.Playing:
-                client.SendServerMessage("Playing intro for {Time} seconds", _endTime - _timeService.Time);
+                client.SendPriorityServerMessage("Playing intro for {Time} seconds", _endTime - _timeService.Time);
                 break;
         }
     }
@@ -136,13 +136,13 @@ public class IntroStage : Stage
     {
         if (!Active)
         {
-            await client.SendServerMessage("Cannot start, unstaged");
+            await client.SendPriorityServerMessage("Cannot start, unstaged");
             return;
         }
 
         if (_state != IntroState.Waiting)
         {
-            await client.SendServerMessage("Cannot start intro, already playing");
+            await client.SendPriorityServerMessage("Cannot start intro, already playing");
             return;
         }
 

@@ -17,7 +17,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
         string message = arguments.Unwrap();
         if (string.IsNullOrWhiteSpace(message))
         {
-            client.SendServerMessage("{Motd}", eventService.Motd);
+            client.SendPriorityServerMessage("{Motd}", eventService.Motd);
             return;
         }
 
@@ -132,7 +132,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
         {
             int totalPlayers = listenerService.Clients.Count;
             int totalChatters = listenerService.Chatters.Count;
-            client.SendServerMessage(
+            client.SendPriorityServerMessage(
                 "({Chatters}) currently chatting, ({Players}) currently online",
                 totalPlayers,
                 totalChatters);
@@ -154,6 +154,6 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
             names += ", ...";
         }
 
-        client.SendServerMessage("{Chatters}", names);
+        client.SendPriorityServerMessage("{Chatters}", names);
     }
 }

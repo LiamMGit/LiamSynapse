@@ -111,7 +111,7 @@ public class PlayStage : Stage
     {
         if (!Active)
         {
-            await client.SendServerMessage("Cannot play, unstaged");
+            await client.SendPriorityServerMessage("Cannot play, unstaged");
             return;
         }
 
@@ -145,21 +145,21 @@ public class PlayStage : Stage
         switch (_state)
         {
             case PlayState.Playing:
-                client.SendServerMessage(
+                client.SendPriorityServerMessage(
                     "Currently playing map {Index} [{Name}]",
                     _mapService.Index + 1,
                     _mapService.CurrentMap.Name);
-                client.SendServerMessage(
+                client.SendPriorityServerMessage(
                     "Map ends in {Time} seconds",
                     _endTime - _timeService.Time);
                 break;
 
             case PlayState.Waiting:
-                client.SendServerMessage(
+                client.SendPriorityServerMessage(
                     "Currently waiting to start map {Index} [{Name}]",
                     _mapService.Index + 1,
                     _mapService.CurrentMap.Name);
-                client.SendServerMessage(
+                client.SendPriorityServerMessage(
                     "Map starts in {Time} seconds",
                     _startTime - _timeService.Time);
                 break;
@@ -199,13 +199,13 @@ public class PlayStage : Stage
     {
         if (!Active)
         {
-            await client.SendServerMessage("Cannot start, unstaged");
+            await client.SendPriorityServerMessage("Cannot start, unstaged");
             return;
         }
 
         if (_state != PlayState.Waiting)
         {
-            await client.SendServerMessage("Cannot start map, already playing");
+            await client.SendPriorityServerMessage("Cannot start map, already playing");
             return;
         }
 

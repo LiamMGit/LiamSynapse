@@ -77,11 +77,11 @@ public class BlacklistCommand(
             case "list":
                 if (blacklistService.BannedIps.Count > 0)
                 {
-                    client.SendServerMessage("{BannedIps}", string.Join(", ", blacklistService.BannedIps.Values));
+                    client.SendPriorityServerMessage("{BannedIps}", string.Join(", ", blacklistService.BannedIps.Values));
                 }
                 else
                 {
-                    client.SendServerMessage("Banned ips list currently empty");
+                    client.SendPriorityServerMessage("Banned ips list currently empty");
                 }
 
                 break;
@@ -129,11 +129,11 @@ public class BlacklistCommand(
             case "list":
                 if (blacklistService.Blacklist.Count > 0)
                 {
-                    client.SendServerMessage("{Blacklist}", string.Join(", ", blacklistService.Blacklist.Values));
+                    client.SendPriorityServerMessage("{Blacklist}", string.Join(", ", blacklistService.Blacklist.Values));
                 }
                 else
                 {
-                    client.SendServerMessage("Blacklist currently empty");
+                    client.SendPriorityServerMessage("Blacklist currently empty");
                 }
 
                 break;
@@ -209,11 +209,11 @@ public class BlacklistCommand(
             case "list":
                 if (roleService.RoleDatas.Count > 0)
                 {
-                    client.SendServerMessage("{Admins}", string.Join(", ", roleService.RoleDatas.Values));
+                    client.SendPriorityServerMessage("{Admins}", string.Join(", ", roleService.RoleDatas.Values));
                 }
                 else
                 {
-                    client.SendServerMessage("Admins currently empty");
+                    client.SendPriorityServerMessage("Admins currently empty");
                 }
 
                 break;
@@ -221,11 +221,11 @@ public class BlacklistCommand(
             case "listroles":
                 if (roleService.Roles.Count > 0)
                 {
-                    client.SendServerMessage("{Roles}", string.Join(", ", roleService.Roles.Values));
+                    client.SendPriorityServerMessage("{Roles}", string.Join(", ", roleService.Roles.Values));
                 }
                 else
                 {
-                    client.SendServerMessage("Roles currently empty");
+                    client.SendPriorityServerMessage("Roles currently empty");
                 }
 
                 break;
@@ -324,17 +324,17 @@ public class BlacklistCommand(
             case "list":
                 if (blacklistService.Whitelist == null)
                 {
-                    client.SendServerMessage("No active whitelist");
+                    client.SendPriorityServerMessage("No active whitelist");
                 }
                 else
                 {
                     if (blacklistService.Whitelist.Count > 0)
                     {
-                        client.SendServerMessage("{Whitelist}", string.Join(", ", blacklistService.Whitelist.Values));
+                        client.SendPriorityServerMessage("{Whitelist}", string.Join(", ", blacklistService.Whitelist.Values));
                     }
                     else
                     {
-                        client.SendServerMessage("Whitelist currently empty");
+                        client.SendPriorityServerMessage("Whitelist currently empty");
                     }
                 }
 
@@ -356,7 +356,7 @@ public class BlacklistCommand(
             case "remove":
                 if (blacklistService.Whitelist == null)
                 {
-                    client.SendServerMessage("No active whitelist");
+                    client.SendPriorityServerMessage("No active whitelist");
                     return;
                 }
 

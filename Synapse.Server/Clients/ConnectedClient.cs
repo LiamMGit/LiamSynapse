@@ -143,6 +143,20 @@ public class ConnectedClient(
         await Send(packetBuilder.ToBytes());
     }
 
+    public async Task SendPriorityServerMessage(string message, params object?[] args)
+    {
+        await Send(
+            ClientOpcode.ChatMessage,
+            JsonSerializer.Serialize(
+                new ChatMessage(
+                    string.Empty,
+                    string.Empty,
+                    "yellow",
+                    MessageType.PrioritySystem,
+                    NamedFormatter.Format(message, args)),
+                JsonUtils.Settings));
+    }
+
     public async Task SendServerMessage(string message, params object?[] args)
     {
         await Send(
@@ -373,7 +387,7 @@ public class ConnectedClient(
 
                         if (RateLimiter.RateLimit(this, 20, 10000, ServerOpcode.SetChatter.ToString()))
                         {
-                            await SendServerMessage("Too many messages, slow down!");
+                            await SendPriorityServerMessage("Too many messages, slow down!");
                             break;
                         }
 

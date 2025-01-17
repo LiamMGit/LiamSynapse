@@ -14,7 +14,16 @@ public class MessageCommand(
         string message = arguments.Unwrap();
         message.NotEnough();
 
-        listenerService.BroadcastServerMessage("[Server] {Say}", message);
+        listenerService.BroadcastPriorityServerMessage("[Server] {Say}", message);
         ////_log.LogInformation("[Server] {Say}", arguments);
+    }
+
+    [Command("sayraw", Permission.Coordinator)]
+    public void SayRaw(IClient client, string arguments)
+    {
+        string message = arguments.Unwrap();
+        message.NotEnough();
+
+        listenerService.BroadcastPriorityServerMessage("{SayRaw}", message);
     }
 }

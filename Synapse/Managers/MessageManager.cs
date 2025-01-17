@@ -64,7 +64,7 @@ internal sealed class MessageManager : IDisposable
                             string.Empty,
                             string.Empty,
                             "yellow",
-                            MessageType.System,
+                            MessageType.PrioritySystem,
                             $"{(latency > 999 ? "999+" : latency.ToString("F0"))} ms"));
                 }
                 else
@@ -118,12 +118,12 @@ internal sealed class MessageManager : IDisposable
 
     private void OnMotdUpdated(string message)
     {
-        MessageReceived?.Invoke(new ChatMessage(string.Empty, string.Empty, null, MessageType.System, message));
+        MessageReceived?.Invoke(new ChatMessage(string.Empty, string.Empty, null, MessageType.PrioritySystem, message));
     }
 
     private void RelaySystemMessage(string message)
     {
         ////message = $"<color=\"yellow\">{message}</color>";
-        MessageReceived?.Invoke(new ChatMessage(string.Empty, string.Empty, "yellow", MessageType.System, message));
+        MessageReceived?.Invoke(new ChatMessage(string.Empty, string.Empty, "yellow", MessageType.PrioritySystem, message));
     }
 }

@@ -456,6 +456,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
                 switch (message.Type)
                 {
+                    case MessageType.PrioritySystem:
                     case MessageType.System:
                         content = Colorize(messageString, message.Color);
                         color = Color.white;
@@ -478,7 +479,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
                         break;
                 }
 
-                if (message.Type == MessageType.System)
+                if (message.Type == MessageType.PrioritySystem)
                 {
                     if (_config.ShowPriorityMessages)
                     {

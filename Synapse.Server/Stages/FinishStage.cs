@@ -34,6 +34,6 @@ public class FinishStage : Stage
 
     public override void PrintStatus(IClient client)
     {
-        client.SendServerMessage("Finished with event!");
+        client.SendPriorityServerMessage("Finished with event!");
     }
 }

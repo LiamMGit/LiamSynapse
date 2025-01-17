@@ -35,6 +35,8 @@ public interface IListenerService
 
     public void BroadcastChatMessage(string id, string username, string? color, string message);
 
+    public void BroadcastPriorityServerMessage([StructuredMessageTemplate] string message, params object?[] args);
+
     public void BroadcastServerMessage([StructuredMessageTemplate] string message, params object?[] args);
 
     public Task RunAsync();
@@ -137,6 +139,11 @@ public class ListenerService : IListenerService
     public void BroadcastChatMessage(string id, string username, string? color, string message)
     {
         AllClients(n => n.SendChatMessage(new ChatMessage(id, username, color, MessageType.Say, message)));
+    }
+
+    public void BroadcastPriorityServerMessage(string message, params object?[] args)
+    {
+        AllClients(n => n.SendPriorityServerMessage(message, args));
     }
 
     public void BroadcastServerMessage(string message, params object?[] args)

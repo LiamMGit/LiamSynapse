@@ -145,7 +145,7 @@ public class EventCommand
 
                 if (index < 0 || index >= _mapService.MapCount)
                 {
-                    client.SendServerMessage(
+                    client.SendPriorityServerMessage(
                         "Cannot set map to out of range index [{Index}], valid indices are: [0-{MaxIndex}]",
                         index,
                         _mapService.MapCount - 1);
@@ -154,7 +154,7 @@ public class EventCommand
 
                 flags = flags.GetFlags();
                 _ = _playStage.SetIndex(index, client, flags.Contains('s'), flags.Contains('a'));
-                client.SendServerMessage("Map set to [{Map} ({Index})]", _mapService.CurrentMap.Name, index);
+                client.SendPriorityServerMessage("Map set to [{Map} ({Index})]", _mapService.CurrentMap.Name, index);
 
                 break;
             }
@@ -196,7 +196,7 @@ public class EventCommand
 
                 if (index < 0 || index >= _eventService.Stages.Length)
                 {
-                    client.SendServerMessage(
+                    client.SendPriorityServerMessage(
                         "Cannot set stage to out of range index [{Index}], valid indices are: [0-{MaxIndex}]",
                         index,
                         _eventService.Stages.Length - 1);

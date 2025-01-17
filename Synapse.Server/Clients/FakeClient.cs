@@ -121,6 +121,8 @@ public class FakeClient(string id, string username) : IClient
 
     public Task SendRefusal(string reason) => Task.CompletedTask;
 
+    public Task SendPriorityServerMessage(string message, params object?[] args) => Task.CompletedTask;
+
     public Task SendServerMessage(string message, params object?[] args) => Task.CompletedTask;
 
     public Task Send(ClientOpcode opcode, string value) => Task.CompletedTask;

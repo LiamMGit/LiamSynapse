@@ -283,7 +283,7 @@ public class ShowcaseFormat : ITournamentFormat
             string[] eliminatedIds = eliminatedScores.Select(n => n.Id).ToArray();
             foreach (IClient client in _listenerService.Clients.Values.Where(n => eliminatedIds.Contains(n.Id)))
             {
-                client.SendServerMessage("<color=red>You were eliminated!");
+                client.SendPriorityServerMessage("<color=red>You were eliminated!");
             }
         }
     }

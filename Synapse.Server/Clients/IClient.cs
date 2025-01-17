@@ -36,6 +36,8 @@ public interface IClient
 
     public Task SendRefusal(string reason);
 
+    public Task SendPriorityServerMessage([StructuredMessageTemplate] string message, params object?[] args);
+
     public Task SendServerMessage([StructuredMessageTemplate] string message, params object?[] args);
 
     public Task Send(ClientOpcode opcode, string value);
