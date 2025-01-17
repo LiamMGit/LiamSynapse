@@ -54,5 +54,6 @@ internal class SynapseMenuInstaller : Installer
 
         Container.Bind<GlobalParticleManager>().AsSingle();
         Container.Bind<GlobalParticleManager.ParticleHold>().FromFactory<GlobalParticleManager.DustHoldFactory>().AsTransient();
+        Container.BindInterfacesAndSelfTo<MenuMusicManager>().AsSingle();
     }
 }

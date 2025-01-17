@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using SiraUtil.Logging;
 using Synapse.Controllers;
 using Synapse.Extras;
+using Synapse.HarmonyPatches;
 using Synapse.Networking.Models;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -24,6 +25,7 @@ internal class MenuPrefabManager : IDisposable
 
     private readonly CancellationTokenManager _cancellationTokenManager;
     private readonly GlobalParticleManager.ParticleHold _particleHold;
+    private readonly MenuMusicManager _menuMusicManager;
     private readonly IInstantiator _instantiator;
     private readonly ListingManager _listingManager;
     private readonly NetworkManager _networkManager;
@@ -31,7 +33,6 @@ internal class MenuPrefabManager : IDisposable
 
     private readonly SiraLog _log;
     private readonly MenuEnvironmentManager _menuEnvironmentManager;
-    private readonly SongPreviewPlayer _songPreviewPlayer;
 
     private bool _active;
     private bool _lastActive;
@@ -52,9 +53,9 @@ internal class MenuPrefabManager : IDisposable
         NetworkManager networkManager,
         CameraDepthTextureManager cameraDepthTextureManager,
         MenuEnvironmentManager menuEnvironmentManager,
-        SongPreviewPlayer songPreviewPlayer,
         CancellationTokenManager cancellationTokenManager,
-        GlobalParticleManager.ParticleHold particleHold)
+        GlobalParticleManager.ParticleHold particleHold,
+        MenuMusicManager menuMusicManager)
     {
         _log = log;
         _instantiator = instantiator;
@@ -62,9 +63,9 @@ internal class MenuPrefabManager : IDisposable
         _networkManager = networkManager;
         _cameraDepthTextureManager = cameraDepthTextureManager;
         _menuEnvironmentManager = menuEnvironmentManager;
-        _songPreviewPlayer = songPreviewPlayer;
         _cancellationTokenManager = cancellationTokenManager;
         _particleHold = particleHold;
+        _menuMusicManager = menuMusicManager;
         listingManager.ListingFound += OnListingFound;
         networkManager.EliminatedUpdated += Refresh;
     }
@@ -226,6 +227,7 @@ internal class MenuPrefabManager : IDisposable
         _cameraDepthTextureManager.Enabled = _active;
         _particleHold.DustDisabled = _active && (_lobbyInfo?.DisableDust ?? false);
         _particleHold.SmokeDisabled = _active && (_lobbyInfo?.DisableSmoke ?? false);
+        _menuMusicManager.MenuMusicDisabled = _active;
         if (_active)
         {
             SetPrefabActive(false);
@@ -233,13 +235,10 @@ internal class MenuPrefabManager : IDisposable
 
             // None is actually used on 1.40 for some reason?
             _menuEnvironmentManager.ShowEnvironmentType((MenuEnvironmentManager.MenuEnvironmentType)99);
-
-            _songPreviewPlayer.FadeOut(1);
         }
         else
         {
             _menuEnvironmentManager.ShowEnvironmentType(MenuEnvironmentManager.MenuEnvironmentType.Default);
-            _songPreviewPlayer.CrossfadeToDefault();
             SetPrefabActive(false);
         }
 
