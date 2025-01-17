@@ -246,13 +246,6 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         // ReSharper disable once InvertIf
         if (removedFromHierarchy)
         {
-            _priorityMessages.Clear();
-            _disabledPriorityMessages.Clear();
-            foreach (Transform obj in _priorityVertical.transform)
-            {
-                Destroy(obj.gameObject);
-            }
-
             _messageQueue.Clear();
             _messages.Clear();
             foreach (Transform obj in _textObject.transform)
@@ -263,6 +256,13 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _messageManager.MessageReceived -= OnMessageReceived;
             _networkManager.UserBanned -= OnUserBanned;
             _networkManager.StageUpdated -= OnStageUpdated;
+        }
+
+        _priorityMessages.Clear();
+        _disabledPriorityMessages.Clear();
+        foreach (Transform obj in _priorityVertical.transform)
+        {
+            Destroy(obj.gameObject);
         }
     }
 

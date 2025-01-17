@@ -44,6 +44,12 @@ internal class CameraDepthTextureController : MonoBehaviour
             return;
         }
 
+        if (_camera == null)
+        {
+            Destroy(this);
+            return;
+        }
+
         if (_depthTextureManager.Enabled)
         {
             _cachedDepthTextureMode ??= _camera.depthTextureMode;
