@@ -29,6 +29,8 @@ internal class EventIntroViewController : BSMLAutomaticViewController
     private readonly TextMeshProUGUI _skipText = null!;
 
     private Config _config = null!;
+    private MenuPrefabManager _menuPrefabManager = null!;
+    private NetworkManager _networkManager = null!;
 
     private Coroutine? _coroutine;
 
@@ -36,13 +38,24 @@ internal class EventIntroViewController : BSMLAutomaticViewController
 
     private bool _doMute;
     private HeldButton _heldButton = null!;
-    private MenuPrefabManager _menuPrefabManager = null!;
 
     internal event Action? Finished;
 
     internal void Init(bool intro)
     {
         _intro = intro;
+    }
+
+#if !V1_29_1
+    protected override void OnDestroy()
+#else
+#pragma warning disable SA1202
+    public override void OnDestroy()
+#pragma warning restore SA1202
+#endif
+    {
+        base.OnDestroy();
+        _networkManager.StopLevelReceived -= OnStepLevelReceived;
     }
 
     protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
@@ -99,22 +112,32 @@ internal class EventIntroViewController : BSMLAutomaticViewController
 
     [UsedImplicitly]
     [Inject]
-    private void Construct(Config config, MenuPrefabManager menuPrefabManager)
+    private void Construct(Config config, MenuPrefabManager menuPrefabManager, NetworkManager networkManager)
     {
         _config = config;
         _menuPrefabManager = menuPrefabManager;
+        _networkManager = networkManager;
+        networkManager.StopLevelReceived += OnStepLevelReceived;
     }
 
-    private void Finish()
+    private void OnStepLevelReceived()
+    {
+        Finish(true);
+    }
+
+    private void Finish(bool incomplete = false)
     {
         _config.DisableLobbyAudio = _doMute;
-        if (_intro)
+        if (!incomplete)
         {
-            _config.LastEvent.SeenIntro = true;
-        }
-        else
-        {
-            _config.LastEvent.SeenOutro = true;
+            if (_intro)
+            {
+                _config.LastEvent.SeenIntro = true;
+            }
+            else
+            {
+                _config.LastEvent.SeenOutro = true;
+            }
         }
 
         Finished?.Invoke();

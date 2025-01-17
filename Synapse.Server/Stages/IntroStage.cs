@@ -60,6 +60,7 @@ public class IntroStage : Stage
 
     public override void Enter()
     {
+        _state = IntroState.Waiting;
         _cancellationTokenSource.Cancel();
         Listing? listing = _listingService.Listing;
         if (listing == null)
@@ -115,6 +116,7 @@ public class IntroStage : Stage
         }
 
         await Task.Delay(timer, (_cancellationTokenSource = new CancellationTokenSource()).Token);
+        _cancellationTokenSource.Token.ThrowIfCancellationRequested();
         Exit();
     }
 
@@ -154,12 +156,15 @@ public class IntroStage : Stage
 
         _state = IntroState.Waiting;
         await Task.Delay(timer, (_cancellationTokenSource = new CancellationTokenSource()).Token);
+        _cancellationTokenSource.Token.ThrowIfCancellationRequested();
         AutoPlay(_serverClient);
     }
 
     public void Stop(IClient client)
     {
+        _cancellationTokenSource.Cancel();
         _startTime = float.MaxValue;
+        _state = IntroState.Waiting;
         UpdateStatus();
         client.LogAndSend(_log, "Stopped intro");
     }
@@ -168,6 +173,7 @@ public class IntroStage : Stage
     {
         _log.LogInformation("Starting event in {Time} seconds", timer.TotalSeconds);
         await Task.Delay(timer, (_cancellationTokenSource = new CancellationTokenSource()).Token);
+        _cancellationTokenSource.Token.ThrowIfCancellationRequested();
         AutoStart(_serverClient);
     }
 }
