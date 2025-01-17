@@ -8,7 +8,7 @@
     </horizontal>
     <horizontal horizontal-fit='PreferredSize' child-expand-width='false' child-control-width='false'>
       <horizontal preferred-width='20' horizontal-fit='PreferredSize'>
-        <horizontal bg='round-rect-panel' preferred-width='8' horizontal-fit='PreferredSize' pad='1'>
+        <horizontal bg='round-rect-panel' preferred-width='7' horizontal-fit='PreferredSize' pad='1'>
           <text-segments id='segments' select-cell='selectcell'/>
         </horizontal>
       </horizontal>

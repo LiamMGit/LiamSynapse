@@ -380,6 +380,11 @@ internal class EventLeaderboardViewController : BSMLAutomaticViewController
 
         _textSegments.SetTexts(_textSegmentTexts);
         _textSegments.SelectCellWithNumber(_index);
+
+        foreach (SegmentedControlCell segmentedControlCell in _textSegments.cells)
+        {
+            ((RectTransform)segmentedControlCell.transform).sizeDelta = new Vector2(6, 6);
+        }
     }
 
     internal class EventScoreData(int score, string playerName, int rank, float percentage, Color? color)
