@@ -151,7 +151,7 @@ internal class EventIntroViewController : BSMLAutomaticViewController
 
         // not super elegant but should catch any edge cases
         yield return new WaitForSeconds(0.1f);
-        yield return new WaitWhile(() => animator.GetCurrentAnimatorStateInfo(0).normalizedTime <= 1.0f);
+        yield return new WaitWhile(() => animator.GetCurrentAnimatorStateInfo(0).IsTag(_intro ? "intro" : "outro"));
 
         Finish();
     }
