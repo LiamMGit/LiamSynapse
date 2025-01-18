@@ -511,14 +511,14 @@ internal class EventFlowCoordinator : FlowCoordinator
     {
         TransitionFinished += () =>
         {
-            if (topViewController == _resultsViewController)
+            /*if (topViewController == _resultsViewController)
             {
                 DismissViewController(
                     _resultsViewController,
                     ViewController.AnimationDirection.Horizontal,
                     OnOutroStarted);
                 return;
-            }
+            }*/
 
             if (topViewController != _lobbyNavigationViewController)
             {
