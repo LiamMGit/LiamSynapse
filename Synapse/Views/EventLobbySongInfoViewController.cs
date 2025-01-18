@@ -132,7 +132,7 @@ internal class EventLobbySongInfoViewController : BSMLAutomaticViewController
     {
         base.DidActivate(firstActivation, addedToHierarchy, screenSystemEnabling);
 
-        //rectTransform.sizeDelta = new Vector2(-120, 0);
+        rectTransform.sizeDelta = new Vector2(-120, 0);
 
         if (firstActivation)
         {
