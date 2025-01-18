@@ -75,6 +75,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     private IInstantiator _instantiator = null!;
     private EventLeaderboardViewController _leaderboardViewController = null!;
     private InputFieldView _input = null!;
+    private KeyboardOpener _keyboardOpener = null!;
     private OkRelay _okRelay = null!;
 
     private string _playerCountText = string.Empty;
@@ -170,7 +171,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _input._keyboardPositionOffset = new Vector3(0, 60, 0);
             _input._textLengthLimit = 200;
             _input._textView.richText = false;
-            _instantiator.InstantiateComponent<KeyboardOpener>(_input.gameObject);
+            _keyboardOpener = _instantiator.InstantiateComponent<KeyboardOpener>(_input.gameObject);
             RectTransform bg = (RectTransform)rect.Find("BG");
             bg.offsetMin = new Vector2(0, -4);
             bg.offsetMax = new Vector2(0, 4);
@@ -257,6 +258,8 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
             _networkManager.UserBanned -= OnUserBanned;
             _networkManager.StageUpdated -= OnStageUpdated;
         }
+
+        _keyboardOpener.Close();
 
         _priorityVertical.gameObject.SetActive(false);
         _priorityMessages.Clear();

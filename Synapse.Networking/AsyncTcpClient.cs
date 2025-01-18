@@ -51,6 +51,7 @@ public abstract class AsyncTcpClient : IDisposable
         _active = true;
 
         CancellationToken token = Cts.Token;
+        token.Register(() => Stream?.Close());
         token.ThrowIfCancellationRequested();
         await ConnectAsync(token);
     }

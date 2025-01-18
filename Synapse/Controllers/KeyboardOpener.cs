@@ -11,6 +11,14 @@ public class KeyboardOpener : MonoBehaviour
     private InputFieldView _inputFieldView = null!;
     private UIKeyboardManager _uiKeyboardManager = null!;
 
+    internal void Close()
+    {
+        if (_uiKeyboardManager.ShouldCloseKeyboard(gameObject))
+        {
+            _uiKeyboardManager.CloseKeyboard();
+        }
+    }
+
     private void Awake()
     {
         _inputFieldView = GetComponent<InputFieldView>();
@@ -35,11 +43,7 @@ public class KeyboardOpener : MonoBehaviour
         switch (e.keyCode)
         {
             case KeyCode.Escape:
-                if (_uiKeyboardManager.ShouldCloseKeyboard(gameObject))
-                {
-                    _uiKeyboardManager.CloseKeyboard();
-                }
-
+                Close();
                 break;
 
             case KeyCode.Slash when !_inputFieldView._hasKeyboardAssigned:
