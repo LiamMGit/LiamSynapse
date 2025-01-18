@@ -497,15 +497,6 @@ internal class EventFlowCoordinator : FlowCoordinator
     {
         TransitionFinished += () =>
         {
-            if (topViewController == _resultsViewController)
-            {
-                DismissViewController(
-                    _resultsViewController,
-                    ViewController.AnimationDirection.Horizontal,
-                    OnIntroStarted);
-                return;
-            }
-
             if (topViewController != _lobbyNavigationViewController)
             {
                 return;
