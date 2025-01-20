@@ -56,12 +56,8 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
         }
 
         int roll = _random.Next(min, max + 1);
-        listenerService.BroadcastServerMessage(
-            "{Client} rolled {Roll} ({Min}-{Max})",
-            client.DisplayUsername,
-            roll,
-            min,
-            max);
+        string message = $"{client.DisplayUsername} rolled {roll} ({min}-{max})";
+        listenerService.BroadcastChatMessage(client.Id, client.DisplayUsername, "yellow", MessageType.System, message);
         return;
 
         void Parse(string arg, ref int val)
@@ -88,7 +84,7 @@ public class ClientCommand(ILogger<ClientCommand> log, IListenerService listener
         message.NotEnough();
         IClient target = listenerService.Chatters.Keys.ScanQuery(name, CommandExtensions.ByUsername, false);
 
-        string censored = StringUtils.Sanitize(message);
+        string censored = message.Sanitize().Trim();
 
         client.SendChatMessage(
             new ChatMessage(target.Id, target.DisplayUsername, target.GetColor(), MessageType.WhisperTo, censored));

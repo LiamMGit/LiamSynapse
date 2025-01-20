@@ -8,7 +8,7 @@ public class ClientService(
     ILogger<ClientService> log,
     IServiceProvider provider)
 {
-    private readonly HashSet<Client> _clients = [];
+    public HashSet<Client> Clients { get; } = [];
 
     public async Task Deploy(int duration, CancellationToken token)
     {
@@ -20,7 +20,7 @@ public class ClientService(
                 instance,
                 duration < 0 ? "permanently" : duration * 0.001f);
             _ = instance.RunAsync();
-            _clients.Add(instance);
+            Clients.Add(instance);
             await Task.Delay(duration, token);
             _ = instance.Disconnect(DisconnectCode.DisconnectedByUser);
         }
@@ -34,7 +34,7 @@ public class ClientService(
         }
         finally
         {
-            _clients.Remove(instance);
+            Clients.Remove(instance);
         }
     }
 
@@ -59,13 +59,13 @@ public class ClientService(
 
     public async Task Score(CancellationToken token)
     {
-        Task[] tasks = _clients.Select(client => client.CreateAndSubmitScore(token)).ToArray();
+        Task[] tasks = Clients.Select(client => client.CreateAndSubmitScore(token)).ToArray();
         await Task.WhenAll(tasks);
     }
 
     public void SendRandomMessages()
     {
-        foreach (Client client in _clients)
+        foreach (Client client in Clients)
         {
             _ = client.SendRandomMessages();
         }

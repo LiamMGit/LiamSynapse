@@ -4,7 +4,7 @@ namespace Synapse.Server.Extras;
 
 public static partial class StringUtils
 {
-    public static string Sanitize(string message)
+    public static string Sanitize(this string message)
     {
         try
         {

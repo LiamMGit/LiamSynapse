@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
+using Synapse.Networking.Models;
 using Synapse.TestClient;
 using Synapse.TestClient.Extras;
 
@@ -86,6 +87,14 @@ while (true)
 
         case "send":
             clientService.SendRandomMessages();
+            break;
+
+        case "roll":
+            foreach (Client client in clientService.Clients)
+            {
+                _ = client.Send(ServerOpcode.Command, "roll");
+            }
+
             break;
 
         default:

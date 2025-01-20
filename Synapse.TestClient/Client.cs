@@ -379,6 +379,8 @@ public class Client
 
             case ClientOpcode.ChatMessage:
             case ClientOpcode.UserBanned:
+            case ClientOpcode.UserJoin:
+            case ClientOpcode.UserLeave:
             {
                 break;
             }

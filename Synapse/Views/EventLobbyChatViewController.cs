@@ -458,7 +458,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
                 {
                     case MessageType.PrioritySystem:
                     case MessageType.System:
-                        content = Colorize(messageString, message.Color);
+                        content = Colorize(messageString, colorString);
                         color = Color.white;
                         break;
 
@@ -561,7 +561,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
         static string NoParse(string message)
         {
-            StringBuilder stringBuilder = new();
+            StringBuilder stringBuilder = new(message.Length);
             foreach (char c in message)
             {
                 if (c is '<' or '>')

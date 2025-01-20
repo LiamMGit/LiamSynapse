@@ -33,7 +33,7 @@ public interface IListenerService
 
     public void Blacklist(IClient client, string? reason, DateTime? banTime);
 
-    public void BroadcastChatMessage(string id, string username, string? color, string message);
+    public void BroadcastChatMessage(string id, string username, string? color, MessageType messageType, string message);
 
     public void BroadcastPriorityServerMessage([StructuredMessageTemplate] string message, params object?[] args);
 
@@ -136,9 +136,10 @@ public class ListenerService : IListenerService
         AllClients(n => n.Send(ClientOpcode.UserBanned, id));
     }
 
-    public void BroadcastChatMessage(string id, string username, string? color, string message)
+    public void BroadcastChatMessage(string id, string username, string? color, MessageType messageType, string message)
     {
-        AllClients(n => n.SendChatMessage(new ChatMessage(id, username, color, MessageType.Say, message)));
+        ChatMessage chatMessage = new(id, username, color, messageType, message);
+        AllClients(n => n.SendChatMessage(chatMessage));
     }
 
     public void BroadcastPriorityServerMessage(string message, params object?[] args)
@@ -224,7 +225,10 @@ public class ListenerService : IListenerService
     {
         Chatters.TryAdd(client, 0);
         _log.LogInformation("{Username} has joined", client.DisplayUsername);
-        AllClients(n => n.Send(ClientOpcode.UserJoin, client.DisplayUsername));
+        using PacketBuilder packetBuilder = new((byte)ClientOpcode.UserJoin);
+        packetBuilder.Write(client.DisplayUsername);
+        ReadOnlySequence<byte> bytes = packetBuilder.ToBytes();
+        AllClients(n => n.Chatter ? n.Send(bytes) : Task.CompletedTask);
         ////BroadcastServerMessage("{Username} has joined.", client.DisplayUsername);
         BroadcastPlayerCount();
     }
@@ -233,21 +237,29 @@ public class ListenerService : IListenerService
     {
         Chatters.TryRemove(client, out _);
         _log.LogInformation("{Username} has left", client.DisplayUsername);
-        AllClients(n => n.Send(ClientOpcode.UserLeave, client.DisplayUsername));
+        using PacketBuilder packetBuilder = new((byte)ClientOpcode.UserJoin);
+        packetBuilder.Write(client.DisplayUsername);
+        ReadOnlySequence<byte> bytes = packetBuilder.ToBytes();
+        AllClients(n => n.Chatter ? n.Send(bytes) : Task.CompletedTask);
         ////BroadcastServerMessage("{Username} has left.", client.DisplayUsername);
         BroadcastPlayerCount();
     }
 
     private void OnChatMessageReceived(ConnectedClient connectedClient, string message)
     {
-        string censored = StringUtils.Sanitize(message);
+        string censored = message.Sanitize().Trim();
         if (string.IsNullOrWhiteSpace(censored))
         {
             return;
         }
 
         ////_log.LogInformation("[{Client}]{Extra} {Message}", connectedClient, censored == message ? string.Empty : " (censored)", message);
-        BroadcastChatMessage(connectedClient.Id, connectedClient.DisplayUsername, connectedClient.GetColor(), censored);
+        BroadcastChatMessage(
+            connectedClient.Id,
+            connectedClient.DisplayUsername,
+            connectedClient.GetColor(),
+            MessageType.Say,
+            censored);
     }
 
     private void OnCommandReceived(ConnectedClient client, string command)
