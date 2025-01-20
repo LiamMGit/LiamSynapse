@@ -187,14 +187,15 @@ public class ShowcaseFormat : ITournamentFormat
                 string[] winners = currPlayers.Select(n => n.Username).ToArray();
                 string winnerNames = winners.Length switch
                 {
-                    2 => $"{winners[0]} and {winners[1]}",
+                    2 => $"{winners[0]} and {winners[1]} won",
                     > 1 => string.Join(", ", winners, 0, winners.Length - 1) +
                            ", and " +
-                           winners.Last(),
-                    _ => winners[0]
+                           winners.Last() +
+                           " won",
+                    _ => winners[0] + " wins"
                 };
                 ////_log.LogInformation("{Winner} won!", winner.Username);
-                SendBroadcast(RICH_COLOR + "{Winner} win!", winnerNames);
+                SendBroadcast(RICH_COLOR + "{Winner}!", winnerNames);
                 SendLog(
                     LogLevel.Debug,
                     "Elimination Occurred [map index: {Index}, playerCount: {PlayerCount}",
