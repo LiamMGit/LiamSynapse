@@ -68,10 +68,13 @@ public class ScoresCommand(
                     throw new CommandParseException(subSubCommand);
                 }
 
-                string id = subSubSubArguments.Unwrap();
-                if (string.IsNullOrWhiteSpace(id))
+                subSubSubArguments.SplitCommand(out string subSubSubCommand, out string subSubSubSubArguments);
+                string id = subSubSubCommand.Unwrap();
+
+                string mapIndexString = subSubSubSubArguments.Unwrap();
+                if (string.IsNullOrWhiteSpace(mapIndexString))
                 {
-                    id = mapIndex;
+                    mapIndexString = mapIndex;
                     mapIndexInt = mapService.Index;
                 }
                 else if (!int.TryParse(subArguments, out mapIndexInt))
