@@ -36,6 +36,7 @@ internal class EventIntroViewController : BSMLAutomaticViewController
 
     private bool _intro;
 
+    private bool _finished;
     private bool _doMute;
     private HeldButton _heldButton = null!;
 
@@ -77,6 +78,7 @@ internal class EventIntroViewController : BSMLAutomaticViewController
         // ReSharper disable once InvertIf
         if (addedToHierarchy)
         {
+            _finished = false;
             _skipText.text = _intro ? "Skip Intro >>" : "Skip Outro >>";
             Animator? animator = _menuPrefabManager.Animator;
             if (animator == null)
@@ -127,6 +129,12 @@ internal class EventIntroViewController : BSMLAutomaticViewController
 
     private void Finish(bool incomplete = false)
     {
+        if (_finished)
+        {
+            return;
+        }
+
+        _finished = true;
         _config.DisableLobbyAudio = _doMute;
         if (!incomplete)
         {

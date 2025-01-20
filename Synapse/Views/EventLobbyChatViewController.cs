@@ -243,6 +243,14 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         // ReSharper disable once InvertIf
         if (removedFromHierarchy)
         {
+            _priorityVertical.gameObject.SetActive(false);
+            _priorityMessages.Clear();
+            _disabledPriorityMessages.Clear();
+            foreach (Transform obj in _priorityVertical.transform)
+            {
+                Destroy(obj.gameObject);
+            }
+
             _messageQueue.Clear();
             _messages.Clear();
             foreach (Transform obj in _textObject.transform)
@@ -256,14 +264,6 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
         }
 
         _keyboardOpener.Close();
-
-        _priorityVertical.gameObject.SetActive(false);
-        _priorityMessages.Clear();
-        _disabledPriorityMessages.Clear();
-        foreach (Transform obj in _priorityVertical.transform)
-        {
-            Destroy(obj.gameObject);
-        }
     }
 
     [UsedImplicitly]
@@ -448,7 +448,8 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
                 string messageString = message.Message;
                 string usernameString = message.Username;
                 string? colorString = message.Color;
-                if (message.Type != MessageType.System && _config.ProfanityFilter)
+                if ((message.Type != MessageType.System && message.Type != MessageType.PrioritySystem) &&
+                    _config.ProfanityFilter)
                 {
                     messageString = _profanityFilter.CensorString(messageString);
                     usernameString = _profanityFilter.CensorString(usernameString);
