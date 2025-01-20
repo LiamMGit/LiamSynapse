@@ -223,14 +223,18 @@ public class ListenerService : IListenerService
     private void OnChatJoined(ConnectedClient client)
     {
         Chatters.TryAdd(client, 0);
-        BroadcastServerMessage("{Username} has joined.", client.DisplayUsername);
+        _log.LogInformation("{Username} has joined", client.DisplayUsername);
+        AllClients(n => n.Send(ClientOpcode.UserJoin, client.DisplayUsername));
+        ////BroadcastServerMessage("{Username} has joined.", client.DisplayUsername);
         BroadcastPlayerCount();
     }
 
     private void OnChatLeft(ConnectedClient client)
     {
         Chatters.TryRemove(client, out _);
-        BroadcastServerMessage("{Username} has left.", client.DisplayUsername);
+        _log.LogInformation("{Username} has left", client.DisplayUsername);
+        AllClients(n => n.Send(ClientOpcode.UserLeave, client.DisplayUsername));
+        ////BroadcastServerMessage("{Username} has left.", client.DisplayUsername);
         BroadcastPlayerCount();
     }
 

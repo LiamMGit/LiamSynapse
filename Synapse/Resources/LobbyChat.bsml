@@ -21,7 +21,7 @@
       <checkbox-setting text='Join chat' value='join-chat' apply-on-change='true' bind-value='true'/>
       <checkbox-setting text='Profanity filter' value='profanity-filter' apply-on-change='true' bind-value='true'/>
       <checkbox-setting text='Mute music' value='mute-music' apply-on-change='true' bind-value='true'/>
-      <checkbox-setting text='Show high-priority messages' value='priority-messages' apply-on-change='true' bind-value='true'/>
+      <checkbox-setting text='Show join/leave messages' value='join-leave-messages' apply-on-change='true' bind-value='true'/>
       <dropdown-list-setting id='division-setting' choices='division-choices' formatter='division-format' text='Division' value='division' apply-on-change='true' bind-value='true'/>
       <horizontal>
         <button id='replay-intro-button' text='Replay Intro' on-click='replay-intro'/>

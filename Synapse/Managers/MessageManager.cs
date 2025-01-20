@@ -21,6 +21,7 @@ internal sealed class MessageManager : IDisposable
         networkManager.Closed += OnClosed;
         networkManager.Connecting += OnConnecting;
         networkManager.ChatReceived += OnChatMessageReceived;
+        networkManager.JoinLeaveReceived += OnJoinLeaveReceived;
         networkManager.MotdUpdated += OnMotdUpdated;
     }
 
@@ -31,6 +32,7 @@ internal sealed class MessageManager : IDisposable
         _networkManager.Closed -= OnClosed;
         _networkManager.Connecting -= OnConnecting;
         _networkManager.ChatReceived -= OnChatMessageReceived;
+        _networkManager.JoinLeaveReceived -= OnJoinLeaveReceived;
         _networkManager.MotdUpdated -= OnMotdUpdated;
     }
 
@@ -89,6 +91,17 @@ internal sealed class MessageManager : IDisposable
     private void OnChatMessageReceived(ChatMessage messages)
     {
         MessageReceived?.Invoke(messages);
+    }
+
+    private void OnJoinLeaveReceived(bool join, string username)
+    {
+        if (!_config.ShowJoinLeaveMessages)
+        {
+            return;
+        }
+
+        string message = $"{username} has {(join ? "joined" : "left")}";
+        MessageReceived?.Invoke(new ChatMessage(string.Empty, string.Empty, "yellow", MessageType.System, message));
     }
 
     private void OnClosed()

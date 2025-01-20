@@ -113,15 +113,11 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
     }
 
     [UsedImplicitly]
-    [UIValue("priority-messages")]
-    private bool ShowPriorityMessages
+    [UIValue("join-leave-messages")]
+    private bool ShowJoinLeaveMessages
     {
-        get => _config.ShowPriorityMessages;
-        set
-        {
-            _config.ShowPriorityMessages = value;
-            _priorityVertical.gameObject.SetActive(value && _priorityMessages.Count > 0);
-        }
+        get => _config.ShowJoinLeaveMessages;
+        set => _config.ShowJoinLeaveMessages = value;
     }
 
     [UsedImplicitly]
@@ -485,10 +481,7 @@ internal class EventLobbyChatViewController : BSMLAutomaticViewController
 
                 if (message.Type == MessageType.PrioritySystem)
                 {
-                    if (_config.ShowPriorityMessages)
-                    {
-                        _priorityVertical.gameObject.SetActive(true);
-                    }
+                    _priorityVertical.gameObject.SetActive(true);
 
                     PriorityMessage priorityMessage;
                     if (_priorityMessages.Count >= 5)

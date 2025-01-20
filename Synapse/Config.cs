@@ -25,7 +25,7 @@ public class Config
 
     public bool ProfanityFilter { get; set; } = true;
 
-    public bool ShowPriorityMessages { get; set; } = true;
+    public bool ShowJoinLeaveMessages { get; set; } = true;
 
     public bool ShowEliminated { get; set; } = true;
 

@@ -56,6 +56,8 @@ internal class NetworkManager : IDisposable
 
     internal event Action<ChatMessage>? ChatReceived;
 
+    internal event Action<bool, string>? JoinLeaveReceived;
+
     ////internal event Action<FailReason>? ConnectionFailed;
 
     internal event Action? Closed;
@@ -511,6 +513,22 @@ internal class NetworkManager : IDisposable
             {
                 string message = reader.ReadString();
                 ChatReceived?.Invoke(JsonConvert.DeserializeObject<ChatMessage>(message, JsonSettings.Settings));
+
+                break;
+            }
+
+            case ClientOpcode.UserJoin:
+            {
+                string username = reader.ReadString();
+                JoinLeaveReceived?.Invoke(true, username);
+
+                break;
+            }
+
+            case ClientOpcode.UserLeave:
+            {
+                string username = reader.ReadString();
+                JoinLeaveReceived?.Invoke(false, username);
 
                 break;
             }
