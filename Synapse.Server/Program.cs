@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
+using Serilog.Formatting.Compact;
 using Serilog.Sinks.SystemConsole.Themes;
 using Synapse.Server.Clients;
 using Synapse.Server.Services;
@@ -54,10 +55,12 @@ using IHost host = Host
             IDirectoryService directoryService =
                 serviceProvider.GetService<IDirectoryService>() ?? throw new InvalidOperationException();
             string filePath = Path.Combine(directoryService.EventDirectory, "server.log");
+            string jsonFilePath = Path.Combine(directoryService.EventDirectory, "server.log.json");
             config
                 .ReadFrom.Configuration(context.Configuration)
                 .WriteTo.Console(theme: AnsiConsoleTheme.Literate, applyThemeToRedirectedOutput: true)
-                .WriteTo.File(filePath);
+                .WriteTo.File(filePath)
+                .WriteTo.File(new CompactJsonFormatter(), jsonFilePath);
         })
     .Build();
 
