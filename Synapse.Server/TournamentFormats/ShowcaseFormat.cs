@@ -123,10 +123,10 @@ public class ShowcaseFormat : ITournamentFormat
 
             int targetPlayerCount = playerCount switch
             {
-                > 20 => 10,
-                > 8 => 4,
-                >= 3 => 3,
-                _ => 2
+                > 20 => 20,
+                > 12 => 8,
+                >= 4 => 4,
+                _ => 3
             };
 
             if (index <= _mapCount - 3)
@@ -142,7 +142,7 @@ public class ShowcaseFormat : ITournamentFormat
                     float cutoff = (float)Math.Pow((float)targetPlayerCount / playerCount, 1f / placesAway);
                     if (index < _mapCount - 3)
                     {
-                        float safetyCurve = (1 - ((float)index / _mapCount)) * 0.6f;
+                        float safetyCurve = (1 - ((float)index / _mapCount)) * 0.8f;
                         cutoff = Math.Max(safetyCurve, cutoff);
                     }
 
