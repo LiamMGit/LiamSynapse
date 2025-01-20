@@ -304,6 +304,12 @@ public class LeaderboardService : ILeaderboardService
                 return;
             }
 
+            if (percentage > 1 || percentage < 0 || score < 0)
+            {
+                _ = client.SendRefusal("Invalid score");
+                return;
+            }
+
             string id = client.Id;
 
             if (!_savedIds.Any(list => list[index].ContainsKey(id)))
