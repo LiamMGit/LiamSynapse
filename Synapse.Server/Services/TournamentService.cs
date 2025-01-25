@@ -38,6 +38,7 @@ public class TournamentService : ITournamentService
         Type formatType = eventSection.GetRequiredSection("Format").Get<string>() switch
         {
             "Showcase" => typeof(ShowcaseFormat),
+            "None" => typeof(NoneFormat),
             _ => throw new InvalidOperationException()
         };
         _formats = new ITournamentFormat[divisionsCount];
