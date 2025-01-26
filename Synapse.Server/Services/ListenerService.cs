@@ -237,7 +237,7 @@ public class ListenerService : IListenerService
     {
         Chatters.TryRemove(client, out _);
         _log.LogInformation("{Username} has left", client.DisplayUsername);
-        using PacketBuilder packetBuilder = new((byte)ClientOpcode.UserJoin);
+        using PacketBuilder packetBuilder = new((byte)ClientOpcode.UserLeave);
         packetBuilder.Write(client.DisplayUsername);
         ReadOnlySequence<byte> bytes = packetBuilder.ToBytes();
         AllClients(n => n.Chatter ? n.Send(bytes) : Task.CompletedTask);
