@@ -93,6 +93,21 @@ public class ListenerService : IListenerService
         return _listener.RunAsync();
     }
 
+    public void AllChatters(Func<IClient, Task> action)
+    {
+        foreach (IClient client in Chatters.Keys)
+        {
+            try
+            {
+                _ = action(client);
+            }
+            catch (Exception e)
+            {
+                _log.LogError(e, "Exception on {Chatter}", client);
+            }
+        }
+    }
+
     public void AllClients(Func<IClient, Task> action)
     {
         foreach (IClient client in Clients.Values)
@@ -228,7 +243,7 @@ public class ListenerService : IListenerService
         using PacketBuilder packetBuilder = new((byte)ClientOpcode.UserJoin);
         packetBuilder.Write(client.DisplayUsername);
         ReadOnlySequence<byte> bytes = packetBuilder.ToBytes();
-        AllClients(n => n.Chatter ? n.Send(bytes) : Task.CompletedTask);
+        AllChatters(n => n.Send(bytes));
         ////BroadcastServerMessage("{Username} has joined.", client.DisplayUsername);
         BroadcastPlayerCount();
     }
@@ -240,7 +255,7 @@ public class ListenerService : IListenerService
         using PacketBuilder packetBuilder = new((byte)ClientOpcode.UserLeave);
         packetBuilder.Write(client.DisplayUsername);
         ReadOnlySequence<byte> bytes = packetBuilder.ToBytes();
-        AllClients(n => n.Chatter ? n.Send(bytes) : Task.CompletedTask);
+        AllChatters(n => n.Send(bytes));
         ////BroadcastServerMessage("{Username} has left.", client.DisplayUsername);
         BroadcastPlayerCount();
     }
