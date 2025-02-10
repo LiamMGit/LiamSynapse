@@ -1,46 +1,142 @@
 {
   "Listing": {
-    "Title": "Title",
-    "Time": "2020-7-30T00:00:00Z",
+    "Title": "Extra Sensory II",
+    "Time": "2025-01-26T22:00:00Z",
     "IpAddress": "127.0.0.1:1001",
     "BannerImage": "http://localhost:5033/images/banner.png",
     "BannerColor": "#341552",
-    "GameVersion": "1.29.1,1.34.2,1.37.1",
-    "Divisions": [],
-    "Bundles": [
+    "GameVersion": "1.29.1,1.34.2,1.37.1,1.39.1,1.40.0",
+    "Divisions": [
       {
-        "GameVersion": "1.29.1",
-        "Url": "http://localhost:5033/bundle/bundle.zip",
-        "Hash": 9876543210
+        "Name": "Casual",
+        "Description": "For those looking to enjoy the game at a more casual pace, However, you may still find later maps challenging. Notes per second is lower, but note gimmicks are unaffected."
+      },
+      {
+        "Name": "Experienced",
+        "Description": "Experience the maps as they were originally intended. Higher notes per second for those looking to put their skills to the test"
       }
     ],
+    "Takeover": {
+      "DisableDust": true,
+      "DisableLogo": true,
+      "CountdownTMP": "Logo/EXSII_COUNTDOWN",
+      "Bundles": [
+        {
+          "GameVersion": "1.29.1",
+          "Url": "https://localhost:5033/bundle/takeover_windows2019_3913474686",
+          "Hash": 3913474686
+        },
+        {
+          "GameVersion": "1.34.2,1.37.1,1.39.1,1.40.0",
+          "Url": "https://localhost:5033/bundle/takeover_windows2021_2910218729",
+          "Hash": 2910218729
+        }
+      ]
+    },
+    "Lobby": {
+      "DisableDust": true,
+      "DisableSmoke": true,
+      "DepthTextureMode": 1,
+      "Bundles": [
+        {
+          "GameVersion": "1.29.1",
+          "Url": "https://localhost:5033/bundle/bundle_windows2019_853015874",
+          "Hash": 853015874
+        },
+        {
+          "GameVersion": "1.34.2,1.37.1,1.39.1,1.40.0",
+          "Url": "https://localhost:5033/bundle/bundle_windows2021_1876858522",
+          "Hash": 1876858522
+        }
+      ]
+    },
     "RequiredMods": [
       {
         "GameVersion": "1.29.1",
         "Mods": [
           {
-            "Id": "BeatSaberMarkupLanguage",
-            "Version": "^1.6.10",
-            "Url": "https://beatmods.com/uploads/642b4f95368d841027494bed/universal/BeatSaberMarkupLanguage-1.6.10.zip",
-            "Hash": "3fb90c7ff875f544db92bd9a724e6838"
+            "Id": "Vivify",
+            "Version": "^1.0.1",
+            "Url": "https://localhost:5033/mods/Vivify-1.0.1%2B1.29.1-bs1.29.1-d32ee3d.zip",
+            "Hash": "2e3250b635f5d8c5711ba8d7fd996b4a"
+          },
+          {
+            "Id": "Synapse",
+            "Version": "^1.1.13",
+            "Url": "https://localhost:5033/mods/Synapse-1.1.13%2B1.29.1-bs1.29.1-238013c.zip",
+            "Hash": "599dd83b0b5677d958510b50c0ce848c"
+          },
+          {
+            "Id": "CustomJSONData",
+            "Version": "^2.6.6",
+            "Url": "https://github.com/Aeroluna/CustomJSONData/releases/download/v2.6.6/CustomJSONData-2.6.6%2B1.29.1-bs1.29.1-d65115f.zip",
+            "Hash": "c9f6037220338c5ed00aa0521b084b33"
+          },
+          {
+            "Id": "Chroma",
+            "Version": "^2.9.16",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/Chroma-2.9.16%2B1.29.1-bs1.29.1-3c84e77.zip",
+            "Hash": "03cb34b069773920cdef986bd005ca44"
+          },
+          {
+            "Id": "NoodleExtensions",
+            "Version": "^1.7.14",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/NoodleExtensions-1.7.14%2B1.29.1-bs1.29.1-3c84e77.zip",
+            "Hash": "2330f608c13c257830ce2df6c40e8e30"
+          },
+          {
+            "Id": "Heck",
+            "Version": "^1.7.7",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-18/Heck-1.7.7%2B1.29.1-bs1.29.1-18df525.zip",
+            "Hash": "f3117be19241faf751a7d74f3f3d6fbe"
           },
           {
             "Id": "Ini Parser",
             "Version": "^2.5.9",
-            "Url": "https://beatmods.com/uploads/6426502b368d841027494b57/universal/Ini%20Parser-2.5.9.zip",
+            "Url": "https://beatmods.com/cdn/mod/5df74ad1c6b120fecdc615dd55f15b88.zip",
             "Hash": "5df74ad1c6b120fecdc615dd55f15b88"
           },
           {
             "Id": "BS Utils",
             "Version": "^1.12.2",
-            "Url": "https://beatmods.com/uploads/6426502d368d841027494b6c/universal/BS%20Utils-1.12.2.zip",
+            "Url": "https://beatmods.com/cdn/mod/0e19fb5a18ed1107e3c6c5b9d02211d9.zip",
             "Hash": "0e19fb5a18ed1107e3c6c5b9d02211d9"
           },
           {
             "Id": "SongCore",
             "Version": "^3.11.1",
-            "Url": "https://beatmods.com/uploads/64d20b6b32846c29a72bd0ae/universal/SongCore-3.11.1.zip",
+            "Url": "https://beatmods.com/cdn/mod/b9133aa79e80804f66b8b40d0d7f4b8c.zip",
             "Hash": "b9133aa79e80804f66b8b40d0d7f4b8c"
+          },
+          {
+            "Id": "BeatSaberMarkupLanguage",
+            "Version": "^1.6.10",
+            "Url": "https://beatmods.com/cdn/mod/3fb90c7ff875f544db92bd9a724e6838.zip",
+            "Hash": "3fb90c7ff875f544db92bd9a724e6838"
+          },
+          {
+            "Id": "SiraUtil",
+            "Version": "^3.1.2",
+            "Url": "https://beatmods.com/cdn/mod/d2eca700e097152ca29afefc6800ac01.zip",
+            "Hash": "d2eca700e097152ca29afefc6800ac01"
+          },
+          {
+            "Id": "LookupID",
+            "Version": "^1.0.1",
+            "Url": "https://beatmods.com/cdn/mod/5f5655b91193602c0311b8b6d1b4c71c.zip",
+            "Hash": "5f5655b91193602c0311b8b6d1b4c71c"
+          },
+          {
+            "Id": "AudioLink",
+            "Version": "^1.0.6",
+            "Url": "https://beatmods.com/cdn/mod/34983ab2113b8451eb847345434e3d1d.zip",
+            "Hash": "34983ab2113b8451eb847345434e3d1d"
+          },
+          {
+            "Id": "CameraUtils",
+            "Version": "^1.0.3",
+            "Url": "https://beatmods.com/cdn/mod/048fb78570e9cdf91869c35defea37cc.zip",
+            "Hash": "048fb78570e9cdf91869c35defea37cc"
           }
         ]
       },
@@ -48,28 +144,391 @@
         "GameVersion": "1.34.2",
         "Mods": [
           {
-            "Id": "BeatSaberMarkupLanguage",
-            "Version": "^1.8.0",
-            "Url": "https://beatmods.com/uploads/65779cbf5e029208799de507/universal/BeatSaberMarkupLanguage-1.8.0.zip",
-            "Hash": "90fa99304b89702c1b0f39d0ce2efa23"
+            "Id": "Vivify",
+            "Version": "^1.0.1",
+            "Url": "https://localhost:5033/mods/Vivify-1.0.1%2B1.34.2-bs1.34.2-d32ee3d.zip",
+            "Hash": "a5ab2ae12ee2b722192dbacb902e83d5"
+          },
+          {
+            "Id": "Synapse",
+            "Version": "^1.1.13",
+            "Url": "https://localhost:5033/mods/Synapse-1.1.13%2B1.34.2-bs1.34.2-238013c.zip",
+            "Hash": "a6333e489423666a602bd61d6dc2ecd9"
+          },
+          {
+            "Id": "CustomJSONData",
+            "Version": "^2.6.6",
+            "Url": "https://github.com/Aeroluna/CustomJSONData/releases/download/v2.6.6/CustomJSONData-2.6.6%2B1.34.2-bs1.34.2-d65115f.zip",
+            "Hash": "120bf98e86b045cfb50381c768e0b04d"
+          },
+          {
+            "Id": "Chroma",
+            "Version": "^2.9.16",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/Chroma-2.9.16%2B1.34.2-bs1.34.2-3c84e77.zip",
+            "Hash": "de08e36021eadc0c04637c72b83c7908"
+          },
+          {
+            "Id": "NoodleExtensions",
+            "Version": "^1.7.14",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/NoodleExtensions-1.7.14%2B1.34.2-bs1.34.2-3c84e77.zip",
+            "Hash": "616382760be5e469b42bf79966ab1483"
+          },
+          {
+            "Id": "Heck",
+            "Version": "^1.7.7",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-18/Heck-1.7.7%2B1.34.2-bs1.34.2-18df525.zip",
+            "Hash": "19906b3200da35b8fde4e7012f58d81a"
           },
           {
             "Id": "Ini Parser",
             "Version": "^2.5.9",
-            "Url": "https://beatmods.com/uploads/6426502b368d841027494b57/universal/Ini%20Parser-2.5.9.zip",
+            "Url": "https://beatmods.com/cdn/mod/5df74ad1c6b120fecdc615dd55f15b88.zip",
             "Hash": "5df74ad1c6b120fecdc615dd55f15b88"
           },
           {
             "Id": "BS Utils",
             "Version": "^1.13.0",
-            "Url": "https://beatmods.com/uploads/65779cc15e029208799de510/universal/BS Utils-1.13.0.zip",
+            "Url": "https://beatmods.com/cdn/mod/01c9d6445852f6690b6619fc2b71931e.zip",
             "Hash": "01c9d6445852f6690b6619fc2b71931e"
           },
           {
             "Id": "SongCore",
             "Version": "^3.12.2",
-            "Url": "https://beatmods.com/uploads/658f600a5e029208799de67b/universal/SongCore-3.12.2.zip",
+            "Url": "https://beatmods.com/cdn/mod/4e585de53beda595a11af1b7a28daac8.zip",
             "Hash": "4e585de53beda595a11af1b7a28daac8"
+          },
+          {
+            "Id": "BeatSaberMarkupLanguage",
+            "Version": "^1.8.1",
+            "Url": "https://beatmods.com/cdn/mod/41c670647aeb392c9f5eeb848376c9c1.zip",
+            "Hash": "41c670647aeb392c9f5eeb848376c9c1"
+          },
+          {
+            "Id": "SiraUtil",
+            "Version": "^3.1.6",
+            "Url": "https://beatmods.com/cdn/mod/b9e621074dfa0bb052b4eaa2f79187c6.zip",
+            "Hash": "b9e621074dfa0bb052b4eaa2f79187c6"
+          },
+          {
+            "Id": "LookupID",
+            "Version": "^1.0.1",
+            "Url": "https://beatmods.com/cdn/mod/5f5655b91193602c0311b8b6d1b4c71c.zip",
+            "Hash": "5f5655b91193602c0311b8b6d1b4c71c"
+          },
+          {
+            "Id": "AudioLink",
+            "Version": "^1.0.6",
+            "Url": "https://beatmods.com/cdn/mod/4b94fec5cfea592e959c7452d600ec5b.zip",
+            "Hash": "4b94fec5cfea592e959c7452d600ec5b"
+          },
+          {
+            "Id": "CameraUtils",
+            "Version": "^1.0.7",
+            "Url": "https://beatmods.com/cdn/mod/471d40a9a5c951f4e7f5520096f00bdb.zip",
+            "Hash": "471d40a9a5c951f4e7f5520096f00bdb"
+          },
+          {
+            "Id": "System.IO.Compression.FileSystem",
+            "Version": "^4.7.3056",
+            "Url": "https://beatmods.com/cdn/mod/e19f6fd395d54de7bfcbbbe3084dea28.zip",
+            "Hash": "e19f6fd395d54de7bfcbbbe3084dea28"
+          },
+          {
+            "Id": "System.IO.Compression",
+            "Version": "^4.6.57",
+            "Url": "https://beatmods.com/cdn/mod/a4e9e26f61967e56168e08eecb01ab88.zip",
+            "Hash": "a4e9e26f61967e56168e08eecb01ab88"
+          },
+          {
+            "Id": "AssetBundleLoadingTools",
+            "Version": "^1.1.3",
+            "Url": "https://beatmods.com/cdn/mod/fa5fd6cec26c1c4ac9dfc8a74351d231.zip",
+            "Hash": "fa5fd6cec26c1c4ac9dfc8a74351d231"
+          }
+        ]
+      },
+      {
+        "GameVersion": "1.37.1",
+        "Mods": [
+          {
+            "Id": "Vivify",
+            "Version": "^1.0.1",
+            "Url": "https://localhost:5033/mods/Vivify-1.0.1%2B1.37.1-bs1.37.1-d32ee3d.zip",
+            "Hash": "b094cd21964b79b44fdfd7279be747e8"
+          },
+          {
+            "Id": "Synapse",
+            "Version": "^1.1.13",
+            "Url": "https://localhost:5033/mods/Synapse-1.1.13%2B1.37.1-bs1.37.1-238013c.zip",
+            "Hash": "08ca288fbfd389461d31ecd774b57896"
+          },
+          {
+            "Id": "CustomJSONData",
+            "Version": "^2.6.6",
+            "Url": "https://github.com/Aeroluna/CustomJSONData/releases/download/v2.6.6/CustomJSONData-2.6.6%2B1.37.1-bs1.37.1-d65115f.zip",
+            "Hash": "bd2f3bb87cddc139729690e0fa4aa5ed"
+          },
+          {
+            "Id": "Chroma",
+            "Version": "^2.9.16",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/Chroma-2.9.16%2B1.37.1-bs1.37.1-3c84e77.zip",
+            "Hash": "f2698dfdc3dc7de7cdb8a6a3acc958d9"
+          },
+          {
+            "Id": "NoodleExtensions",
+            "Version": "^1.7.14",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/NoodleExtensions-1.7.14%2B1.37.1-bs1.37.1-3c84e77.zip",
+            "Hash": "019eb414ff1872eb0f047ab00de0fea4"
+          },
+          {
+            "Id": "Heck",
+            "Version": "^1.7.7",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-18/Heck-1.7.7%2B1.37.1-bs1.37.1-18df525.zip",
+            "Hash": "9dd7e5fb9724382ab1c69670c4c7771b"
+          },
+          {
+            "Id": "SongCore",
+            "Version": "^3.14.11",
+            "Url": "https://beatmods.com/cdn/mod/b8312c56d29099cd170a2d0eef0f819f.zip",
+            "Hash": "b8312c56d29099cd170a2d0eef0f819f"
+          },
+          {
+            "Id": "BeatSaberMarkupLanguage",
+            "Version": "^1.11.4",
+            "Url": "https://beatmods.com/cdn/mod/6b086855de6e9c91837a6dbb409552da.zip",
+            "Hash": "6b086855de6e9c91837a6dbb409552da"
+          },
+          {
+            "Id": "SiraUtil",
+            "Version": "^3.1.11",
+            "Url": "https://beatmods.com/cdn/mod/06ead07b092352e4a523b9b530d45f65.zip",
+            "Hash": "06ead07b092352e4a523b9b530d45f65"
+          },
+          {
+            "Id": "LookupID",
+            "Version": "^1.0.1",
+            "Url": "https://beatmods.com/cdn/mod/5f5655b91193602c0311b8b6d1b4c71c.zip",
+            "Hash": "5f5655b91193602c0311b8b6d1b4c71c"
+          },
+          {
+            "Id": "AudioLink",
+            "Version": "^1.0.6",
+            "Url": "https://beatmods.com/cdn/mod/5163f0e1182fe4b9685e5cb38d3cb2af.zip",
+            "Hash": "5163f0e1182fe4b9685e5cb38d3cb2af"
+          },
+          {
+            "Id": "CameraUtils",
+            "Version": "^1.0.7",
+            "Url": "https://beatmods.com/cdn/mod/471d40a9a5c951f4e7f5520096f00bdb.zip",
+            "Hash": "471d40a9a5c951f4e7f5520096f00bdb"
+          },
+          {
+            "Id": "System.IO.Compression.FileSystem",
+            "Version": "^4.7.3056",
+            "Url": "https://beatmods.com/cdn/mod/e19f6fd395d54de7bfcbbbe3084dea28.zip",
+            "Hash": "e19f6fd395d54de7bfcbbbe3084dea28"
+          },
+          {
+            "Id": "System.IO.Compression",
+            "Version": "^4.6.57",
+            "Url": "https://beatmods.com/cdn/mod/a4e9e26f61967e56168e08eecb01ab88.zip",
+            "Hash": "a4e9e26f61967e56168e08eecb01ab88"
+          },
+          {
+            "Id": "AssetBundleLoadingTools",
+            "Version": "^1.1.6",
+            "Url": "https://beatmods.com/cdn/mod/bfe8a3934dbbc12984bb780156797f73.zip",
+            "Hash": "bfe8a3934dbbc12984bb780156797f73"
+          }
+        ]
+      },
+      {
+        "GameVersion": "1.39.1",
+        "Mods": [
+          {
+            "Id": "Vivify",
+            "Version": "^1.0.1",
+            "Url": "https://localhost:5033/mods/Vivify-1.0.1%2B1.39.1-bs1.39.1-d32ee3d.zip",
+            "Hash": "0097c0b58e2b22c2905565a41ef1de46"
+          },
+          {
+            "Id": "Synapse",
+            "Version": "^1.1.13",
+            "Url": "https://localhost:5033/mods/Synapse-1.1.13%2B1.39.1-bs1.39.1-238013c.zip",
+            "Hash": "199131f16bced296ca5011943cfb02d9"
+          },
+          {
+            "Id": "Chroma",
+            "Version": "^2.9.16",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/Chroma-2.9.16%2B1.39.1-bs1.39.1-3c84e77.zip",
+            "Hash": "38e59a528de9f33b20b8f408dceb6407"
+          },
+          {
+            "Id": "NoodleExtensions",
+            "Version": "^1.7.14",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/NoodleExtensions-1.7.14%2B1.39.1-bs1.39.1-3c84e77.zip",
+            "Hash": "89d1c041504ea97b8fc80e95bc995348"
+          },
+          {
+            "Id": "Heck",
+            "Version": "^1.7.7",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-18/Heck-1.7.7%2B1.39.1-bs1.39.1-18df525.zip",
+            "Hash": "d1b10b6845ddf6eb9ca5a21a27dd9917"
+          },
+          {
+            "Id": "SongCore",
+            "Version": "^3.14.15",
+            "Url": "https://beatmods.com/cdn/mod/d6d96830b7755e1a1f44d7faf328ddc5.zip",
+            "Hash": "d6d96830b7755e1a1f44d7faf328ddc5"
+          },
+          {
+            "Id": "BeatSaberMarkupLanguage",
+            "Version": "^1.12.4",
+            "Url": "https://beatmods.com/cdn/mod/3370d61ad7cfd48962d9be19bc3d1e5e.zip",
+            "Hash": "3370d61ad7cfd48962d9be19bc3d1e5e"
+          },
+          {
+            "Id": "SiraUtil",
+            "Version": "^3.1.14",
+            "Url": "https://beatmods.com/cdn/mod/7def22a781c08d0b3c5f2b4e77fdec35.zip",
+            "Hash": "7def22a781c08d0b3c5f2b4e77fdec35"
+          },
+          {
+            "Id": "CustomJSONData",
+            "Version": "^2.6.6",
+            "Url": "https://beatmods.com/cdn/mod/2c47a3b454ee962b312aef24696c4196.zip",
+            "Hash": "2c47a3b454ee962b312aef24696c4196"
+          },
+          {
+            "Id": "LookupID",
+            "Version": "^1.0.1",
+            "Url": "https://beatmods.com/cdn/mod/5f5655b91193602c0311b8b6d1b4c71c.zip",
+            "Hash": "5f5655b91193602c0311b8b6d1b4c71c"
+          },
+          {
+            "Id": "AudioLink",
+            "Version": "^1.0.6",
+            "Url": "https://beatmods.com/cdn/mod/5163f0e1182fe4b9685e5cb38d3cb2af.zip",
+            "Hash": "5163f0e1182fe4b9685e5cb38d3cb2af"
+          },
+          {
+            "Id": "CameraUtils",
+            "Version": "^1.0.7",
+            "Url": "https://beatmods.com/cdn/mod/471d40a9a5c951f4e7f5520096f00bdb.zip",
+            "Hash": "471d40a9a5c951f4e7f5520096f00bdb"
+          },
+          {
+            "Id": "System.IO.Compression.FileSystem",
+            "Version": "^4.7.3056",
+            "Url": "https://beatmods.com/cdn/mod/e19f6fd395d54de7bfcbbbe3084dea28.zip",
+            "Hash": "e19f6fd395d54de7bfcbbbe3084dea28"
+          },
+          {
+            "Id": "System.IO.Compression",
+            "Version": "^4.6.57",
+            "Url": "https://beatmods.com/cdn/mod/a4e9e26f61967e56168e08eecb01ab88.zip",
+            "Hash": "a4e9e26f61967e56168e08eecb01ab88"
+          },
+          {
+            "Id": "AssetBundleLoadingTools",
+            "Version": "^1.1.9",
+            "Url": "https://beatmods.com/cdn/mod/91c1fe44c685afdfa4f97864fb09608d.zip",
+            "Hash": "91c1fe44c685afdfa4f97864fb09608d"
+          }
+        ]
+      },
+      {
+        "GameVersion": "1.40.0",
+        "Mods": [
+          {
+            "Id": "Vivify",
+            "Version": "^1.0.1",
+            "Url": "https://localhost:5033/mods/Vivify-1.0.1%2B1.40.0-bs1.40.0-d32ee3d.zip",
+            "Hash": "ba1793ea3a60d083869d3afbad0e35e5"
+          },
+          {
+            "Id": "Synapse",
+            "Version": "^1.1.13",
+            "Url": "https://localhost:5033/mods/Synapse-1.1.13%2B1.40.0-bs1.40.0-238013c.zip",
+            "Hash": "e26ced31e0b3e5fc117ab11e4786e7b8"
+          },
+          {
+            "Id": "Chroma",
+            "Version": "^2.9.16",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/Chroma-2.9.16%2B1.40.0-bs1.40.0-3c84e77.zip",
+            "Hash": "b51819e75b4a682f3fb01ee2ee088630"
+          },
+          {
+            "Id": "NoodleExtensions",
+            "Version": "^1.7.14",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-25/NoodleExtensions-1.7.14%2B1.40.0-bs1.40.0-3c84e77.zip",
+            "Hash": "c19663846f8423948980a065b004c8dc"
+          },
+          {
+            "Id": "Heck",
+            "Version": "^1.7.7",
+            "Url": "https://github.com/Aeroluna/Heck/releases/download/v2025-01-18/Heck-1.7.7%2B1.40.0-bs1.40.0-18df525.zip",
+            "Hash": "6f0387c95271d004cff56f7b1cc4467e"
+          },
+          {
+            "Id": "SongCore",
+            "Version": "^3.15.2",
+            "Url": "https://beatmods.com/cdn/mod/8fff7f892716e00f3ef96260868faa0a.zip",
+            "Hash": "8fff7f892716e00f3ef96260868faa0a"
+          },
+          {
+            "Id": "BeatSaberMarkupLanguage",
+            "Version": "^1.12.5",
+            "Url": "https://beatmods.com/cdn/mod/ce406862c55fdc1b572f99f8e4dbd1eb.zip",
+            "Hash": "ce406862c55fdc1b572f99f8e4dbd1eb"
+          },
+          {
+            "Id": "SiraUtil",
+            "Version": "^3.1.14",
+            "Url": "https://beatmods.com/cdn/mod/7def22a781c08d0b3c5f2b4e77fdec35.zip",
+            "Hash": "7def22a781c08d0b3c5f2b4e77fdec35"
+          },
+          {
+            "Id": "CustomJSONData",
+            "Version": "^2.6.6",
+            "Url": "https://beatmods.com/cdn/mod/2c47a3b454ee962b312aef24696c4196.zip",
+            "Hash": "2c47a3b454ee962b312aef24696c4196"
+          },
+          {
+            "Id": "LookupID",
+            "Version": "^1.0.1",
+            "Url": "https://beatmods.com/cdn/mod/5f5655b91193602c0311b8b6d1b4c71c.zip",
+            "Hash": "5f5655b91193602c0311b8b6d1b4c71c"
+          },
+          {
+            "Id": "AudioLink",
+            "Version": "^1.0.6",
+            "Url": "https://beatmods.com/cdn/mod/5163f0e1182fe4b9685e5cb38d3cb2af.zip",
+            "Hash": "5163f0e1182fe4b9685e5cb38d3cb2af"
+          },
+          {
+            "Id": "CameraUtils",
+            "Version": "^1.0.7",
+            "Url": "https://beatmods.com/cdn/mod/471d40a9a5c951f4e7f5520096f00bdb.zip",
+            "Hash": "471d40a9a5c951f4e7f5520096f00bdb"
+          },
+          {
+            "Id": "System.IO.Compression.FileSystem",
+            "Version": "^4.7.3056",
+            "Url": "https://beatmods.com/cdn/mod/e19f6fd395d54de7bfcbbbe3084dea28.zip",
+            "Hash": "e19f6fd395d54de7bfcbbbe3084dea28"
+          },
+          {
+            "Id": "System.IO.Compression",
+            "Version": "^4.6.57",
+            "Url": "https://beatmods.com/cdn/mod/a4e9e26f61967e56168e08eecb01ab88.zip",
+            "Hash": "a4e9e26f61967e56168e08eecb01ab88"
+          },
+          {
+            "Id": "AssetBundleLoadingTools",
+            "Version": "^1.1.9",
+            "Url": "https://beatmods.com/cdn/mod/91c1fe44c685afdfa4f97864fb09608d.zip",
+            "Hash": "91c1fe44c685afdfa4f97864fb09608d"
           }
         ]
       }
