@@ -3,6 +3,18 @@ EXSII featured a truly interactive live event, enabled by Synapse, a cutting-edg
 Participants compete against each other on a shared leaderboard and can communicate seamlessly using the in-game chat feature.
 ### https://exsii.totalbs.dev/
 
+## Features
+- Takeover the main menu with your own prefabs during the countdown to build hype.
+- A countdown and custom banner from the main menu, along with notifications from anywhere in-game that your event is live.
+- A 1-hour grace period to automatically download required mods for an event.
+- Multiple divisions so all players can enjoy their preferred difficulty.
+- A fully featured chatroom where players can interact with each other, complete with moderation tools like banning malicious users, as well as toggleable options like a profanity filter or opting-out of chat entirely.
+- Replace the lobby with a custom prefab themed around your event, which also includes custom cinematics that can play as an intro or outro.
+- Download and synchronously start maps for all players to experience maps at the same time.
+- An event leaderboard where players can compete with each other, as well as the ability to run tournament formats which can eliminate players each round.
+- All dockerized to be easily portable.
+- Seamlessly runs, even with 1900+ players, as shown during EXSII.
+
 ## Setup for event hosts
 #### Interested in running an event using Synapse? Contact me and I can help config and list your event using the official API.
 
@@ -45,9 +57,9 @@ services:
     tty: true
 ```
 
-The configuration is done using two `appsettings.ENVIRONMENT.json` for the listing and server. This will typically be `appsettings.Production.json`
+The configuration is done using two `appsettings.ENVIRONMENT.json` for the listing and server. This will typically be `appsettings.Production.json`. Example configs can be found at `Synapse.Listing/appsettings.json.sample` and `Synapse.Server/appsettings.json.sample`
 
-Although assets can be hosted from `wwwroot/` using the Listing project, it is recommended to use a CDN.
+Although assets can be hosted from `wwwroot/` using the Listing project, it is recommended to use a CDN. Example assets can be found in the `SampleAssets` directory.
 
 Listing appsettings:
 ```json5
@@ -201,7 +213,7 @@ Example `roles.json`:
   {
     "name": "coordinator",
     "priority": 99, // Can only affect users with a lower priority than themselves
-    "color": "red", // Username color in chat. Will use role with highest priority
+    "color": "red", // Username color in chat. See https://digitalnativestudios.com/textmeshpro/docs/rich-text/#color. Will use role with highest priority
     "permission": 1 // Bitmask of permissions
   }
 ]
@@ -222,18 +234,21 @@ Example `admins.json`:
 ```
 All users that connect will be given an ID in the following format: `PLATFORMID_PLATFORM`, e.g. `76561172306506184_Steam` or `2026218196532328_OculusRift`.
 
+Commands be sent through the server, or from a client with appropriate permissions by beginning a chat message with `/`, e.g. `/say hello!`
+
 Commands which need an ID/username can use the start of a name instead. i.e. `kick aero` will find the user `Aeroluna`.
 Commands that use options can be combined, i.e. `-e -f` is the same as `-ef`.
 
 Nested lists represent subcommands, e.g. `scores backup reload`.
 ### Client
-- `motd [message]` Prints the motd again or sets a new one. Requires `coordinator` to set an motd
+- `motd [message]` Prints the motd again or sets a new one. Allows rich text. Requires `coordinator` to set an motd
 - `roll [min] [max]` Rolls a random number. Rolls between 1-100 with no parameters, and between 1-MAX with one parameter, and MIN-MAX with two parameters.
 - `tell [player] [message]` (`t`, `whisper`, `w`) Privately message another player. Messages will still be logged by the server.
 - `who [options] [player]` Prints how many players are currently connected. May specify a name to find all players whose name starts with that name. `-e` to print more names. `-v` to print IDs (requires `moderator`).
+- `ping` Prints current latency between client and server. (Client only)
 ### Message
-- `say [message]` Sends a priority message to everyone with the format `[Server] MESSAGE`. Requires `coordinator`.
-- `sayraw [message]` Sends a priority message without formatting. Requires `coordinator`.
+- `say [message]` Sends a priority message to everyone with the format `[Server] MESSAGE`. Allows rich text. Requires `coordinator`.
+- `sayraw [message]` Sends a priority message without formatting. Allows rich text. Requires `coordinator`.
 ### Users
 - `allow [player]` Adds a user to the whitelist. Requires `moderator`.
 - `ban [player] [reason] [time]` Bans a user. Optionally set a reason and/or duration. Requires `moderator`.
